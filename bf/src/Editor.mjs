@@ -51,6 +51,9 @@ const activeLineField = StateField.define({
 
 		for (let e of tr.effects) {
 			if (e.is(setActiveLine)) {
+				if (e.value === 0) {
+					return Decoration.none;
+				}
 				const line = tr.state.doc.line(e.value)
 				deco = Decoration.set([activeLineDeco.range(line.from)])
 			}
@@ -80,7 +83,7 @@ export class Editor {
 
 	highlightLine(lineNo) {
 		if (lineNo <= 0) {
-			return; // todo this._editor.dispatch({effects: null});
+			lineNo = 0;
 		}
 		this._editor.dispatch({effects: setActiveLine.of(lineNo)});
 	}

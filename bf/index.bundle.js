@@ -25404,6 +25404,9 @@
 
   		for (let e of tr.effects) {
   			if (e.is(setActiveLine)) {
+  				if (e.value === 0) {
+  					return Decoration.none;
+  				}
   				const line = tr.state.doc.line(e.value);
   				deco = Decoration.set([activeLineDeco.range(line.from)]);
   			}
@@ -25433,7 +25436,7 @@
 
   	highlightLine(lineNo) {
   		if (lineNo <= 0) {
-  			return; // todo this._editor.dispatch({effects: null});
+  			lineNo = 0;
   		}
   		this._editor.dispatch({effects: setActiveLine.of(lineNo)});
   	}
@@ -25680,9 +25683,13 @@
   		this._el.textContent += text;
   	}
 
-  	clear() {
-  		this._el.textContent = '';
+  	stop() {
   		this._resolveInput();
+  	}
+
+  	clear() {
+  		this.stop();
+  		this._el.textContent = '';
   		this.setCommandsCount(0);
   		this.setStatus();
   	}
@@ -25962,7 +25969,9 @@
   	onStop = () => {
   		if (this._stopped) { return; }
   		this._stopped = true;
+  		this._console.stop();
   		this._console.setStatus('stopped');
+  		this._editor.highlightLine(0);
   	}
 
   	onStep = () => {
@@ -26002,8 +26011,13 @@
   			});
 
   			this._running = false;
-  			// todo finished
-  			this._console.setStatus('waiting');
+
+  			if (!this._translator.getCurrentLine()) {
+  				this._stopped = true;
+  				this._console.setStatus('finished');
+  			} else {
+  				this._console.setStatus('waiting');
+  			}
   		}
   		catch (e) {
   			this._processError(e, this._step);
@@ -26035,6 +26049,7 @@
   			setTimeout(runCallback);
   		} else if (e.message === 'need input') {
   			this._console.readInput().then((input) => {
+  				console.log('input');
   				this._translator.pushInput(input);
   				runCallback();
   			});

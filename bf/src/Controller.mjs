@@ -20,7 +20,9 @@ export class Controller {
 	onStop = () => {
 		if (this._stopped) { return; }
 		this._stopped = true;
+		this._console.stop();
 		this._console.setStatus('stopped');
+		this._editor.highlightLine(0);
 	}
 
 	onStep = () => {
@@ -60,8 +62,13 @@ export class Controller {
 			});
 
 			this._running = false;
-			// todo finished
-			this._console.setStatus('waiting');
+
+			if (!this._translator.getCurrentLine()) {
+				this._stopped = true;
+				this._console.setStatus('finished');
+			} else {
+				this._console.setStatus('waiting');
+			}
 		}
 		catch (e) {
 			this._processError(e, this._step);

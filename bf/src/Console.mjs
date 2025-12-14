@@ -120,9 +120,13 @@ export class Console {
 		this._el.textContent += text;
 	}
 
-	clear() {
-		this._el.textContent = '';
+	stop() {
 		this._resolveInput();
+	}
+
+	clear() {
+		this.stop();
+		this._el.textContent = '';
 		this.setCommandsCount(0);
 		this.setStatus();
 	}
