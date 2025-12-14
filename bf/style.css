@@ -1,0 +1,315 @@
+body {
+	margin: 0;
+	width: 100vw;
+	height: 100vh;
+}
+
+pre {
+	margin: 0;
+}
+
+.container {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	padding: 10px 15px 15px;
+	box-sizing: border-box;
+	background: #bdd2d9;
+}
+
+.nav {
+	height: 36px;
+	display: flex;
+	justify-content: space-between;
+}
+
+.buttons {
+	display: flex;
+}
+
+.buttons-block {
+	position: relative;
+	margin-right: 20px;
+}
+
+.buttons-block:not(:last-child):after {
+	content: "";
+	position: absolute;
+	width: 2px;
+	height: 24px;
+	top: 2px;
+	right: -10px;
+	background: #00000014;
+}
+
+.btn {
+	padding: 2px 4px;
+	text-transform: uppercase;
+	font-weight: bold;
+	background: #efe8ce;
+	border-left: 4px solid white;
+	border-top: 4px solid white;
+	border-right: 4px solid #9e9d8b;
+	border-bottom: 4px solid #9e9d8b;
+	cursor: pointer;
+	margin-right: 3px;
+	color: #65645b;
+	font-family: monospace;
+}
+
+
+.btn:active {
+	transform: scale(93%);
+}
+
+
+.nav-end {
+	text-transform: uppercase;
+	font-family: monospace;
+	font-size: 24px;
+	color: #c49696;
+	margin-right: 2px;
+	position: relative;
+	font-weight: bold;
+	line-height: 33px;
+}
+
+.nav-end-front {
+	position: absolute;
+	top: -3px;
+	right: -2px;
+	color: #fff;
+}
+
+
+
+
+
+.content {
+	display: flex;
+	height: calc(100% - 36px);
+}
+
+.left {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.block {
+	width: 100%;
+	height: 100%;
+	border: 1px solid #0000002e;
+	background: white;
+	border-radius: 10px;
+	overflow: hidden;
+	margin: 0;
+	box-sizing: border-box;
+	font-family: monospace;
+}
+
+.tabs {
+	display: flex;
+	margin-left: 10px;
+}
+
+.tab {
+	padding: 5px 10px;
+	font-family: monospace;
+	background: #e6e6e6;
+	margin-bottom: -1px;
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
+	margin-right: 10px;
+	border-top: 1px solid #0000002e;
+	border-left: 1px solid #0000002e;
+	border-right: 1px solid #0000002e;
+}
+
+.tab.--active {
+	z-index: 100;
+	background: white;
+}
+
+.edit-area {
+
+}
+
+.cm-editor {
+	height: 100%;
+}
+
+.cm-active-debug-line {
+	background-color: rgba(255, 200, 0, 0.44);
+}
+
+
+.right {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	margin-left: 10px;
+}
+
+.console {
+	width: 100%;
+	height: 100%;
+	margin-bottom: 10px;
+	padding: 15px 20px;
+	box-sizing: border-box;
+	background: black;
+	color: #5fe85f;
+	font-weight: bold;
+	font-size: 1.05rem;
+	display: flex;
+	flex-direction: column;
+}
+
+.console-stats {
+	margin: 0;
+	display: flex;
+	justify-content: space-between;
+}
+
+.console-status span.--warning {
+	color: black;
+	background: yellow;
+}
+.console-status span.--error {
+	color: black;
+	background: red;
+}
+.console-commands {
+	text-align: end;
+}
+
+.console-status:after {
+	content: "";
+	animation: bounc 0.6s infinite;
+}
+
+@keyframes bounc {
+	0% {
+		content: "\\";
+	}
+	25% {
+		content: "|";
+	}
+	50% {
+		content: "/";
+	}
+	75% {
+		content: "—";
+	}
+	100% {
+		content: "\\";
+	}
+}
+
+/* The keyframes define the animation sequence */
+@keyframes bounce {
+	0% {
+		opacity: 1;
+	}
+	25% {
+		opacity: 1;
+	}
+	26% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+
+
+.console-container {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	overflow: scroll;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+.console-container:focus {
+	outline: none;
+	border: none;
+}
+
+@keyframes blink {
+	50% { opacity: 0; } /* Мерцание */
+}
+
+.console-container:after {
+	content: "_";
+	animation: blink 1s infinite steps(1, start)
+}
+
+.console::selection {
+	background-color: #5fe85f;
+	color: black;
+}
+
+
+.tracing {
+	width: 100%;
+	height: 100%;
+}
+
+.tracing-container {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	flex-wrap: wrap;
+	overflow: scroll;
+}
+
+.tracing-cell {
+	display: flex;
+}
+
+.tracing-address {
+	background: rgba(255, 200, 0, 0.16);
+	width: 30px;
+	text-align: end;
+	padding: 2px;
+	color: rgba(0, 0, 0, 0.55);
+}
+
+.tracing-value {
+	width: 24px;
+	text-align: end;
+	padding: 2px;
+}
+
+.tracing-value.--empty {
+	color: #999;
+}
+
+.tracing-char {
+	width: 10px;
+	text-align: end;
+	padding: 2px;
+	color: rgb(150 1 1);
+}
+
+.tracing-cell.--active {
+	background: #c12323;
+}
+
+.tracing-cell.--active .tracing-address {
+	background: rgb(253 225 131 / 79%);
+}
+.tracing-cell.--active .tracing-char {
+	color: #ffffff96;
+}
+.tracing-cell.--active .tracing-value {
+	color: white;
+}
