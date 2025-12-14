@@ -28,8 +28,7 @@
 	<div class="content">
 		<div class="left">
 			<div class="tabs">
-				<div class="tab --active">Hello x</div>
-				<div class="tab">other x</div>
+				<div class="tab tab-plus">+</div>
 			</div>
 			<div class="edit-area block"></div>
 		</div>

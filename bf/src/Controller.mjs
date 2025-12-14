@@ -81,7 +81,7 @@ export class Controller {
 		catch (e) {
 			if (e.message === 'timeout') {
 				this._console.setStatus('running');
-				setTimeout(this._run, debug, [ runParams ]);
+				setTimeout(this._run, debug, runParams);
 			} else if (e.message === 'need input') {
 				this._console.readInput().then((input) => {
 					this._translator.pushInput(input);

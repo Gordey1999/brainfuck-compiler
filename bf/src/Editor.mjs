@@ -90,4 +90,14 @@ export class Editor {
 	getCode() {
 		return this._editor.state.doc.toString();
 	}
+
+	setCode(code) {
+		this._editor.dispatch({
+			changes: {
+				from: 0,
+				to: this._editor.state.doc.length,
+				insert: code
+			}
+		});
+	}
 }

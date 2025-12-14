@@ -114,30 +114,49 @@ pre {
 
 .tabs {
 	display: flex;
-	margin-left: 10px;
+	overflow-x: auto;
+	width: calc(100% - 20px);
+	box-sizing: border-box;
+	margin: 0 10px;
+	margin-bottom: -1px;
 }
 
 .tab {
 	padding: 5px 10px;
 	font-family: monospace;
 	background: #e6e6e6;
-	margin-bottom: -1px;
 	border-top-left-radius: 10px;
 	border-top-right-radius: 10px;
-	margin-right: 10px;
+	margin-right: 4px;
 	border-top: 1px solid #0000002e;
 	border-left: 1px solid #0000002e;
 	border-right: 1px solid #0000002e;
+	cursor: pointer;
+	white-space: nowrap;
+	scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+	display: none;
 }
 
 .tab.--active {
+	position: relative;
 	z-index: 100;
 	background: white;
 }
 
-.edit-area {
+.tab-close {
+	color: rgba(153, 51, 51, 0.89);
+}
+
+.tab-plus {
 
 }
+
+
+
+
 
 .cm-editor {
 	height: 100%;
