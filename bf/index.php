@@ -43,7 +43,7 @@
 					<pre class="console-container" tabindex="1"></pre>
 				</div>
 				<div class="console-input block">
-					<pre class="console-input-textarea">hello</pre>
+					<pre class="console-input-textarea" contenteditable="plaintext-only" spellcheck="false"></pre>
 				</div>
 			</div>
 

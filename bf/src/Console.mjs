@@ -10,6 +10,8 @@ export class Console {
 		this._counter = counter;
 		this._inputResolve = null;
 
+		this.clear();
+		this.setStatus('* * * HELLO * * *');
 		this._bind();
 	}
 
@@ -77,7 +79,7 @@ export class Console {
 		});
 	}
 
-	setStatus(status = null) {
+	setStatus(status = '') {
 		this._status.classList.remove('--loading', '--warning', '--error');
 
 		switch (status) {
@@ -103,7 +105,7 @@ export class Console {
 				this._status.classList.add('--error');
 				break;
 			default:
-				this._status.textContent = '';
+				this._status.textContent = status;
 		}
 	}
 

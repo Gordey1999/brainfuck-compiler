@@ -2,10 +2,11 @@ import {Editor} from "./Editor";
 import {Translator} from "./Translator.mjs";
 
 export class Controller {
-	constructor(editor, profiler, console) {
+	constructor(editor, profiler, console, input) {
 		this._editor = editor;
 		this._profiler = profiler;
 		this._console = console;
+		this._input = input;
 		this._translator = new Translator(
 			(text) => this._console.echo(text)
 		);
@@ -47,6 +48,7 @@ export class Controller {
 		try {
 			const text = this._editor.getCode();
 			this._translator.compile(text);
+			this._translator.pushInput(this._input.get());
 		}
 		catch (e) {
 			this._console.showError(e.message);

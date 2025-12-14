@@ -25427,7 +25427,6 @@
   				keymap.of(indentWithTab),
   				bracketMatching(),
   				activeLineField,
-  				highlightActiveLine(),
   			],
   			doc: code,
   			parent: parent,
@@ -25573,6 +25572,8 @@
   		this._counter = counter;
   		this._inputResolve = null;
 
+  		this.clear();
+  		this.setStatus('* * * HELLO * * *');
   		this._bind();
   	}
 
@@ -25640,7 +25641,7 @@
   		});
   	}
 
-  	setStatus(status = null) {
+  	setStatus(status = '') {
   		this._status.classList.remove('--loading', '--warning', '--error');
 
   		switch (status) {
@@ -25666,7 +25667,7 @@
   				this._status.classList.add('--error');
   				break;
   			default:
-  				this._status.textContent = '';
+  				this._status.textContent = status;
   		}
   	}
 
@@ -25967,10 +25968,11 @@
   }
 
   class Controller {
-  	constructor(editor, profiler, console) {
+  	constructor(editor, profiler, console, input) {
   		this._editor = editor;
   		this._profiler = profiler;
   		this._console = console;
+  		this._input = input;
   		this._translator = new Translator(
   			(text) => this._console.echo(text)
   		);
@@ -26012,6 +26014,7 @@
   		try {
   			const text = this._editor.getCode();
   			this._translator.compile(text);
+  			this._translator.pushInput(this._input.get());
   		}
   		catch (e) {
   			this._console.showError(e.message);
@@ -26067,16 +26070,46 @@
   	}
   }
 
+  class FileInput {
+  	constructor(element) {
+  		this._el = element;
+  		this._active = false;
+  		this.set();
+  	}
+
+  	onToggle = () => {
+  		this._active = !this._active;
+  		this._el.classList.toggle('--active', this._active);
+  	}
+
+  	get() {
+  		if (!this._active) {
+  			return [];
+  		}
+  		return this.getTextarea().textContent.split('');
+  	}
+
+  	set(text) {
+  		this.getTextarea().textContent = text;
+  	}
+
+  	getTextarea() {
+  		return this._el.querySelector('pre');
+  	}
+  }
+
   const editorEl = document.querySelector('.edit-area');
   const profilerEl = document.querySelector('.tracing-container');
   const consoleEl = document.querySelector('.console-container');
   const statusEl = document.querySelector('.console-status');
   const counterEl = document.querySelector('.console-commands');
+  const input = document.querySelector('.console-input');
 
   const editor = new Editor(editorEl, '');
   const profiler = new Profiler(profilerEl, 500);
   const console$1 = new Console(consoleEl, statusEl, counterEl);
-  const controller = new Controller(editor, profiler, console$1);
+  const fileInput = new FileInput(input);
+  const controller = new Controller(editor, profiler, console$1, fileInput);
 
 
   const buttonsBlock = document.querySelector('.buttons');
@@ -26092,7 +26125,7 @@
   buttonsBlock.querySelector('.btn-out')
   	.addEventListener('click', controller.onStepOut);
   buttonsBlock.querySelector('.btn-input')
-  	.addEventListener('click', controller.onInput);
+  	.addEventListener('click', fileInput.onToggle);
 
   window.MyEditor = editor;
 
