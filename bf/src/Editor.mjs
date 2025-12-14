@@ -10,9 +10,6 @@ const bfLanguage = StreamLanguage.define({
 	name: "brainfuck",
 
 	token(stream) {
-		if (stream.match(/\sмне|я|себя|себе|мой|мной|меня|мое|моя\s/i)) {
-			return "variable"
-		}
 		if (stream.match(/^#.*/)) {
 			return "comment"
 		}

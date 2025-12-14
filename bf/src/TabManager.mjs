@@ -9,11 +9,23 @@ export class TabManager {
 		this._tabData = [];
 
 		this._bind();
-		this._addTab();
+		this._init();
 	}
 
+	_init() {
+		this._addTab(document.querySelector('#page1').textContent);
+		this._addTab(document.querySelector('#page2').textContent);
+		this._addTab(document.querySelector('#page3').textContent);
+		this._addTab(document.querySelector('#page4').textContent);
+		this._addTab(document.querySelector('#page5').textContent, 'Нукрутоже?\n9');
+		this._addTab(document.querySelector('#page6').textContent);
+		this._addTab(document.querySelector('#page7').textContent);
+		this._setActiveTab(this._el.firstElementChild);
+	}
+
+
 	_bind() {
-		this._el.querySelector('.tab-plus').addEventListener('click', this._addTab.bind(this));
+		this._el.querySelector('.tab-plus').addEventListener('click', this._addTab.bind(this, '', ''));
 
 		setInterval(this._setTitle.bind(this), 5000);
 	}
@@ -23,13 +35,15 @@ export class TabManager {
 		if (!activeTab) { return; }
 
 		const code = this._editor.getCode();
-		const match = code.match(/^#\s*title:\s*([\wА-Яа-я ]+)/);
-		if (match) {
-			activeTab.querySelector('.tab-name').textContent = match[1];
-		}
+		activeTab.querySelector('.tab-name').textContent = this._getTitle(code);
 	}
 
-	_addTab() {
+	_getTitle(code) {
+		const match = code.match(/^#\s*title:\s*([\wА-Яа-я ]+)/);
+		return match ? match[1] : 'untitled';
+	}
+
+	_addTab(code = '', input = '') {
 		const el = document.createElement('div');
 		const name = document.createElement('span');
 		const close = document.createElement('span');
@@ -38,7 +52,7 @@ export class TabManager {
 		name.classList.add('tab-name');
 		close.classList.add('tab-close');
 
-		name.textContent = 'untitled';
+		name.textContent = this._getTitle(code);
 		close.textContent = ' x';
 
 		el.appendChild(name);
@@ -47,9 +61,9 @@ export class TabManager {
 
 		this._tabData.push({
 			el: el,
-			code: '',
-			input: '',
-			inputActive: false,
+			code: code,
+			input: input,
+			inputActive: input.length > 0,
 		})
 
 		el.addEventListener('click', this._setActiveTab.bind(this, el));

@@ -4,7 +4,7 @@ export class TabStorage {
 
 	init() {
 		this._values = [
-
+			text
 		]
 	}
 
