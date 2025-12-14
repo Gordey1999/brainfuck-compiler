@@ -73,8 +73,7 @@ export class Editor {
 				syntaxHighlighting(bfHighlight),
 				keymap.of(indentWithTab),
 				bracketMatching(),
-
-				activeLineField
+				activeLineField,
 			],
 			doc: code,
 			parent: parent,

@@ -25426,8 +25426,8 @@
   				syntaxHighlighting(bfHighlight),
   				keymap.of(indentWithTab),
   				bracketMatching(),
-
-  				activeLineField
+  				activeLineField,
+  				highlightActiveLine(),
   			],
   			doc: code,
   			parent: parent,

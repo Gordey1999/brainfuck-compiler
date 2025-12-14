@@ -144,7 +144,7 @@ pre {
 }
 
 .cm-active-debug-line {
-	background-color: rgba(255, 200, 0, 0.44);
+	background-color: rgb(255 200 0 / 55%) !important;
 }
 
 
