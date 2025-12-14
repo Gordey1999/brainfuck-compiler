@@ -1,24 +1,23 @@
 export class Translator {
 	_commentSeparator = '#';
 	_storageSize = 30000;
+	_outputCallback = null;
 
-	constructor() {
+	constructor(outputCallback) {
 		this._storage = Array(this._storageSize).fill(0);
+		this._outputCallback = outputCallback;
 	}
 
 	compile(code) {
 		this._storage.fill(0);
 		this._pointer = 0;
 		this._current = 0;
+		this._last = 0;
 		this._stop = false;
+		this._inputBuffer = [];
+		this._counter = 0;
 		this._code = this._sanitize(code);
 		this._initScopes(code);
-	}
-
-
-
-	runLine() {
-
 	}
 
 	_sanitize(code) {
@@ -64,8 +63,7 @@ export class Translator {
 				case ']':
 					if (stack.length === 0)
 					{
-						alert('stack is empty');
-						throw new Error('stack is empty');
+						throw new Error("compile error: no pair for ']'");
 					}
 					const last = stack.pop();
 					this._scopesStart.set(i, last);
@@ -76,12 +74,16 @@ export class Translator {
 
 		if (stack.length > 0)
 		{
-			alert('stack error'); // todo
-			throw new Error('stack is error');
+			throw new Error("compile error: no pair for '['");
 		}
 	}
 
-	run() {
+	run(debug = false, debugParams = {}) {
+		this._run(debug, debugParams);
+	}
+
+	_run(debug = false, debugParams = {}) {
+		console.log('translator run');
 		if (this._stop) { return; }
 		const length = this._code.length;
 
@@ -93,6 +95,7 @@ export class Translator {
 			while (this._current < length && i < checkCount) {
 				this._nextStep();
 				i++;
+				if (debug && this._debugCheck(debugParams)) { return; }
 			}
 
 			if (this._current === length) {
@@ -101,12 +104,28 @@ export class Translator {
 			}
 
 			const passed = performance.now() - time;
-			if (passed > 50) { return; }
+			if (passed > 50) {
+				throw new Error('timeout');
+			}
 			i = 0;
 		}
 	}
 
+	_debugCheck(debugParams) {
+		if (debugParams['lineStep'] === true) {
+			const lastLine = this._linesMap[this._last];
+			const currentLine = this.getCurrentLine();
+
+			if (lastLine !== currentLine) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	_nextStep() {
+		const last = this._current;
+
 		switch (this._code[this._current]) {
 			case '+':
 				this._increment();
@@ -122,22 +141,24 @@ export class Translator {
 				break;
 			case '[':
 				if (this._value() === 0) {
-					this._current = this._scopesEnd.get(this._current);
-					return;
+					this._current = this._scopesEnd.get(this._current) - 1;
 				}
 				break;
 			case ']':
 				if (this._value() > 0) {
-					this._current = this._scopesStart.get(this._current);
-					return;
+					this._current = this._scopesStart.get(this._current) - 1;
 				}
 				break;
 			case '.':
+				this._output();
 				break;
 			case ',':
+				this._input();
 				break;
 		}
 		this._current++;
+		this._counter++;
+		this._last = last;
 	}
 
 	_value() {
@@ -161,17 +182,39 @@ export class Translator {
 	_forward() {
 		this._pointer++;
 		if (this._pointer >= this._storageSize) {
-			alert('pointer++');
-			throw new Error('pointer++');
+			throw new Error("runtime error: memory pointer is out of range " + this._pointer);
 		}
 	}
 
 	_back() {
 		this._pointer--;
 		if (this._pointer < 0) {
-			alert('pointer--');
-			throw new Error('pointer--');
+			throw new Error("runtime error: memory pointer is out of range " + this._pointer);
 		}
+	}
+
+	_output() {
+		this?._outputCallback(numberToChar(this._value()));
+	}
+
+	_input() {
+		if (this._inputBuffer.length === 0) {
+			throw new Error('need input');
+		}
+		this._storage[this._pointer] = charToNumber(this._inputBuffer.shift());
+	}
+
+	_lineToCommand(line) {
+		for (const i in this._linesMap) {
+			if (this._linesMap[i] === line) {
+				return i;
+			}
+		}
+		return null;
+	}
+
+	pushInput(input) {
+		this._inputBuffer.push(...input);
 	}
 
 	getCurrentLine() {
@@ -189,7 +232,11 @@ export class Translator {
 		return this._pointer;
 	}
 
+	commandsCount() {
+		return this._counter;
+	}
+
 	finished() {
-		return this._stop;
+		return this._stop; // todo remove
 	}
 }

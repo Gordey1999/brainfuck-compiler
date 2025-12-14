@@ -10,6 +10,9 @@ const bfLanguage = StreamLanguage.define({
 	name: "brainfuck",
 
 	token(stream) {
+		if (stream.match(/\sмне|я|себя|себе|мой|мной|меня|мое|моя\s/i)) {
+			return "variable"
+		}
 		if (stream.match(/^#.*/)) {
 			return "comment"
 		}
@@ -29,7 +32,8 @@ const bfLanguage = StreamLanguage.define({
 
 const bfHighlight = HighlightStyle.define([
 	{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
-	{ tag: tags.keyword, color: "#952222" }
+	{ tag: tags.keyword, color: "#952222" },
+	{ tag: tags.variableName, color: "#95005b", fontWeight: "bold", textTransform: "uppercase" }
 ])
 
 

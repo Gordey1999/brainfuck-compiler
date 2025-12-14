@@ -25363,6 +25363,9 @@
   	name: "brainfuck",
 
   	token(stream) {
+  		if (stream.match(/\sмне|я|себя|себе|мой|мной|меня|мое|моя\s/i)) {
+  			return "variable"
+  		}
   		if (stream.match(/^#.*/)) {
   			return "comment"
   		}
@@ -25382,7 +25385,8 @@
 
   const bfHighlight = HighlightStyle.define([
   	{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
-  	{ tag: tags.keyword, color: "#952222" }
+  	{ tag: tags.keyword, color: "#952222" },
+  	{ tag: tags.variableName, color: "#95005b", fontWeight: "bold", textTransform: "uppercase" }
   ]);
 
 
@@ -25454,11 +25458,11 @@
   	byteMap.set(charMap[i], i);
   }
 
-  function charToNumber(char) {
+  function charToNumber$1(char) {
   	return byteMap.get(char);
   }
 
-  function numberToChar(number) {
+  function numberToChar$1(number) {
   	return charMap[number];
   }
 
@@ -25467,11 +25471,11 @@
   	if (number === 32) { return '·'; }
   	if (number === 127) { return ''; }
 
-  	return numberToChar(number);
+  	return numberToChar$1(number);
   }
 
-  window.numberToChar = numberToChar;
-  window.charToNumber = charToNumber;
+  window.numberToChar = numberToChar$1;
+  window.charToNumber = charToNumber$1;
 
   class Profiler {
   	_rowSize = 20;
@@ -25513,9 +25517,8 @@
   		this._movePointer(0);
   		this._storage.fill(0);
 
-  		for (const child of this._el.children) {
-  			child.querySelector('.tracing-value').textContent = '';
-  			child.querySelector('.tracing-char').textContent = '';
+  		for (const i in this._el.children) {
+  			this._render(i, 0);
   		}
   	}
 
@@ -25550,7 +25553,7 @@
   		}
 
   		this._pointer = address;
-  		if (address < this._storage.length) {
+  		if (address >= 0 && address < this._storage.length) {
   			this._pointedCell = this._el.children[address];
   			this._pointedCell.classList.add('--active');
   		}
@@ -25561,28 +25564,30 @@
   	_buffer = [];
   	_streamIn = [];
 
-  	constructor(el, status) {
+  	constructor(el, status, counter) {
   		this._el = el;
   		this._status = status;
+  		this._counter = counter;
+  		this._inputResolve = null;
 
   		this._bind();
-
-  		window.MyConsole = this; // todo remove
   	}
 
   	_bind() {
   		this._el.addEventListener('paste', this._onPaste);
   		this._el.addEventListener('keydown', this._onKey);
-  		//this._el.addEventListener('wheel', this._onWheel);
   	}
 
   	_onKey = (event) => {
   		if (event.ctrlKey || event.metaKey) { return; }
   		if (event.key === 'Enter') {
+  			event.preventDefault();
   			this._enter();
   		} else if (event.key === 'Backspace') {
+  			event.preventDefault();
   			this._backspace();
   		} else if (event.key.length === 1) {
+  			event.preventDefault();
   			this._input(event.key);
   		}
   	}
@@ -25614,11 +25619,80 @@
   		this._streamIn.push(...this._buffer);
   		this._buffer = [];
   		this._el.textContent += '\n';
-  		console.log(this._streamIn);
+  		this._resolveInput();
+  	}
+
+  	_resolveInput() {
+  		if (this._inputResolve) {
+  			this._inputResolve(this._streamIn);
+  			this._streamIn = [];
+  		}
+  		this._inputResolve = null;
+  	}
+
+  	readInput() {
+  		this.setStatus('need input');
+  		return new Promise((resolve) => {
+  			this._inputResolve = resolve;
+  		});
+  	}
+
+  	setStatus(status = null) {
+  		this._status.classList.remove('--loading', '--warning', '--error');
+
+  		switch (status) {
+  			case 'running':
+  				this._status.textContent = 'RUNNING ';
+  				this._status.classList.add('--loading');
+  				break;
+  			case 'stopped':
+  				this._status.textContent = 'STOPPED';
+  				break;
+  			case 'finished':
+  				this._status.textContent = 'FINISHED';
+  				break;
+  			case 'waiting':
+  				this._status.textContent = 'WAITING';
+  				break;
+  			case 'need input':
+  				this._status.textContent = ' INPUT WAITING ';
+  				this._status.classList.add('--warning');
+  				break;
+  			case 'error':
+  				this._status.textContent = ' ERROR ';
+  				this._status.classList.add('--error');
+  				break;
+  			default:
+  				this._status.textContent = '';
+  		}
+  	}
+
+  	setCommandsCount(count) {
+  		if (count === 0) {
+  			this._counter.textContent = '';
+  		}
+
+  		const number = Number(count).toLocaleString("en-US");
+  		this._counter.textContent = number + ' cmds';
   	}
 
   	echo(text) {
   		this._el.textContent += text;
+  	}
+
+  	clear() {
+  		this._el.textContent = '';
+  		this._resolveInput();
+  		this.setCommandsCount(0);
+  		this.setStatus();
+  	}
+
+  	showError(message) {
+  		this.setStatus('error');
+  		if (this._el.textContent.length > 0) {
+  			this.echo('\n');
+  		}
+  		this.echo(message);
   	}
 
   	checkBufferSize() {
@@ -25629,24 +25703,23 @@
   class Translator {
   	_commentSeparator = '#';
   	_storageSize = 30000;
+  	_outputCallback = null;
 
-  	constructor() {
+  	constructor(outputCallback) {
   		this._storage = Array(this._storageSize).fill(0);
+  		this._outputCallback = outputCallback;
   	}
 
   	compile(code) {
   		this._storage.fill(0);
   		this._pointer = 0;
   		this._current = 0;
+  		this._last = 0;
   		this._stop = false;
+  		this._inputBuffer = [];
+  		this._counter = 0;
   		this._code = this._sanitize(code);
   		this._initScopes(code);
-  	}
-
-
-
-  	runLine() {
-
   	}
 
   	_sanitize(code) {
@@ -25692,8 +25765,7 @@
   				case ']':
   					if (stack.length === 0)
   					{
-  						alert('stack is empty');
-  						throw new Error('stack is empty');
+  						throw new Error("compile error: no pair for ']'");
   					}
   					const last = stack.pop();
   					this._scopesStart.set(i, last);
@@ -25704,12 +25776,16 @@
 
   		if (stack.length > 0)
   		{
-  			alert('stack error'); // todo
-  			throw new Error('stack is error');
+  			throw new Error("compile error: no pair for '['");
   		}
   	}
 
-  	run() {
+  	run(debug = false, debugParams = {}) {
+  		this._run(debug, debugParams);
+  	}
+
+  	_run(debug = false, debugParams = {}) {
+  		console.log('translator run');
   		if (this._stop) { return; }
   		const length = this._code.length;
 
@@ -25721,6 +25797,7 @@
   			while (this._current < length && i < checkCount) {
   				this._nextStep();
   				i++;
+  				if (debug && this._debugCheck(debugParams)) { return; }
   			}
 
   			if (this._current === length) {
@@ -25729,12 +25806,28 @@
   			}
 
   			const passed = performance.now() - time;
-  			if (passed > 50) { return; }
+  			if (passed > 50) {
+  				throw new Error('timeout');
+  			}
   			i = 0;
   		}
   	}
 
+  	_debugCheck(debugParams) {
+  		if (debugParams['lineStep'] === true) {
+  			const lastLine = this._linesMap[this._last];
+  			const currentLine = this.getCurrentLine();
+
+  			if (lastLine !== currentLine) {
+  				return true;
+  			}
+  		}
+  		return false;
+  	}
+
   	_nextStep() {
+  		const last = this._current;
+
   		switch (this._code[this._current]) {
   			case '+':
   				this._increment();
@@ -25750,18 +25843,24 @@
   				break;
   			case '[':
   				if (this._value() === 0) {
-  					this._current = this._scopesEnd.get(this._current);
-  					return;
+  					this._current = this._scopesEnd.get(this._current) - 1;
   				}
   				break;
   			case ']':
   				if (this._value() > 0) {
-  					this._current = this._scopesStart.get(this._current);
-  					return;
+  					this._current = this._scopesStart.get(this._current) - 1;
   				}
+  				break;
+  			case '.':
+  				this._output();
+  				break;
+  			case ',':
+  				this._input();
   				break;
   		}
   		this._current++;
+  		this._counter++;
+  		this._last = last;
   	}
 
   	_value() {
@@ -25785,17 +25884,39 @@
   	_forward() {
   		this._pointer++;
   		if (this._pointer >= this._storageSize) {
-  			alert('pointer++');
-  			throw new Error('pointer++');
+  			throw new Error("runtime error: memory pointer is out of range " + this._pointer);
   		}
   	}
 
   	_back() {
   		this._pointer--;
   		if (this._pointer < 0) {
-  			alert('pointer--');
-  			throw new Error('pointer--');
+  			throw new Error("runtime error: memory pointer is out of range " + this._pointer);
   		}
+  	}
+
+  	_output() {
+  		this?._outputCallback(numberToChar(this._value()));
+  	}
+
+  	_input() {
+  		if (this._inputBuffer.length === 0) {
+  			throw new Error('need input');
+  		}
+  		this._storage[this._pointer] = charToNumber(this._inputBuffer.shift());
+  	}
+
+  	_lineToCommand(line) {
+  		for (const i in this._linesMap) {
+  			if (this._linesMap[i] === line) {
+  				return i;
+  			}
+  		}
+  		return null;
+  	}
+
+  	pushInput(input) {
+  		this._inputBuffer.push(...input);
   	}
 
   	getCurrentLine() {
@@ -25813,8 +25934,12 @@
   		return this._pointer;
   	}
 
+  	commandsCount() {
+  		return this._counter;
+  	}
+
   	finished() {
-  		return this._stop;
+  		return this._stop; // todo remove
   	}
   }
 
@@ -25823,44 +25948,138 @@
   		this._editor = editor;
   		this._profiler = profiler;
   		this._console = console;
-  		this._translator = new Translator();
-
-  		document.querySelector('.js-run')
-  			.addEventListener('click', this.onRun);
+  		this._translator = new Translator(
+  			(text) => this._console.echo(text)
+  		);
+  		this._stopped = true;
+  		this._running = false;
   	}
 
   	onRun = () => {
-  		const text = this._editor.getCode();
-  		this._translator.compile(text);
-
-  		// todo run(callback)
-  		// input and tick on callback
-
-  		this.run();
+  		this._compile() && this._run();
   	}
 
-  	run = () => {
-  		this._translator.run();
-  		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
-  		const line = this._translator.getCurrentLine();
-  		console.log('tick');
-  		this._editor.highlightLine(line);
+  	onStop = () => {
+  		if (this._stopped) { return; }
+  		this._stopped = true;
+  		this._console.setStatus('stopped');
+  	}
 
-  		if (this._translator.finished()) {
+  	onStep = () => {
+  		if (this._running) { return; }
+  		if (this._stopped && !this._compile()) {
   			return;
   		}
-  		setTimeout(this.run);
+  		this._stopped = false;
+  		console.log('step');
+  		this._step();
   	}
 
-  	wait() {
-  		return new Promise
+  	_compile() {
+  		this._console.clear();
+  		this._stopped = false;
+  		try {
+  			const text = this._editor.getCode();
+  			this._translator.compile(text);
+  		}
+  		catch (e) {
+  			this._console.showError(e.message);
+  			console.warn(e);
+  			return false;
+  		}
+  		return true;
+  	}
+
+  	_step = () => {
+  		if (this._stopped) {
+  			this._running = false;
+  			return;
+  		}
+  		this._running = true;
+  		try {
+  			this._translator.run(true, {
+  				lineStep: true,
+  			});
+
+  			this._running = false;
+  			// todo finished
+  			this._console.setStatus('waiting');
+  		}
+  		catch (e) {
+  			this._processError(e, this._step);
+  		}
+  		this._renderState();
+  	}
+
+  	_run = () => {
+  		if (this._stopped) {
+  			this._running = false;
+  			return;
+  		}
+  		this._running = true;
+  		try {
+  			this._translator.run();
+  			this._stopped = true;
+  			this._running = false;
+  			this._console.setStatus('finished');
+  		}
+  		catch (e) {
+  			this._processError(e, this._run);
+  		}
+  		this._renderState();
+  	}
+
+  	_processError(e, runCallback) {
+  		if (e.message === 'timeout') {
+  			this._console.setStatus('running');
+  			setTimeout(runCallback);
+  		} else if (e.message === 'need input') {
+  			this._console.readInput().then((input) => {
+  				this._translator.pushInput(input);
+  				runCallback();
+  			});
+  		} else {
+  			this._console.showError(e.message);
+  			console.warn(e);
+  			this._stopped = true;
+  			this._running = false;
+  		}
+  	}
+
+  	_renderState() {
+  		if (this._stopped) ;
+  		this._editor.highlightLine(this._translator.getCurrentLine());
+  		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
+  		this._console.setCommandsCount(this._translator.commandsCount());
   	}
   }
 
-  const editor = new Editor(document.querySelector('.edit-area'), '');
-  const profiler = new Profiler(document.querySelector('.tracing-container'), 500);
-  const console$1 = new Console(document.querySelector('.console-container'));
-  new Controller(editor, profiler, console$1);
+  const editorEl = document.querySelector('.edit-area');
+  const profilerEl = document.querySelector('.tracing-container');
+  const consoleEl = document.querySelector('.console-container');
+  const statusEl = document.querySelector('.console-status');
+  const counterEl = document.querySelector('.console-commands');
+
+  const editor = new Editor(editorEl, '');
+  const profiler = new Profiler(profilerEl, 500);
+  const console$1 = new Console(consoleEl, statusEl, counterEl);
+  const controller = new Controller(editor, profiler, console$1);
+
+
+  const buttonsBlock = document.querySelector('.buttons');
+
+  buttonsBlock.querySelector('.btn-run')
+  	.addEventListener('click', controller.onRun);
+  buttonsBlock.querySelector('.btn-stop')
+  	.addEventListener('click', controller.onStop);
+  buttonsBlock.querySelector('.btn-debug')
+  	.addEventListener('click', controller.onDebug);
+  buttonsBlock.querySelector('.btn-step')
+  	.addEventListener('click', controller.onStep);
+  buttonsBlock.querySelector('.btn-out')
+  	.addEventListener('click', controller.onOut);
+  buttonsBlock.querySelector('.btn-input')
+  	.addEventListener('click', controller.onInput);
 
   window.MyEditor = editor;
 

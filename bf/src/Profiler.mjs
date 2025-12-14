@@ -40,9 +40,8 @@ export class Profiler {
 		this._movePointer(0);
 		this._storage.fill(0);
 
-		for (const child of this._el.children) {
-			child.querySelector('.tracing-value').textContent = '';
-			child.querySelector('.tracing-char').textContent = '';
+		for (const i in this._el.children) {
+			this._render(i, 0);
 		}
 	}
 
@@ -77,7 +76,7 @@ export class Profiler {
 		}
 
 		this._pointer = address;
-		if (address < this._storage.length) {
+		if (address >= 0 && address < this._storage.length) {
 			this._pointedCell = this._el.children[address];
 			this._pointedCell.classList.add('--active');
 		}
