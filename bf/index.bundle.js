@@ -25722,7 +25722,6 @@
   		this._pointer = 0;
   		this._current = 0;
   		this._last = 0;
-  		this._stop = false;
   		this._inputBuffer = [];
   		this._counter = 0;
   		this._code = this._sanitize(code);
@@ -25793,12 +25792,15 @@
 
   	_run(debug = false, debugParams = {}) {
   		console.log('translator run');
-  		if (this._stop) { return; }
   		const length = this._code.length;
 
   		const time = performance.now();
   		const checkCount = 10000;
   		let i = 0;
+
+  		if (debug) {
+  			this._debugInit(debugParams);
+  		}
 
   		while (true) {
   			while (this._current < length && i < checkCount) {
@@ -25808,7 +25810,6 @@
   			}
 
   			if (this._current === length) {
-  				this._stop = true;
   				return;
   			}
 
@@ -25820,8 +25821,27 @@
   		}
   	}
 
-  	_debugCheck(debugParams) {
-  		if (debugParams['lineStep'] === true) {
+  	_debugInit(params) {
+  		this._debugData = {};
+
+  		if (params['stepOut'] === true) {
+  			for (const [key, value] of this._scopesEnd) {
+  				const scopeStartLine = this._linesMap[key];
+  				const scopeEndLine = this._linesMap[value];
+  				const currentLine = this.getCurrentLine();
+  				if (scopeStartLine <= currentLine && scopeEndLine > currentLine) {
+  					this._debugData.stopOn = this._lineToCommand(scopeEndLine) + 1;
+  				}
+  			}
+  		}
+  	}
+
+  	_debugCheck(params) {
+  		if (this._debugData?.stopOn === this._current) {
+  			return true;
+  		}
+
+  		if (params['lineStep'] === true) {
   			const lastLine = this._linesMap[this._last];
   			const currentLine = this.getCurrentLine();
 
@@ -25914,9 +25934,9 @@
   	}
 
   	_lineToCommand(line) {
-  		for (const i in this._linesMap) {
+  		for (const i  in this._linesMap) {
   			if (this._linesMap[i] === line) {
-  				return i;
+  				return parseInt(i);
   			}
   		}
   		return null;
@@ -25944,10 +25964,6 @@
   	commandsCount() {
   		return this._counter;
   	}
-
-  	finished() {
-  		return this._stop; // todo remove
-  	}
   }
 
   class Controller {
@@ -25974,41 +25990,47 @@
   		this._editor.highlightLine(0);
   	}
 
-  	onStep = () => {
+  	onStep = (out = false) => {
   		if (this._running) { return; }
-  		if (this._stopped && !this._compile()) {
+  		if (this._stopped) {
+  			if (!this._compile()) { return; }
+  			this._renderState();
   			return;
   		}
-  		this._stopped = false;
-  		console.log('step');
-  		this._step();
+
+  		this._run(true, { lineStep: true });
+  	}
+
+  	onStepOut = () => {
+  		if (this._running || this._stopped) { return; }
+
+  		this._run(true, { stepOut: true });
   	}
 
   	_compile() {
   		this._console.clear();
-  		this._stopped = false;
   		try {
   			const text = this._editor.getCode();
   			this._translator.compile(text);
   		}
   		catch (e) {
   			this._console.showError(e.message);
+  			this._editor.highlightLine(0);
   			console.warn(e);
   			return false;
   		}
+  		this._stopped = false;
   		return true;
   	}
 
-  	_step = () => {
+  	_run = (debug = false, runParams = {}) => {
   		if (this._stopped) {
   			this._running = false;
   			return;
   		}
   		this._running = true;
   		try {
-  			this._translator.run(true, {
-  				lineStep: true,
-  			});
+  			this._translator.run(debug, runParams);
 
   			this._running = false;
 
@@ -26020,49 +26042,25 @@
   			}
   		}
   		catch (e) {
-  			this._processError(e, this._step);
+  			if (e.message === 'timeout') {
+  				this._console.setStatus('running');
+  				setTimeout(this._run, debug, [ runParams ]);
+  			} else if (e.message === 'need input') {
+  				this._console.readInput().then((input) => {
+  					this._translator.pushInput(input);
+  					this._run(debug, runParams);
+  				});
+  			} else {
+  				this._console.showError(e.message);
+  				console.warn(e);
+  				this._stopped = true;
+  				this._running = false;
+  			}
   		}
   		this._renderState();
-  	}
-
-  	_run = () => {
-  		if (this._stopped) {
-  			this._running = false;
-  			return;
-  		}
-  		this._running = true;
-  		try {
-  			this._translator.run();
-  			this._stopped = true;
-  			this._running = false;
-  			this._console.setStatus('finished');
-  		}
-  		catch (e) {
-  			this._processError(e, this._run);
-  		}
-  		this._renderState();
-  	}
-
-  	_processError(e, runCallback) {
-  		if (e.message === 'timeout') {
-  			this._console.setStatus('running');
-  			setTimeout(runCallback);
-  		} else if (e.message === 'need input') {
-  			this._console.readInput().then((input) => {
-  				console.log('input');
-  				this._translator.pushInput(input);
-  				runCallback();
-  			});
-  		} else {
-  			this._console.showError(e.message);
-  			console.warn(e);
-  			this._stopped = true;
-  			this._running = false;
-  		}
   	}
 
   	_renderState() {
-  		if (this._stopped) ;
   		this._editor.highlightLine(this._translator.getCurrentLine());
   		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
   		this._console.setCommandsCount(this._translator.commandsCount());
@@ -26092,7 +26090,7 @@
   buttonsBlock.querySelector('.btn-step')
   	.addEventListener('click', controller.onStep);
   buttonsBlock.querySelector('.btn-out')
-  	.addEventListener('click', controller.onOut);
+  	.addEventListener('click', controller.onStepOut);
   buttonsBlock.querySelector('.btn-input')
   	.addEventListener('click', controller.onInput);
 

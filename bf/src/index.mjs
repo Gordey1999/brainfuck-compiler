@@ -26,7 +26,7 @@ buttonsBlock.querySelector('.btn-debug')
 buttonsBlock.querySelector('.btn-step')
 	.addEventListener('click', controller.onStep);
 buttonsBlock.querySelector('.btn-out')
-	.addEventListener('click', controller.onOut);
+	.addEventListener('click', controller.onStepOut);
 buttonsBlock.querySelector('.btn-input')
 	.addEventListener('click', controller.onInput);
 

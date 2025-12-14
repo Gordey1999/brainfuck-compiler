@@ -11,7 +11,7 @@
 			<div class="buttons-block">
 				<button class="btn btn-run">run</button>
 				<button class="btn btn-stop">stop</button>
-				<button class="btn btn-debug">debug</button>
+				<button class="btn btn-debug" style="display: none">debug</button>
 			</div>
 			<div class="buttons-block">
 				<button class="btn btn-step">step</button>

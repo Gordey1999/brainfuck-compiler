@@ -25,41 +25,47 @@ export class Controller {
 		this._editor.highlightLine(0);
 	}
 
-	onStep = () => {
+	onStep = (out = false) => {
 		if (this._running) { return; }
-		if (this._stopped && !this._compile()) {
+		if (this._stopped) {
+			if (!this._compile()) { return; }
+			this._renderState();
 			return;
 		}
-		this._stopped = false;
-		console.log('step');
-		this._step();
+
+		this._run(true, { lineStep: true });
+	}
+
+	onStepOut = () => {
+		if (this._running || this._stopped) { return; }
+
+		this._run(true, { stepOut: true });
 	}
 
 	_compile() {
 		this._console.clear();
-		this._stopped = false;
 		try {
 			const text = this._editor.getCode();
 			this._translator.compile(text);
 		}
 		catch (e) {
 			this._console.showError(e.message);
+			this._editor.highlightLine(0);
 			console.warn(e);
 			return false;
 		}
+		this._stopped = false;
 		return true;
 	}
 
-	_step = () => {
+	_run = (debug = false, runParams = {}) => {
 		if (this._stopped) {
 			this._running = false;
 			return;
 		}
 		this._running = true;
 		try {
-			this._translator.run(true, {
-				lineStep: true,
-			});
+			this._translator.run(debug, runParams);
 
 			this._running = false;
 
@@ -71,50 +77,25 @@ export class Controller {
 			}
 		}
 		catch (e) {
-			this._processError(e, this._step);
+			if (e.message === 'timeout') {
+				this._console.setStatus('running');
+				setTimeout(this._run, debug, [ runParams ]);
+			} else if (e.message === 'need input') {
+				this._console.readInput().then((input) => {
+					this._translator.pushInput(input);
+					this._run(debug, runParams);
+				})
+			} else {
+				this._console.showError(e.message);
+				console.warn(e);
+				this._stopped = true;
+				this._running = false;
+			}
 		}
 		this._renderState();
-	}
-
-	_run = () => {
-		if (this._stopped) {
-			this._running = false;
-			return;
-		}
-		this._running = true;
-		try {
-			this._translator.run();
-			this._stopped = true;
-			this._running = false;
-			this._console.setStatus('finished');
-		}
-		catch (e) {
-			this._processError(e, this._run);
-		}
-		this._renderState();
-	}
-
-	_processError(e, runCallback) {
-		if (e.message === 'timeout') {
-			this._console.setStatus('running');
-			setTimeout(runCallback);
-		} else if (e.message === 'need input') {
-			this._console.readInput().then((input) => {
-				this._translator.pushInput(input);
-				runCallback();
-			})
-		} else {
-			this._console.showError(e.message);
-			console.warn(e);
-			this._stopped = true;
-			this._running = false;
-		}
 	}
 
 	_renderState() {
-		if (this._stopped) {
-			// todo line
-		}
 		this._editor.highlightLine(this._translator.getCurrentLine());
 		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
 		this._console.setCommandsCount(this._translator.commandsCount());

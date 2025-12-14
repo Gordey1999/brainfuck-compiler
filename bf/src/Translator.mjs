@@ -13,7 +13,6 @@ export class Translator {
 		this._pointer = 0;
 		this._current = 0;
 		this._last = 0;
-		this._stop = false;
 		this._inputBuffer = [];
 		this._counter = 0;
 		this._code = this._sanitize(code);
@@ -84,12 +83,15 @@ export class Translator {
 
 	_run(debug = false, debugParams = {}) {
 		console.log('translator run');
-		if (this._stop) { return; }
 		const length = this._code.length;
 
 		const time = performance.now();
 		const checkCount = 10000;
 		let i = 0;
+
+		if (debug) {
+			this._debugInit(debugParams);
+		}
 
 		while (true) {
 			while (this._current < length && i < checkCount) {
@@ -99,7 +101,6 @@ export class Translator {
 			}
 
 			if (this._current === length) {
-				this._stop = true;
 				return;
 			}
 
@@ -111,8 +112,27 @@ export class Translator {
 		}
 	}
 
-	_debugCheck(debugParams) {
-		if (debugParams['lineStep'] === true) {
+	_debugInit(params) {
+		this._debugData = {};
+
+		if (params['stepOut'] === true) {
+			for (const [key, value] of this._scopesEnd) {
+				const scopeStartLine = this._linesMap[key];
+				const scopeEndLine = this._linesMap[value];
+				const currentLine = this.getCurrentLine();
+				if (scopeStartLine <= currentLine && scopeEndLine > currentLine) {
+					this._debugData.stopOn = this._lineToCommand(scopeEndLine) + 1;
+				}
+			}
+		}
+	}
+
+	_debugCheck(params) {
+		if (this._debugData?.stopOn === this._current) {
+			return true;
+		}
+
+		if (params['lineStep'] === true) {
 			const lastLine = this._linesMap[this._last];
 			const currentLine = this.getCurrentLine();
 
@@ -205,9 +225,9 @@ export class Translator {
 	}
 
 	_lineToCommand(line) {
-		for (const i in this._linesMap) {
+		for (const i  in this._linesMap) {
 			if (this._linesMap[i] === line) {
-				return i;
+				return parseInt(i);
 			}
 		}
 		return null;
@@ -234,9 +254,5 @@ export class Translator {
 
 	commandsCount() {
 		return this._counter;
-	}
-
-	finished() {
-		return this._stop; // todo remove
 	}
 }
