@@ -8,12 +8,7 @@ use Gordy\Brainfuck\Compiler;
 use Gordy\Brainfuck\Compiler\OutputStream;
 
 
-$storage = new Compiler\Storage();
-$program = new Compiler\Program($storage);
-$command = new Compiler\Command($program);
-
 $stream = new OutputStream();
-
 $processor = new Compiler\Processor($stream);
 
 $a = $processor->reserve();
