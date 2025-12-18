@@ -4,7 +4,7 @@ namespace Gordy\Brainfuck\Compiler;
 
 class Processor
 {
-	public const int REGISTRY_SIZE = 10;
+	public const int REGISTRY_SIZE = 20; // todo calculate dynamically
 	public const string NUMBER = 'number';
 	public const string BOOLEAN = 'boolean';
 
@@ -85,25 +85,25 @@ class Processor
 		$this->release($temp);
 	}
 
-	public function divide(int $a, int $b, int $result, int $remainder) : void
+	public function divide(int $a, int $b, int $quotient, int $remainder) : void
 	{
-		$temp = $this->reserve($b);
+		$temp = $this->reserve($a, $b, $quotient, $remainder);
 
-		$this->while($a, function() use ($a, $b, $result, $remainder, $temp) { // проверяем, что $a не ноль
-			$this->while($a, function() use ($a, $b, $result, $remainder, $temp) {
+		$this->while($a, function() use ($a, $b, $quotient, $remainder, $temp) { // проверяем, что $a не ноль
+			$this->while($a, function() use ($a, $b, $quotient, $remainder, $temp) {
 				$this->unset($remainder);
 				$this->copyNumber($a, $remainder);
 				$this->copyNumber($b, $temp);
 				$this->subUntilZero($a, $temp);
-				$this->increment($result);
+				$this->increment($quotient);
 			}, "division cycle");
 
 			$this->copyNumber($remainder, $temp);
 			$this->sub($temp, $b);
 			$this->moveBoolean($temp, $a, $b);
-			$this->if($a, function () use ($result, $temp) {
-				$this->decrement($result);
-			}, "if remainder > 0, sub 1 from result");
+			$this->if($a, function () use ($quotient) {
+				$this->decrement($quotient);
+			}, "if remainder > 0, sub 1 from quotient");
 			$this->not($b);
 			$this->if($b, function () use ($remainder) {
 				$this->unset($remainder);
@@ -112,6 +112,71 @@ class Processor
 		$this->unset($b); // если $a ноль, то нужно обнулить $b
 
 		$this->release($temp);
+	}
+
+	public function divideByConstant(int $a, int $constant, int $quotient, int $remainder) : void
+	{
+		$temp = $this->reserve($a, $quotient, $remainder);
+		$temp2 = $this->reserve($a, $quotient, $quotient, $temp);
+
+		$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp, $temp2) { // проверяем, что $a не ноль
+			$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp) {
+				$this->unset($remainder);
+				$this->copyNumber($a, $remainder);
+				$this->addConstant($temp, $constant);
+				$this->subUntilZero($a, $temp);
+				$this->increment($quotient);
+			}, "division cycle");
+
+			$this->copyNumber($remainder, $a);
+			$this->subConstant($a, $constant);
+			$this->moveBoolean($a, $temp, $temp2);
+			$this->if($temp, function () use ($quotient) {
+				$this->decrement($quotient);
+			}, "if remainder > 0, sub 1 from quotient");
+			$this->not($temp2);
+			$this->if($temp2, function () use ($remainder) {
+				$this->unset($remainder);
+			}, "else if remainder = `$constant`, unset remainder");
+		}, "divide $a by `$constant`");
+
+		$this->release($temp);
+		$this->release($temp2);
+	}
+
+	public function printNumber(int $number) : void
+	{
+		$a = $this->reserve($number);
+		$b = $this->reserve($number, $a);
+		$c = $this->reserve($number, $a, $b);
+		$d = $this->reserve($number, $a, $b, $c);
+		$e = $this->reserve($number, $a, $b, $c, $d);
+
+		$this->divideByConstant($number, 10, $a, $b); // $b - последняя цифра
+		$this->copyNumber($a, $c);
+		$this->ifMoreThenConstant($c, 9, function() use ($a, $c, $d) {
+			$this->divideByConstant($a, 10, $c, $d); // $c - 1 цифра, $d - вторая
+			$this->addConstant($c, 48);
+			$this->print($c);
+			$this->unset($c);
+			$this->addConstant($d, 48);
+			$this->print($d);
+			$this->unset($d);
+		});
+		$this->while($a, function() use ($a) {
+			$this->addConstant($a, 48);
+			$this->print($a);
+			$this->unset($a);
+		}, "if 2 digit number");
+		$this->addConstant($b, 48);
+		$this->print($b);
+		$this->unset($b);
+
+		$this->release($a);
+		$this->release($b);
+		$this->release($c);
+		$this->release($d);
+		$this->release($e);
 	}
 
 	public function while(int $address, callable $callback, string $comment) : void
@@ -129,11 +194,25 @@ class Processor
 	{
 		$this->goto($address);
 		$this->stream->write("[", $comment);
+		$this->unset($address);
 
 		$callback();
 
-		$this->unset($address);
+		$this->goto($address);
 		$this->stream->write("]");
+	}
+
+	public function ifMoreThenConstant(int $a, int $constant, callable $callback) : void
+	{
+		$temp = $this->reserve($a);
+
+		//$this->stream->startGroup();
+		$this->addConstant($temp, $constant);
+		$this->subUntilZero($a, $temp);
+		$this->if($a, $callback, "if $a > `$constant`");
+		//$this->stream->endGroup();
+
+		$this->release($temp);
 	}
 
 	public function copyNumber(int $from, ...$to) : void
@@ -278,10 +357,9 @@ class Processor
 		$this->stream->endGroup();
 	}
 
-	public function set(int $to, int $value, OutputStream $stream) : void
+	public function print(int $value) : void
 	{
-		$this->goto($to, $stream);
-		$this->unset($to, $stream);
-		$this->addConstant($to, $value, $stream);
+		$this->goto($value);
+		$this->stream->write('.', "print $value");
 	}
 }
