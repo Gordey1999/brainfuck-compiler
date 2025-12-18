@@ -50,7 +50,6 @@ class Processor
 		return $nearest;
 	}
 
-	// нужно ли их обнулять? По сути они обнуляются, если на их ячейке начинается цикл
 	public function release($address) : void
 	{
 		if (!$this->registry[$address])
@@ -60,18 +59,6 @@ class Processor
 
 		$this->registry[$address] = false;
 	}
-
-	// todo remove
-	public function reserveSelected(int $address) : int
-	{
-		if ($this->registry[$address])
-		{
-			throw new \RuntimeException("Address is already reserved");
-		}
-		$this->registry[$address] = true;
-		return $address;
-	}
-
 
 	public function multiply(int $a, int $b, int $result) : int
 	{
@@ -93,7 +80,7 @@ class Processor
 			$this->if($temp, function() use ($from, $sub, $temp) {
 				$this->decrement($from);
 			}, "if $temp not empty, decrement $from");
-		}, "sub $sub from $from until zero");
+		}, "sub $sub from $from with zero check");
 
 		$this->release($temp);
 	}
@@ -109,22 +96,20 @@ class Processor
 				$this->copyNumber($b, $temp);
 				$this->subUntilZero($a, $temp);
 				$this->increment($result);
-			}, "sub $b from $a until zero");
+			}, "division cycle");
 
 			$this->copyNumber($remainder, $temp);
 			$this->sub($temp, $b);
 			$this->moveBoolean($temp, $a, $b);
 			$this->if($a, function () use ($result, $temp) {
 				$this->decrement($result);
-			}, "if remainder - dividend > 0, sub 1 from result");
+			}, "if remainder > 0, sub 1 from result");
 			$this->not($b);
 			$this->if($b, function () use ($remainder) {
 				$this->unset($remainder);
-			}, "else if remainder - dividend = 0, unset remainder");
-		}, "devide $a by $b");
-		$this->unset($b);
-
-
+			}, "else if remainder = divider, unset remainder");
+		}, "divide $a by $b");
+		$this->unset($b); // если $a ноль, то нужно обнулить $b
 
 		$this->release($temp);
 	}
@@ -151,8 +136,6 @@ class Processor
 		$this->stream->write("]");
 	}
 
-	// todo add alias, can collapse
-	// todo copy to several, copy bool, sub, subUntilNull
 	public function copyNumber(int $from, ...$to) : void
 	{
 		$to = array_combine($to, array_fill(0, count($to), self::NUMBER));
@@ -226,8 +209,6 @@ class Processor
 
 		$this->pointer = $from;
 	}
-
-	// todo copy($from, [$to1=>int, $to2=>bool]
 
 	public function goto(int $to) : void
 	{

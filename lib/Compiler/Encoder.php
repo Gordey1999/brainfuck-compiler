@@ -39,6 +39,16 @@ class Encoder
 
 	protected static function prettyNumber(string $char, int $length) : string
 	{
-		return chunk_split(str_repeat($char, $length), 10, PHP_EOL);
+		if ($length > 5)
+		{
+			$chunks = str_split(str_repeat($char, $length), 5);
+			$chunks = array_chunk($chunks, 5);
+
+			return implode(PHP_EOL, array_map(function($chunk) use($length) {
+				return implode(' ', $chunk);
+			}, $chunks));
+		}
+
+		return str_repeat($char, $length);
 	}
 }
