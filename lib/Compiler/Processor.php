@@ -50,14 +50,29 @@ class Processor
 		return $nearest;
 	}
 
-	public function release($address) : void
+	public function reserveSeveral(int $count, ...$near) : array
 	{
-		if (!$this->registry[$address])
+		$result = [];
+
+		for ($i = 0; $i < $count; $i++)
 		{
-			throw new \RuntimeException("Addrress is already released");
+			$result[] = $this->reserve(...$near, ...$result);
 		}
 
-		$this->registry[$address] = false;
+		return $result;
+	}
+
+	public function release(...$addresses) : void
+	{
+		foreach ($addresses as $address)
+		{
+			if (!$this->registry[$address])
+			{
+				throw new \RuntimeException("Addrress is already released");
+			}
+
+			$this->registry[$address] = false;
+		}
 	}
 
 	public function multiply(int $a, int $b, int $result) : int
@@ -116,8 +131,7 @@ class Processor
 
 	public function divideByConstant(int $a, int $constant, int $quotient, int $remainder) : void
 	{
-		$temp = $this->reserve($a, $quotient, $remainder);
-		$temp2 = $this->reserve($a, $quotient, $quotient, $temp);
+		[ $temp, $temp2 ] = $this->reserveSeveral(2, $a, $quotient, $remainder);
 
 		$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp, $temp2) { // проверяем, что $a не ноль
 			$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp) {
@@ -140,19 +154,15 @@ class Processor
 			}, "else if remainder = `$constant`, unset remainder");
 		}, "divide $a by `$constant`");
 
-		$this->release($temp);
-		$this->release($temp2);
+		$this->release($temp, $temp2);
 	}
 
 	public function printNumber(int $number) : void
 	{
-		$a = $this->reserve($number);
-		$b = $this->reserve($number, $a);
-		$c = $this->reserve($number, $a, $b);
-		$d = $this->reserve($number, $a, $b, $c);
-		$e = $this->reserve($number, $a, $b, $c, $d);
+		[ $a, $b ] = $this->reserveSeveral(2, $number);
 
 		$this->divideByConstant($number, 10, $a, $b); // $b - последняя цифра
+		[ $c, $d ] = $this->reserveSeveral(2, $number);
 		$this->copyNumber($a, $c);
 		$this->ifMoreThenConstant($c, 9, function() use ($a, $c, $d) {
 			$this->divideByConstant($a, 10, $c, $d); // $c - 1 цифра, $d - вторая
@@ -172,11 +182,7 @@ class Processor
 		$this->print($b);
 		$this->unset($b);
 
-		$this->release($a);
-		$this->release($b);
-		$this->release($c);
-		$this->release($d);
-		$this->release($e);
+		$this->release($a, $b, $c, $d);
 	}
 
 	public function while(int $address, callable $callback, string $comment) : void
