@@ -40,12 +40,12 @@ class Processor
 			}
 		}
 
-		$this->registry[$nearest] = true;
-
 		if ($nearest === null)
 		{
 			throw new \RuntimeException("Registry is full");
 		}
+
+		$this->registry[$nearest] = true;
 
 		return $nearest;
 	}
@@ -118,7 +118,7 @@ class Processor
 			$this->moveBoolean($temp, $a, $b);
 			$this->if($a, function () use ($quotient) {
 				$this->decrement($quotient);
-			}, "if remainder > 0, sub 1 from quotient");
+			}, "if remainder > `0`, sub 1 from quotient");
 			$this->not($b);
 			$this->if($b, function () use ($remainder) {
 				$this->unset($remainder);
@@ -147,7 +147,7 @@ class Processor
 			$this->moveBoolean($a, $temp, $temp2);
 			$this->if($temp, function () use ($quotient) {
 				$this->decrement($quotient);
-			}, "if remainder > 0, sub 1 from quotient");
+			}, "if remainder > `0`, sub 1 from quotient");
 			$this->not($temp2);
 			$this->if($temp2, function () use ($remainder) {
 				$this->unset($remainder);
@@ -162,7 +162,7 @@ class Processor
 		[ $a, $b ] = $this->reserveSeveral(2, $number);
 
 		$this->divideByConstant($number, 10, $a, $b); // $b - последняя цифра
-		[ $c, $d ] = $this->reserveSeveral(2, $number);
+		[ $c, $d ] = $this->reserveSeveral(2, $number, $a, $b);
 		$this->copyNumber($a, $c);
 		$this->ifMoreThenConstant($c, 9, function() use ($a, $c, $d) {
 			$this->divideByConstant($a, 10, $c, $d); // $c - 1 цифра, $d - вторая
@@ -212,11 +212,11 @@ class Processor
 	{
 		$temp = $this->reserve($a);
 
-		//$this->stream->startGroup();
+		//$this->stream->startGroup("prepare if $a > $constant");
 		$this->addConstant($temp, $constant);
 		$this->subUntilZero($a, $temp);
-		$this->if($a, $callback, "if $a > `$constant`");
 		//$this->stream->endGroup();
+		$this->if($a, $callback, "if $a > `$constant`");
 
 		$this->release($temp);
 	}
