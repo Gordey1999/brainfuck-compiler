@@ -14,12 +14,12 @@ export class TabManager {
 
 	_init() {
 		this._addTab(document.querySelector('#page1').textContent);
-		this._addTab(document.querySelector('#page2').textContent);
-		this._addTab(document.querySelector('#page3').textContent);
-		this._addTab(document.querySelector('#page4').textContent);
-		this._addTab(document.querySelector('#page5').textContent, 'Нукрутоже?\n9');
-		this._addTab(document.querySelector('#page6').textContent);
-		this._addTab(document.querySelector('#page7').textContent);
+		// this._addTab(document.querySelector('#page2').textContent);
+		// this._addTab(document.querySelector('#page3').textContent);
+		// this._addTab(document.querySelector('#page4').textContent);
+		// this._addTab(document.querySelector('#page5').textContent, 'Нукрутоже?\n9');
+		// this._addTab(document.querySelector('#page6').textContent);
+		// this._addTab(document.querySelector('#page7').textContent);
 		this._setActiveTab(this._el.firstElementChild);
 	}
 
