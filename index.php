@@ -17,6 +17,16 @@ $a = $processor->reserve();
 $processor->addConstant($a, 234);
 $processor->printNumber($a);
 
+$program = <<<CODE
+Const a = 254;
+Echo "Hello, World! {a} \n" . a;
+CODE;
+
+$parser = new Compiler\Parser();
+$parser->parse($program);
+die;
+
+
 //$b = $processor->reserve();
 //$c = $processor->reserve();
 //$d = $processor->reserve();
