@@ -15,14 +15,15 @@
 			</div>
 			<div class="buttons-block">
 				<button class="btn btn-step">step</button>
+				<button class="btn btn-line">line</button>
 				<button class="btn btn-out">out</button>
 			</div>
 			<div class="buttons-block">
 				<button class="btn btn-input">input</button>
 			</div>
 		</div>
-		<div class="nav-end">Brainfuck Interpreter
-			<div class="nav-end-front">Brainfuck Interpreter</div>
+		<div class="nav-end">Brainfucker 3000
+			<div class="nav-end-front">Brainfucker 3000</div>
 		</div>
 	</div>
 	<div class="content">

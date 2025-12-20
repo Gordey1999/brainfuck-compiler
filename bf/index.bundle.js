@@ -25387,10 +25387,14 @@
   ]);
 
 
-  const setActiveLine = StateEffect.define();
+  const setActivePosition = StateEffect.define();
   const activeLineDeco = Decoration.line({
   	class: "cm-active-debug-line"
   });
+  const activeCharDeco = Decoration.mark({
+  	class: "cm-active-debug-char"
+  });
+
   const activeLineField = StateField.define({
   	create() {
   		return Decoration.none
@@ -25400,12 +25404,23 @@
   		deco = deco.map(tr.changes);
 
   		for (let e of tr.effects) {
-  			if (e.is(setActiveLine)) {
-  				if (e.value === 0) {
-  					return Decoration.none;
+  			if (e.is(setActivePosition)) {
+  				if (e.value === null) {
+  					return Decoration.none
   				}
-  				const line = tr.state.doc.line(e.value);
-  				deco = Decoration.set([activeLineDeco.range(line.from)]);
+
+  				try {
+  					const line = tr.state.doc.line(e.value[0] + 1);
+  					const char = line.from + e.value[1];
+
+  					deco = Decoration.set([
+  						activeLineDeco.range(line.from),
+  						activeCharDeco.range(char, char + 1)
+  					]);
+  				}
+  				catch (e) {
+  					return Decoration.none
+  				}
   			}
   		}
   		return deco
@@ -25430,11 +25445,8 @@
   		});
   	}
 
-  	highlightLine(lineNo) {
-  		if (lineNo <= 0) {
-  			lineNo = 0;
-  		}
-  		this._editor.dispatch({effects: setActiveLine.of(lineNo)});
+  	highlightPosition(position) {
+  		this._editor.dispatch({effects: setActivePosition.of(position)});
   	}
 
   	getCode() {
@@ -25743,24 +25755,27 @@
 
   		const result = [];
 
+  		const commands = '+-><[].,'.split('');
   		let count = 0;
   		for (let i = 0; i < lines.length; i++) {
-  			const sanitized = this._sanitizeLine(lines[i]);
+  			const sanitized = this._sanitizeComment(lines[i]);
 
-  			for (let j in sanitized) {
-  				this._linesMap[count] = i + 1;
+  			for (let j = 0; j < sanitized.length; j++) {
+  				const command = sanitized[j];
+  				if (!commands.includes(command)) { continue; }
+
+  				this._linesMap[count] = [ i, j ];
   				count++;
-  			}
 
-  			result.push(sanitized);
+  				result.push(command);
+  			}
   		}
 
   		return result.join('');
   	}
 
-  	_sanitizeLine(line) {
-  		const result = line.split(this._commentSeparator)[0];
-  		return result.replace(/[^+\-\[\].,><]/g, '');
+  	_sanitizeComment(line) {
+  		return line.split(this._commentSeparator)[0];
   	}
 
   	_initScopes() {
@@ -25833,12 +25848,14 @@
   		this._debugData = {};
 
   		if (params['stepOut'] === true) {
-  			for (const [key, value] of this._scopesEnd) {
-  				const scopeStartLine = this._linesMap[key];
-  				const scopeEndLine = this._linesMap[value];
-  				const currentLine = this.getCurrentLine();
-  				if (scopeStartLine <= currentLine && scopeEndLine > currentLine) {
-  					this._debugData.stopOn = this._lineToCommand(scopeEndLine) + 1;
+  			let minDistance = this._code.length;
+
+  			for (const [start, end] of this._scopesEnd) {
+  				const distance = end - start;
+
+  				if (start < this._current && end >= this._current && distance < minDistance) {
+  					this._debugData.stopOn = end + 1;
+  					minDistance = end - start;
   				}
   			}
   		}
@@ -25849,11 +25866,14 @@
   			return true;
   		}
 
+  		if (params['oneStep'] === true) {
+  			return true;
+  		}
   		if (params['lineStep'] === true) {
-  			const lastLine = this._linesMap[this._last];
-  			const currentLine = this.getCurrentLine();
+  			const lastLine = this._linesMap[this._last][0];
+  			const currentPosition = this.getCurrentPosition();
 
-  			if (lastLine !== currentLine) {
+  			if (currentPosition === null || lastLine !== currentPosition[0]) {
   				return true;
   			}
   		}
@@ -25878,12 +25898,12 @@
   				break;
   			case '[':
   				if (this._value() === 0) {
-  					this._current = this._scopesEnd.get(this._current) - 1;
+  					this._current = this._scopesEnd.get(this._current);
   				}
   				break;
   			case ']':
   				if (this._value() > 0) {
-  					this._current = this._scopesStart.get(this._current) - 1;
+  					this._current = this._scopesStart.get(this._current);
   				}
   				break;
   			case '.':
@@ -25943,7 +25963,7 @@
 
   	_lineToCommand(line) {
   		for (const i  in this._linesMap) {
-  			if (this._linesMap[i] === line) {
+  			if (this._linesMap[i][0] === line) {
   				return parseInt(i);
   			}
   		}
@@ -25954,9 +25974,9 @@
   		this._inputBuffer.push(...input);
   	}
 
-  	getCurrentLine() {
+  	getCurrentPosition() {
   		if (!this._linesMap[this._current]) {
-  			return 0;
+  			return null;
   		}
   		return this._linesMap[this._current];
   	}
@@ -25996,10 +26016,21 @@
   		this._stopped = true;
   		this._console.stop();
   		this._console.setStatus('stopped');
-  		this._editor.highlightLine(0);
+  		this._editor.highlightPosition(null);
   	}
 
-  	onStep = (out = false) => {
+  	onStep = () => {
+  		if (this._running) { return; }
+  		if (this._stopped) {
+  			if (!this._compile()) { return; }
+  			this._renderState();
+  			return;
+  		}
+
+  		this._run(true, { oneStep: true });
+  	}
+
+  	onStepLine = () => {
   		if (this._running) { return; }
   		if (this._stopped) {
   			if (!this._compile()) { return; }
@@ -26025,7 +26056,7 @@
   		}
   		catch (e) {
   			this._console.showError(e.message);
-  			this._editor.highlightLine(0);
+  			this._editor.highlightPosition(null);
   			console.warn(e);
   			return false;
   		}
@@ -26044,7 +26075,7 @@
 
   			this._running = false;
 
-  			if (!this._translator.getCurrentLine()) {
+  			if (this._translator.getCurrentPosition() === null) {
   				this._stopped = true;
   				this._console.setStatus('finished');
   			} else {
@@ -26071,7 +26102,7 @@
   	}
 
   	_renderState() {
-  		this._editor.highlightLine(this._translator.getCurrentLine());
+  		this._editor.highlightPosition(this._translator.getCurrentPosition());
   		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
   		this._console.setCommandsCount(this._translator.commandsCount());
   	}
@@ -26133,12 +26164,12 @@
 
   	_init() {
   		this._addTab(document.querySelector('#page1').textContent);
-  		this._addTab(document.querySelector('#page2').textContent);
-  		this._addTab(document.querySelector('#page3').textContent);
-  		this._addTab(document.querySelector('#page4').textContent);
-  		this._addTab(document.querySelector('#page5').textContent, 'Нукрутоже?\n9');
-  		this._addTab(document.querySelector('#page6').textContent);
-  		this._addTab(document.querySelector('#page7').textContent);
+  		// this._addTab(document.querySelector('#page2').textContent);
+  		// this._addTab(document.querySelector('#page3').textContent);
+  		// this._addTab(document.querySelector('#page4').textContent);
+  		// this._addTab(document.querySelector('#page5').textContent, 'Нукрутоже?\n9');
+  		// this._addTab(document.querySelector('#page6').textContent);
+  		// this._addTab(document.querySelector('#page7').textContent);
   		this._setActiveTab(this._el.firstElementChild);
   	}
 
@@ -26274,6 +26305,8 @@
   	.addEventListener('click', controller.onDebug);
   buttonsBlock.querySelector('.btn-step')
   	.addEventListener('click', controller.onStep);
+  buttonsBlock.querySelector('.btn-line')
+  	.addEventListener('click', controller.onStepLine);
   buttonsBlock.querySelector('.btn-out')
   	.addEventListener('click', controller.onStepOut);
   buttonsBlock.querySelector('.btn-input')

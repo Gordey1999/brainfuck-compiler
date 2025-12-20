@@ -34,10 +34,14 @@ const bfHighlight = HighlightStyle.define([
 ])
 
 
-const setActiveLine = StateEffect.define()
+const setActivePosition = StateEffect.define()
 const activeLineDeco = Decoration.line({
 	class: "cm-active-debug-line"
 })
+const activeCharDeco = Decoration.mark({
+	class: "cm-active-debug-char"
+})
+
 const activeLineField = StateField.define({
 	create() {
 		return Decoration.none
@@ -47,12 +51,23 @@ const activeLineField = StateField.define({
 		deco = deco.map(tr.changes)
 
 		for (let e of tr.effects) {
-			if (e.is(setActiveLine)) {
-				if (e.value === 0) {
-					return Decoration.none;
+			if (e.is(setActivePosition)) {
+				if (e.value === null) {
+					return Decoration.none
 				}
-				const line = tr.state.doc.line(e.value)
-				deco = Decoration.set([activeLineDeco.range(line.from)])
+
+				try {
+					const line = tr.state.doc.line(e.value[0] + 1);
+					const char = line.from + e.value[1];
+
+					deco = Decoration.set([
+						activeLineDeco.range(line.from),
+						activeCharDeco.range(char, char + 1)
+					])
+				}
+				catch (e) {
+					return Decoration.none
+				}
 			}
 		}
 		return deco
@@ -77,11 +92,8 @@ export class Editor {
 		})
 	}
 
-	highlightLine(lineNo) {
-		if (lineNo <= 0) {
-			lineNo = 0;
-		}
-		this._editor.dispatch({effects: setActiveLine.of(lineNo)});
+	highlightPosition(position) {
+		this._editor.dispatch({effects: setActivePosition.of(position)});
 	}
 
 	getCode() {

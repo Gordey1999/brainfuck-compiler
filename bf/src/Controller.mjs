@@ -23,10 +23,21 @@ export class Controller {
 		this._stopped = true;
 		this._console.stop();
 		this._console.setStatus('stopped');
-		this._editor.highlightLine(0);
+		this._editor.highlightPosition(null);
 	}
 
-	onStep = (out = false) => {
+	onStep = () => {
+		if (this._running) { return; }
+		if (this._stopped) {
+			if (!this._compile()) { return; }
+			this._renderState();
+			return;
+		}
+
+		this._run(true, { oneStep: true });
+	}
+
+	onStepLine = () => {
 		if (this._running) { return; }
 		if (this._stopped) {
 			if (!this._compile()) { return; }
@@ -52,7 +63,7 @@ export class Controller {
 		}
 		catch (e) {
 			this._console.showError(e.message);
-			this._editor.highlightLine(0);
+			this._editor.highlightPosition(null);
 			console.warn(e);
 			return false;
 		}
@@ -71,7 +82,7 @@ export class Controller {
 
 			this._running = false;
 
-			if (!this._translator.getCurrentLine()) {
+			if (this._translator.getCurrentPosition() === null) {
 				this._stopped = true;
 				this._console.setStatus('finished');
 			} else {
@@ -98,7 +109,7 @@ export class Controller {
 	}
 
 	_renderState() {
-		this._editor.highlightLine(this._translator.getCurrentLine());
+		this._editor.highlightPosition(this._translator.getCurrentPosition());
 		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
 		this._console.setCommandsCount(this._translator.commandsCount());
 	}

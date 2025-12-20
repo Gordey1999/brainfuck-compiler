@@ -31,6 +31,8 @@ buttonsBlock.querySelector('.btn-debug')
 	.addEventListener('click', controller.onDebug);
 buttonsBlock.querySelector('.btn-step')
 	.addEventListener('click', controller.onStep);
+buttonsBlock.querySelector('.btn-line')
+	.addEventListener('click', controller.onStepLine);
 buttonsBlock.querySelector('.btn-out')
 	.addEventListener('click', controller.onStepOut);
 buttonsBlock.querySelector('.btn-input')

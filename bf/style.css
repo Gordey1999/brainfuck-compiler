@@ -166,6 +166,10 @@ pre {
 	background-color: rgb(255 200 0 / 55%) !important;
 }
 
+.cm-active-debug-char {
+	background-color: #ff000024 !important;
+}
+
 
 .right {
 	display: flex;

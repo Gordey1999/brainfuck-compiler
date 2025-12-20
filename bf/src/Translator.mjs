@@ -26,24 +26,27 @@ export class Translator {
 
 		const result = [];
 
+		const commands = '+-><[].,'.split('');
 		let count = 0;
 		for (let i = 0; i < lines.length; i++) {
-			const sanitized = this._sanitizeLine(lines[i]);
+			const sanitized = this._sanitizeComment(lines[i]);
 
-			for (let j in sanitized) {
-				this._linesMap[count] = i + 1;
+			for (let j = 0; j < sanitized.length; j++) {
+				const command = sanitized[j];
+				if (!commands.includes(command)) { continue; }
+
+				this._linesMap[count] = [ i, j ];
 				count++;
-			}
 
-			result.push(sanitized);
+				result.push(command);
+			}
 		}
 
 		return result.join('');
 	}
 
-	_sanitizeLine(line) {
-		const result = line.split(this._commentSeparator)[0];
-		return result.replace(/[^+\-\[\].,><]/g, '');
+	_sanitizeComment(line) {
+		return line.split(this._commentSeparator)[0];
 	}
 
 	_initScopes() {
@@ -116,12 +119,14 @@ export class Translator {
 		this._debugData = {};
 
 		if (params['stepOut'] === true) {
-			for (const [key, value] of this._scopesEnd) {
-				const scopeStartLine = this._linesMap[key];
-				const scopeEndLine = this._linesMap[value];
-				const currentLine = this.getCurrentLine();
-				if (scopeStartLine <= currentLine && scopeEndLine > currentLine) {
-					this._debugData.stopOn = this._lineToCommand(scopeEndLine) + 1;
+			let minDistance = this._code.length;
+
+			for (const [start, end] of this._scopesEnd) {
+				const distance = end - start;
+
+				if (start < this._current && end >= this._current && distance < minDistance) {
+					this._debugData.stopOn = end + 1;
+					minDistance = end - start;
 				}
 			}
 		}
@@ -132,11 +137,14 @@ export class Translator {
 			return true;
 		}
 
+		if (params['oneStep'] === true) {
+			return true;
+		}
 		if (params['lineStep'] === true) {
-			const lastLine = this._linesMap[this._last];
-			const currentLine = this.getCurrentLine();
+			const lastLine = this._linesMap[this._last][0];
+			const currentPosition = this.getCurrentPosition();
 
-			if (lastLine !== currentLine) {
+			if (currentPosition === null || lastLine !== currentPosition[0]) {
 				return true;
 			}
 		}
@@ -161,12 +169,12 @@ export class Translator {
 				break;
 			case '[':
 				if (this._value() === 0) {
-					this._current = this._scopesEnd.get(this._current) - 1;
+					this._current = this._scopesEnd.get(this._current);
 				}
 				break;
 			case ']':
 				if (this._value() > 0) {
-					this._current = this._scopesStart.get(this._current) - 1;
+					this._current = this._scopesStart.get(this._current);
 				}
 				break;
 			case '.':
@@ -226,7 +234,7 @@ export class Translator {
 
 	_lineToCommand(line) {
 		for (const i  in this._linesMap) {
-			if (this._linesMap[i] === line) {
+			if (this._linesMap[i][0] === line) {
 				return parseInt(i);
 			}
 		}
@@ -237,9 +245,9 @@ export class Translator {
 		this._inputBuffer.push(...input);
 	}
 
-	getCurrentLine() {
+	getCurrentPosition() {
 		if (!this._linesMap[this._current]) {
-			return 0;
+			return null;
 		}
 		return this._linesMap[this._current];
 	}
