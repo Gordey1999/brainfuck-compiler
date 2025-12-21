@@ -87,6 +87,10 @@ export class Console {
 				this._status.textContent = 'RUNNING ';
 				this._status.classList.add('--loading');
 				break;
+			case 'building':
+				this._status.textContent = 'BUILDING ';
+				this._status.classList.add('--loading');
+				break;
 			case 'stopped':
 				this._status.textContent = 'STOPPED';
 				break;

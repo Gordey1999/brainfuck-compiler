@@ -1,8 +1,9 @@
 import {Editor} from "./Editor.mjs";
 import {Profiler} from "./Profiler.mjs";
 import {Console} from "./Console.mjs";
-import {Controller} from "./Controller.mjs";
 import {FileInput} from "./FileInput.mjs";
+import {Controller} from "./Controller.mjs";
+import {Builder} from "./Builder.mjs";
 import {TabManager} from "./TabManager.mjs";
 
 const editorEl = document.querySelector('.edit-area');
@@ -17,26 +18,33 @@ const editor = new Editor(editorEl, '');
 const profiler = new Profiler(profilerEl, 500);
 const console = new Console(consoleEl, statusEl, counterEl);
 const fileInput = new FileInput(input);
+
 const controller = new Controller(editor, profiler, console, fileInput);
-const tabManager = new TabManager(tabs, controller, editor, fileInput);
+const builder = new Builder(editor, console);
 
+const tabManager = new TabManager(tabs, controller, builder, editor, fileInput);
+builder.setTabManager(tabManager);
 
-const buttonsBlock = document.querySelector('.buttons');
+const buttonsBf = document.querySelector('.buttons-bf');
+const buttonsBb = document.querySelector('.buttons-bb');
 
-buttonsBlock.querySelector('.btn-run')
+buttonsBf.querySelector('.btn-run')
 	.addEventListener('click', controller.onRun);
-buttonsBlock.querySelector('.btn-stop')
+buttonsBf.querySelector('.btn-stop')
 	.addEventListener('click', controller.onStop);
-buttonsBlock.querySelector('.btn-debug')
-	.addEventListener('click', controller.onDebug);
-buttonsBlock.querySelector('.btn-step')
+buttonsBf.querySelector('.btn-step')
 	.addEventListener('click', controller.onStep);
-buttonsBlock.querySelector('.btn-line')
+buttonsBf.querySelector('.btn-line')
 	.addEventListener('click', controller.onStepLine);
-buttonsBlock.querySelector('.btn-out')
+buttonsBf.querySelector('.btn-out')
 	.addEventListener('click', controller.onStepOut);
-buttonsBlock.querySelector('.btn-input')
+buttonsBf.querySelector('.btn-input')
 	.addEventListener('click', fileInput.onToggle);
+
+buttonsBb.querySelector('.btn-build')
+	.addEventListener('click', builder.onBuild);
+buttonsBb.querySelector('.btn-build-min')
+	.addEventListener('click', builder.onBuildMin);
 
 window.MyEditor = editor;
 

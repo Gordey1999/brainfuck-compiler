@@ -25359,33 +25359,7 @@
       ])
   ])();
 
-  const bfLanguage = StreamLanguage.define({
-  	name: "brainfuck",
-
-  	token(stream) {
-  		if (stream.match(/^#.*/)) {
-  			return "comment"
-  		}
-
-  		if (stream.match(/[><+\-.,]/)) {
-  			return "keyword"
-  		}
-
-  		if (stream.match(/[\[\]]/)) {
-  			return "bracket"
-  		}
-
-  		stream.next();
-  		return null
-  	}
-  });
-
-  const bfHighlight = HighlightStyle.define([
-  	{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
-  	{ tag: tags.keyword, color: "#952222" },
-  	{ tag: tags.variableName, color: "#95005b", fontWeight: "bold", textTransform: "uppercase" }
-  ]);
-
+  const languageCompartment = new Compartment();
 
   const setActivePosition = StateEffect.define();
   const activeLineDeco = Decoration.line({
@@ -25431,11 +25405,13 @@
 
   class Editor {
   	constructor(parent, code = '') {
+  		this._defineBf();
+  		this._defineBb();
+
   		this._editor = new EditorView({
   			extensions: [
   				basicSetup,
-  				bfLanguage,
-  				syntaxHighlighting(bfHighlight),
+  				languageCompartment.of(this._bbExt),
   				keymap.of(indentWithTab),
   				bracketMatching(),
   				activeLineField,
@@ -25443,6 +25419,75 @@
   			doc: code,
   			parent: parent,
   		});
+  	}
+
+  	_defineBf() {
+  		const bfLanguage = StreamLanguage.define({
+  			name: "brainfuck",
+
+  			token(stream) {
+  				if (stream.match(/^#.*/)) {
+  					return "comment"
+  				}
+
+  				if (stream.match(/[><+\-.,]/)) {
+  					return "keyword"
+  				}
+
+  				if (stream.match(/[\[\]]/)) {
+  					return "bracket"
+  				}
+
+  				stream.next();
+  				return null
+  			}
+  		});
+
+  		const bfHighlight = HighlightStyle.define([
+  			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
+  			{ tag: tags.keyword, color: "#952222" },
+  		]);
+
+  		this._bfExt = [ bfLanguage, syntaxHighlighting(bfHighlight) ];
+  	}
+
+  	_defineBb() {
+  		const bbLanguage = StreamLanguage.define({
+  			name: "brainfuck",
+
+  			token(stream) {
+  				if (stream.match(/^#.*/)) {
+  					return "comment"
+  				}
+
+  				if (stream.match(/"[^"]*"/)) {
+  					return "string"
+  				}
+
+  				if (stream.match(/'[^']*'/)) {
+  					return "string"
+  				}
+
+  				if (stream.match(/const|char|int|byte|if|while|for|echo|true|false/)) {
+  					return "keyword"
+  				}
+
+  				// if (stream.match(/[\[\]]/)) {
+  				// 	return "bracket"
+  				// }
+
+  				stream.next();
+  				return null
+  			}
+  		});
+
+  		const bbHighlight = HighlightStyle.define([
+  			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
+  			{ tag: tags.keyword, color: "#224395", fontWeight: "bold" },
+  			{ tag: tags.string, color: "#956b00" }
+  		]);
+
+  		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight) ];
   	}
 
   	highlightPosition(position) {
@@ -25461,6 +25506,18 @@
   				insert: code
   			}
   		});
+  	}
+
+  	setLanguage(language) {
+  		if (language === 'bb') {
+  			this._editor.dispatch({
+  				effects: languageCompartment.reconfigure(this._bbExt),
+  			});
+  		} else {
+  			this._editor.dispatch({
+  				effects: languageCompartment.reconfigure(this._bfExt),
+  			});
+  		}
   	}
   }
 
@@ -25668,6 +25725,10 @@
   				this._status.textContent = 'RUNNING ';
   				this._status.classList.add('--loading');
   				break;
+  			case 'building':
+  				this._status.textContent = 'BUILDING ';
+  				this._status.classList.add('--loading');
+  				break;
   			case 'stopped':
   				this._status.textContent = 'STOPPED';
   				break;
@@ -25724,6 +25785,47 @@
 
   	checkBufferSize() {
 
+  	}
+  }
+
+  class FileInput {
+  	constructor(element) {
+  		this._el = element;
+  		this._active = false;
+  		this.set();
+  	}
+
+  	onToggle = () => {
+  		this._active = !this._active;
+  		this._el.classList.toggle('--active', this._active);
+  	}
+
+  	get() {
+  		if (!this._active) {
+  			return [];
+  		}
+  		return this.getTextarea().textContent.split('');
+  	}
+
+  	getRaw() {
+  		return this.getTextarea().textContent;
+  	}
+
+  	set(text) {
+  		this.getTextarea().textContent = text;
+  	}
+
+  	getTextarea() {
+  		return this._el.querySelector('pre');
+  	}
+
+  	isActive() {
+  		return this._active;
+  	}
+
+  	setActive(active) {
+  		this._active = active;
+  		this._el.classList.toggle('--active', this._active);
   	}
   }
 
@@ -26108,52 +26210,91 @@
   	}
   }
 
-  class FileInput {
-  	constructor(element) {
-  		this._el = element;
-  		this._active = false;
-  		this.set();
+  class Builder {
+  	_ajaxUrl = 'ajax/compile.php';
+
+  	constructor(editor, console) {
+  		this._editor = editor;
+  		this._console = console;
+  		this._running = false;
   	}
 
-  	onToggle = () => {
-  		this._active = !this._active;
-  		this._el.classList.toggle('--active', this._active);
+  	setTabManager(tabManager) {
+  		this._tabManager = tabManager;
   	}
 
-  	get() {
-  		if (!this._active) {
-  			return [];
-  		}
-  		return this.getTextarea().textContent.split('');
+  	onBuild = () => {
+  		this._console.setStatus('building');
+  		this._build();
   	}
 
-  	getRaw() {
-  		return this.getTextarea().textContent;
+  	onBuildMin = () => {
+  		if (this._stopped) { return; }
+  		this._stopped = true;
+  		this._console.stop();
+  		this._console.setStatus('stopped');
+  		this._editor.highlightPosition(null);
   	}
 
-  	set(text) {
-  		this.getTextarea().textContent = text;
+  	_build(min = false) {
+  		const code = this._editor.getCode();
+  		const title = this._tabManager.getTitle(code);
+
+  		this._query(code, title, min)
+  			.then(data => {
+  				if (data.status === 'ok') {
+  					this._render(data.result);
+  				} else {
+  					this._showError(data.message, data?.index);
+  				}
+  			});
   	}
 
-  	getTextarea() {
-  		return this._el.querySelector('pre');
+  	_query(code, title, min = false) {
+  		return fetch(this._ajaxUrl, {
+  			method: 'POST',
+  			headers: {
+  				'Content-Type': 'application/json',
+  			},
+  			body: JSON.stringify({
+  				title: title,
+  				code: code,
+  				min: min,
+  			})
+  		})
+  			.then(response => {
+  				if (!response.ok) {
+  					this._console.showError('ajax error');
+  				}
+  				return response.json();
+  			})
+  			.catch(error => {
+  				this._console.showError(error);
+  			});
   	}
 
-  	isActive() {
-  		return this._active;
+  	_render(result) {
+  		this._tabManager.showCompiled(result);
+  		this._console.setStatus('finished');
   	}
 
-  	setActive(active) {
-  		this._active = active;
-  		this._el.classList.toggle('--active', this._active);
+  	_showError(message, index) {
+  		this._console.showError(message);
+  	}
+
+  	_renderState() {
+  		this._editor.highlightPosition(this._translator.getCurrentPosition());
+  		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
+  		this._console.setCommandsCount(this._translator.commandsCount());
   	}
   }
 
   class TabManager {
 
-  	constructor(element, controller, editor, input) {
+  	constructor(element, controller, builder, editor, input) {
   		this._el = element;
   		this._controller = controller;
+  		this._builder = builder;
   		this._editor = editor;
   		this._input = input;
   		this._tabData = [];
@@ -26162,38 +26303,52 @@
   		this._init();
   	}
 
+  	showCompiled(code) {
+  		const parent = this._getActiveTab();
+
+  		const children = this._getChildTabs(parent);
+  		//const title = this.getTitle(code);
+
+  		if (children.length > 0) {
+  			this._closeTab(children[0]);
+  		}
+  		// todo add min
+
+  		this._addTab(true, parent, code);
+  	}
+
   	_init() {
-  		this._addTab(document.querySelector('#page1').textContent);
-  		// this._addTab(document.querySelector('#page2').textContent);
-  		// this._addTab(document.querySelector('#page3').textContent);
-  		// this._addTab(document.querySelector('#page4').textContent);
-  		// this._addTab(document.querySelector('#page5').textContent, 'Нукрутоже?\n9');
-  		// this._addTab(document.querySelector('#page6').textContent);
-  		// this._addTab(document.querySelector('#page7').textContent);
+  		this._addTab();
   		this._setActiveTab(this._el.firstElementChild);
   	}
 
-
   	_bind() {
-  		this._el.querySelector('.tab-plus').addEventListener('click', this._addTab.bind(this, '', ''));
+  		this._el.querySelector('.tab-plus')
+  			.addEventListener('click', this._addTab.bind(this, false, null, '', ''));
+  		this._el.querySelector('.tab-plus-bf')
+  			.addEventListener('click', this._addTab.bind(this, true, null, '', ''));
 
   		setInterval(this._setTitle.bind(this), 5000);
   	}
 
   	_setTitle() {
-  		const activeTab = this._el.querySelector('.--active');
+  		const activeTab = this._getActiveTab();
   		if (!activeTab) { return; }
 
   		const code = this._editor.getCode();
-  		activeTab.querySelector('.tab-name').textContent = this._getTitle(code);
+  		let title = this.getTitle(code);
+  		if (title === '') {
+  			title = 'untitled';
+  		}
+  		activeTab.querySelector('.tab-name').textContent = title;
   	}
 
-  	_getTitle(code) {
-  		const match = code.match(/^#\s*title:\s*([\wА-Яа-я ]+)/);
-  		return match ? match[1] : 'untitled';
+  	getTitle(code) {
+  		const match = code.match(/^#\s*title:\s*([\wА-Яа-я .]+)/);
+  		return match ? match[1] : '';
   	}
 
-  	_addTab(code = '', input = '') {
+  	_addTab(bf = false, parent = null, code = '', input = '') {
   		const el = document.createElement('div');
   		const name = document.createElement('span');
   		const close = document.createElement('span');
@@ -26202,18 +26357,42 @@
   		name.classList.add('tab-name');
   		close.classList.add('tab-close');
 
-  		name.textContent = this._getTitle(code);
+  		let title = this.getTitle(code);
+  		if (title === '') {
+  			if (bf) {
+  				title = 'untitled.bf';
+  				code = '# title: untitled.bf\n\n' + code;
+  			} else {
+  				title = 'untitled';
+  				code = '# title: untitled\n\n' + code;
+  			}
+  		}
+
+  		name.textContent = title;
   		close.textContent = ' x';
+
+  		if (bf) {
+  			el.classList.add('tab-bf');
+  		}
+  		if (parent) {
+  			el.classList.add('tab-subtab');
+  		}
 
   		el.appendChild(name);
   		el.appendChild(close);
-  		this._el.lastElementChild.before(el);
+
+  		if (parent) {
+  			parent.after(el);
+  		} else {
+  			this._el.querySelector('.tab-plus').before(el);
+  		}
 
   		this._tabData.push({
   			el: el,
   			code: code,
   			input: input,
   			inputActive: input.length > 0,
+  			language: bf ? 'bf' : 'bb',
   		});
 
   		el.addEventListener('click', this._setActiveTab.bind(this, el));
@@ -26224,7 +26403,7 @@
   	}
 
   	_setActiveTab(el) {
-  		const activeTab = this._el.querySelector('.--active');
+  		const activeTab = this._getActiveTab();
   		if (activeTab === el) { return; }
 
   		if (activeTab) {
@@ -26239,6 +26418,8 @@
   		this._controller.onStop();
 
   		const tabData = this._getTabData(el);
+  		this._setButtons(tabData.language);
+  		this._editor.setLanguage(tabData.language);
   		this._editor.setCode(tabData.code);
   		this._input.set(tabData.input);
   		this._input.setActive(tabData.inputActive);
@@ -26246,11 +26427,48 @@
   		el.classList.add('--active');
   	}
 
-  	_closeTab(el, e) {
-  		e.stopPropagation();
-  		if (this._el.querySelectorAll('.tab').length <= 2) { return; }
+  	_getChildTabs(el) {
+  		const result = [];
+  		let last = el;
+  		while (true) {
+  			const tab = last.nextElementSibling;
+  			if (!tab.classList.contains('tab-subtab')) {
+  				break;
+  			}
+  			result.push(tab);
+  			last = tab;
+  		}
 
-  		const activeTab = this._el.querySelector('.--active');
+  		return result;
+  	}
+
+  	_getActiveTab() {
+  		return this._el.querySelector('.tab.--active');
+  	}
+
+  	_setButtons(language) {
+  		if (language === 'bf') {
+  			document.querySelector('.buttons-bf').classList.add('--active');
+  			document.querySelector('.buttons-bb').classList.remove('--active');
+  		} else {
+  			document.querySelector('.buttons-bb').classList.add('--active');
+  			document.querySelector('.buttons-bf').classList.remove('--active');
+  		}
+  	}
+
+  	_closeTab(el, e) {
+  		e?.stopPropagation();
+
+  		const children = this._getChildTabs(el);
+  		if (children.length > 0) {
+  			for (const child of children) {
+  				this._closeTab(child);
+  			}
+  		}
+
+  		if (this._el.querySelectorAll('.tab').length <= 3) { return; }
+
+  		const activeTab = this._getActiveTab();
   		if (activeTab === el) {
   			if (el.previousElementSibling) {
   				this._setActiveTab(el.previousElementSibling);
@@ -26291,26 +26509,33 @@
   const profiler = new Profiler(profilerEl, 500);
   const console$1 = new Console(consoleEl, statusEl, counterEl);
   const fileInput = new FileInput(input);
+
   const controller = new Controller(editor, profiler, console$1, fileInput);
-  new TabManager(tabs, controller, editor, fileInput);
+  const builder = new Builder(editor, console$1);
 
+  const tabManager = new TabManager(tabs, controller, builder, editor, fileInput);
+  builder.setTabManager(tabManager);
 
-  const buttonsBlock = document.querySelector('.buttons');
+  const buttonsBf = document.querySelector('.buttons-bf');
+  const buttonsBb = document.querySelector('.buttons-bb');
 
-  buttonsBlock.querySelector('.btn-run')
+  buttonsBf.querySelector('.btn-run')
   	.addEventListener('click', controller.onRun);
-  buttonsBlock.querySelector('.btn-stop')
+  buttonsBf.querySelector('.btn-stop')
   	.addEventListener('click', controller.onStop);
-  buttonsBlock.querySelector('.btn-debug')
-  	.addEventListener('click', controller.onDebug);
-  buttonsBlock.querySelector('.btn-step')
+  buttonsBf.querySelector('.btn-step')
   	.addEventListener('click', controller.onStep);
-  buttonsBlock.querySelector('.btn-line')
+  buttonsBf.querySelector('.btn-line')
   	.addEventListener('click', controller.onStepLine);
-  buttonsBlock.querySelector('.btn-out')
+  buttonsBf.querySelector('.btn-out')
   	.addEventListener('click', controller.onStepOut);
-  buttonsBlock.querySelector('.btn-input')
+  buttonsBf.querySelector('.btn-input')
   	.addEventListener('click', fileInput.onToggle);
+
+  buttonsBb.querySelector('.btn-build')
+  	.addEventListener('click', builder.onBuild);
+  buttonsBb.querySelector('.btn-build-min')
+  	.addEventListener('click', builder.onBuildMin);
 
   window.MyEditor = editor;
 

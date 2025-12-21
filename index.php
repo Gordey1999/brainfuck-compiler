@@ -4,11 +4,10 @@
 
 <div class="container">
 	<div class="nav">
-		<div class="buttons">
+		<div class="buttons buttons-bf">
 			<div class="buttons-block">
 				<button class="btn btn-run">run</button>
 				<button class="btn btn-stop">stop</button>
-				<button class="btn btn-debug" style="display: none">debug</button>
 			</div>
 			<div class="buttons-block">
 				<button class="btn btn-step">step</button>
@@ -17,6 +16,18 @@
 			</div>
 			<div class="buttons-block">
 				<button class="btn btn-input">input</button>
+			</div>
+			<div class="buttons-block">
+				<button class="btn">help</button>
+			</div>
+		</div>
+		<div class="buttons buttons-bb">
+			<div class="buttons-block">
+				<button class="btn btn-build">build</button>
+				<button class="btn btn-build-min">min</button>
+			</div>
+			<div class="buttons-block">
+				<button class="btn">help</button>
 			</div>
 		</div>
 		<div class="nav-end">Brainfucker 3000
@@ -27,6 +38,7 @@
 		<div class="left">
 			<div class="tabs">
 				<div class="tab tab-plus">+</div>
+				<div class="tab tab-bf tab-subtab tab-plus-bf">+</div>
 			</div>
 			<div class="edit-area block"></div>
 		</div>
