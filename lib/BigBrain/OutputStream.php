@@ -68,7 +68,7 @@ class OutputStream
 		{
 			if ($block['commentOnly'])
 			{
-				$result[] = sprintf('### %s', $block['comment']);
+				$result[] = sprintf("\n### %s", $block['comment']);
 				continue;
 			}
 			if (!$block['commentOnly'] && empty($block['code'])) { continue; }
@@ -108,6 +108,18 @@ class OutputStream
 		}
 
 		return implode(PHP_EOL, $result);
+	}
+
+	public function buildMin() : string
+	{
+		$result = [];
+
+		foreach ($this->stream as $block)
+		{
+			$result[] = preg_replace('/[^+\-><\[\].,]/', '', implode('', $block['code']));
+		}
+
+		return implode('', $result);
 	}
 
 	protected function newBlock(string $code, string $comment, bool $commentOnly = false) : void

@@ -47,7 +47,7 @@ export class TabManager {
 
 		const code = this._editor.getCode();
 		let title = this.getTitle(code);
-		if (title === '') {
+		if (title.trim() === '') {
 			title = 'untitled';
 		}
 		activeTab.querySelector('.tab-name').textContent = title;

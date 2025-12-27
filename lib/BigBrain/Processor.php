@@ -4,7 +4,6 @@ namespace Gordy\Brainfuck\BigBrain;
 
 class Processor
 {
-	public const int REGISTRY_SIZE = 20; // todo calculate dynamically
 	public const string NUMBER = 'number';
 	public const string BOOLEAN = 'boolean';
 
@@ -13,10 +12,10 @@ class Processor
 
 	protected OutputStream $stream;
 
-	public function __construct(OutputStream $stream)
+	public function __construct(OutputStream $stream, int $registrySize)
 	{
 		$this->stream = $stream;
-		$this->registry = array_fill(0, self::REGISTRY_SIZE, false);
+		$this->registry = array_fill(0, $registrySize, false);
 	}
 
 	public function reserve(...$near) : int

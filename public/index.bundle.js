@@ -25426,6 +25426,10 @@
   			name: "brainfuck",
 
   			token(stream) {
+  				if (stream.match(/^###.*/)) {
+  					return "string"
+  				}
+
   				if (stream.match(/^#.*/)) {
   					return "comment"
   				}
@@ -25445,7 +25449,8 @@
 
   		const bfHighlight = HighlightStyle.define([
   			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
-  			{ tag: tags.keyword, color: "#952222" },
+  			{ tag: tags.keyword, color: "#952222", fontWeight: "bold" },
+  			{ tag: tags.string, color: "#0062c7", fontStyle: "italic" },
   		]);
 
   		this._bfExt = [ bfLanguage, syntaxHighlighting(bfHighlight) ];
@@ -25472,19 +25477,15 @@
   					return "keyword"
   				}
 
-  				// if (stream.match(/[\[\]]/)) {
-  				// 	return "bracket"
-  				// }
-
   				stream.next();
   				return null
   			}
   		});
 
   		const bbHighlight = HighlightStyle.define([
-  			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
+  			{ tag: tags.comment, color: "#777", fontStyle: "italic" },
   			{ tag: tags.keyword, color: "#224395", fontWeight: "bold" },
-  			{ tag: tags.string, color: "#956b00" }
+  			{ tag: tags.string, color: "#1d7f2f" }
   		]);
 
   		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight) ];
@@ -26224,30 +26225,46 @@
   	}
 
   	onBuild = () => {
+  		this._console.clear();
   		this._console.setStatus('building');
   		this._build();
   	}
 
   	onBuildMin = () => {
-  		if (this._stopped) { return; }
-  		this._stopped = true;
-  		this._console.stop();
-  		this._console.setStatus('stopped');
-  		this._editor.highlightPosition(null);
+  		this._console.clear();
+  		this._console.setStatus('building');
+  		this._build(true);
   	}
 
-  	_build(min = false) {
+  	async _build(min = false) {
   		const code = this._editor.getCode();
   		const title = this._tabManager.getTitle(code);
 
-  		this._query(code, title, min)
-  			.then(data => {
-  				if (data.status === 'ok') {
-  					this._render(data.result);
+  		try {
+  			const response = await this._query(code, title, min);
+
+  			if (!response.ok) {
+  				this._console.showError('ajax error');
+  			}
+
+  			const textData = await response.text();
+
+  			try {
+  				const jsonData = JSON.parse(textData);
+
+  				if (jsonData.status === 'ok') {
+  					this._render(jsonData.result, jsonData.log);
   				} else {
-  					this._showError(data.message, data?.index);
+  					this._showError(jsonData.message, jsonData.position);
   				}
-  			});
+  			} catch (e) {
+  				this._render(textData);
+  				this._showError('cant parse json');
+  			}
+
+  		} catch (error) {
+  			this._showError("Fetch request failed:", error);
+  		}
   	}
 
   	_query(code, title, min = false) {
@@ -26262,30 +26279,17 @@
   				min: min,
   			})
   		})
-  			.then(response => {
-  				if (!response.ok) {
-  					this._console.showError('ajax error');
-  				}
-  				return response.json();
-  			})
-  			.catch(error => {
-  				this._console.showError(error);
-  			});
   	}
 
-  	_render(result) {
+  	_render(result, log) {
+  		this._console.echo(log);
   		this._tabManager.showCompiled(result);
   		this._console.setStatus('finished');
   	}
 
-  	_showError(message, index) {
+  	_showError(message, position) {
   		this._console.showError(message);
-  	}
-
-  	_renderState() {
-  		this._editor.highlightPosition(this._translator.getCurrentPosition());
-  		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
-  		this._console.setCommandsCount(this._translator.commandsCount());
+  		this._editor.highlightPosition(position);
   	}
   }
 
@@ -26337,7 +26341,7 @@
 
   		const code = this._editor.getCode();
   		let title = this.getTitle(code);
-  		if (title === '') {
+  		if (title.trim() === '') {
   			title = 'untitled';
   		}
   		activeTab.querySelector('.tab-name').textContent = title;
@@ -26496,6 +26500,8 @@
   		}
   	}
   }
+
+  // node_modules/.bin/rollup public/src/index.mjs -f iife -o public/index.bundle.js -p @rollup/plugin-node-resolve
 
   const editorEl = document.querySelector('.edit-area');
   const profilerEl = document.querySelector('.tracing-container');

@@ -72,6 +72,10 @@ export class Editor {
 			name: "brainfuck",
 
 			token(stream) {
+				if (stream.match(/^###.*/)) {
+					return "string"
+				}
+
 				if (stream.match(/^#.*/)) {
 					return "comment"
 				}
@@ -91,7 +95,8 @@ export class Editor {
 
 		const bfHighlight = HighlightStyle.define([
 			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
-			{ tag: tags.keyword, color: "#952222" },
+			{ tag: tags.keyword, color: "#952222", fontWeight: "bold" },
+			{ tag: tags.string, color: "#0062c7", fontStyle: "italic" },
 		])
 
 		this._bfExt = [ bfLanguage, syntaxHighlighting(bfHighlight) ];
@@ -118,19 +123,15 @@ export class Editor {
 					return "keyword"
 				}
 
-				// if (stream.match(/[\[\]]/)) {
-				// 	return "bracket"
-				// }
-
 				stream.next()
 				return null
 			}
 		})
 
 		const bbHighlight = HighlightStyle.define([
-			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
+			{ tag: tags.comment, color: "#777", fontStyle: "italic" },
 			{ tag: tags.keyword, color: "#224395", fontWeight: "bold" },
-			{ tag: tags.string, color: "#956b00" }
+			{ tag: tags.string, color: "#1d7f2f" }
 		])
 
 		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight) ];

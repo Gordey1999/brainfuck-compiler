@@ -128,6 +128,12 @@ class CommandGrouper
 			}
 		}
 
+		if (!empty($group))
+		{
+			$last = array_pop($group);
+			throw new ParseError('";" expected', $last);
+		}
+
 		return $result;
 	}
 }

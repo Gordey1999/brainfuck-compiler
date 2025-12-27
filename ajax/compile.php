@@ -9,33 +9,50 @@ use Gordy\Brainfuck\BigBrain;
 
 $request = json_decode(file_get_contents('php://input'), true);
 
-$stream = new BigBrain\OutputStream();
-$processor = new BigBrain\Processor($stream);
-$memory = new BigBrain\Memory(20); // todo
-$env = new BigBrain\Environment($processor, $stream, $memory);
+$log = "compiling...\n";
 
 try
 {
 	$parser = new BigBrain\Parser();
 	$program = $parser->parse($request['code']);
 
+	$stream = new BigBrain\OutputStream();
+	$processor = new BigBrain\FakeProcessor($stream, 100);
+	$memory = new BigBrain\Memory(100);
+	$env = new BigBrain\Environment($processor, $stream, $memory);
 	$program->compile($env);
+
+	$registrySize = $processor->computedRegistrySize();
+	$log .= "registry size computed: $registrySize\n";
+
+	$stream = new BigBrain\OutputStream();
+	$processor = new BigBrain\Processor($stream, $registrySize);
+	$memory = new BigBrain\Memory($registrySize);
+	$env = new BigBrain\Environment($processor, $stream, $memory);
+	$program->compile($env);
+
+	$min = $stream->buildMin();
+	$minLength = strlen($min);
 
 	if ($request['min'])
 	{
 		$result = sprintf("# title: .min.bf\n\n");
+		$minLines = mb_str_split($min, 100);
+		$result .= implode("\n", $minLines);
 	}
 	else
 	{
 		$result = sprintf("# title: .bf\n\n");
+		$result .= $stream->build();
 	}
 
-	$result .= $stream->build();
+
+	$log .= "finished! code length: $minLength\n";
 
 	$result = [
 		'status' => 'ok',
 		'result' => $result,
-		'min' => $request['min'],
+		'log' => $log,
 	];
 }
 catch (BigBrain\Exception\Exception $e)

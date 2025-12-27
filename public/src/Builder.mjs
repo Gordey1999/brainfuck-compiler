@@ -13,30 +13,46 @@ export class Builder {
 	}
 
 	onBuild = () => {
+		this._console.clear();
 		this._console.setStatus('building');
 		this._build();
 	}
 
 	onBuildMin = () => {
-		if (this._stopped) { return; }
-		this._stopped = true;
-		this._console.stop();
-		this._console.setStatus('stopped');
-		this._editor.highlightPosition(null);
+		this._console.clear();
+		this._console.setStatus('building');
+		this._build(true);
 	}
 
-	_build(min = false) {
+	async _build(min = false) {
 		const code = this._editor.getCode();
 		const title = this._tabManager.getTitle(code);
 
-		this._query(code, title, min)
-			.then(data => {
-				if (data.status === 'ok') {
-					this._render(data.result);
+		try {
+			const response = await this._query(code, title, min);
+
+			if (!response.ok) {
+				this._console.showError('ajax error');
+			}
+
+			const textData = await response.text();
+
+			try {
+				const jsonData = JSON.parse(textData);
+
+				if (jsonData.status === 'ok') {
+					this._render(jsonData.result, jsonData.log);
 				} else {
-					this._showError(data.message, data?.index);
+					this._showError(jsonData.message, jsonData.position);
 				}
-			});
+			} catch (e) {
+				this._render(textData);
+				this._showError('cant parse json');
+			}
+
+		} catch (error) {
+			this._showError("Fetch request failed:", error);
+		}
 	}
 
 	_query(code, title, min = false) {
@@ -51,29 +67,16 @@ export class Builder {
 				min: min,
 			})
 		})
-			.then(response => {
-				if (!response.ok) {
-					this._console.showError('ajax error');
-				}
-				return response.json();
-			})
-			.catch(error => {
-				this._console.showError(error);
-			});
 	}
 
-	_render(result) {
+	_render(result, log) {
+		this._console.echo(log);
 		this._tabManager.showCompiled(result);
 		this._console.setStatus('finished');
 	}
 
-	_showError(message, index) {
+	_showError(message, position) {
 		this._console.showError(message);
-	}
-
-	_renderState() {
-		this._editor.highlightPosition(this._translator.getCurrentPosition());
-		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
-		this._console.setCommandsCount(this._translator.commandsCount());
+		this._editor.highlightPosition(position);
 	}
 }
