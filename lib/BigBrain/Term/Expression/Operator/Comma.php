@@ -1,0 +1,70 @@
+<?php
+
+namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator;
+
+use Gordy\Brainfuck\BigBrain;
+use Gordy\Brainfuck\BigBrain\Environment;
+use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Term\Expression;
+use Gordy\Brainfuck\BigBrain\Type;
+use Gordy\Brainfuck\BigBrain\Exception\CompileError;
+
+class Comma implements Expression
+{
+	use BigBrain\Term\HasLexeme;
+
+	protected Expression $left;
+	protected Expression $right;
+
+	public function __construct(Expression $left, Expression $right, Lexeme $lexeme)
+	{
+		$this->left = $left;
+		$this->right = $right;
+		$this->lexeme = $lexeme;
+	}
+
+	public function compile(BigBrain\Environment $env) : void
+	{
+		throw new CompileError('unexpected operator `,`', $this->lexeme);
+	}
+
+	/** @return Expression[] */
+	public function list() : array
+	{
+		$result = [];
+		if ($this->left instanceof self)
+		{
+			$result = array_merge($result, $this->left->list());
+		}
+		else
+		{
+			$result[] = $this->left;
+		}
+
+		if ($this->right instanceof self)
+		{
+			$result = array_merge($result, $this->right->list());
+		}
+		else
+		{
+			$result[] = $this->right;
+		}
+
+		return $result;
+	}
+
+	public function calculate(Environment $env, int $resultAddress) : void
+	{
+		throw new \Exception('not implemented');
+	}
+
+	public function isComputable(Environment $env) : bool
+	{
+		return false;
+	}
+
+	public function compute(Environment $env) : Type\Computable
+	{
+		throw new \Exception('not implemented');
+	}
+}

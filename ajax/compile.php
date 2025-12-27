@@ -1,40 +1,50 @@
 <?php
-require_once __DIR__ . '/lib/autoload.php';
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING & ~E_STRICT & ~E_USER_NOTICE & ~E_COMPILE_WARNING & ~E_DEPRECATED);
 
-use Gordy\Brainfuck\Compiler;
-use Gordy\Brainfuck\Compiler\OutputStream;
+require_once $_SERVER['DOCUMENT_ROOT'] . '/brainfuck/lib/autoload.php';
 
-echo '<pre>';
+use Gordy\Brainfuck\BigBrain;
 
-$stream = new OutputStream();
-$processor = new Compiler\Processor($stream);
+$request = json_decode(file_get_contents('php://input'), true);
 
-$a = $processor->reserve();
+$stream = new BigBrain\OutputStream();
+$processor = new BigBrain\Processor($stream);
+$memory = new BigBrain\Memory(20); // todo
+$env = new BigBrain\Environment($processor, $stream, $memory);
 
-$processor->addConstant($a, 234);
-$processor->printNumber($a);
+try
+{
+	$parser = new BigBrain\Parser();
+	$program = $parser->parse($request['code']);
 
-$program = <<<CODE
-Const a = 254;
-Echo "Hello, World! {a} \n" . a;
-CODE;
+	$program->compile($env);
 
-$parser = new Compiler\Parser();
-$parser->parse($program);
-die;
+	if ($request['min'])
+	{
+		$result = sprintf("# title: .min.bf\n\n");
+	}
+	else
+	{
+		$result = sprintf("# title: .bf\n\n");
+	}
 
+	$result .= $stream->build();
 
-//$b = $processor->reserve();
-//$c = $processor->reserve();
-//$d = $processor->reserve();
-//
-//$processor->addConstant($a, 255);
-//$processor->addConstant($b, 2);
-//$processor->divide($a, $b, $c, $d);
+	$result = [
+		'status' => 'ok',
+		'result' => $result,
+		'min' => $request['min'],
+	];
+}
+catch (BigBrain\Exception\Exception $e)
+{
+	$result = [
+		'status' => 'error',
+		'message' => $e->getMessage(),
+		'position' => $e->getPosition(),
+	];
+}
 
-echo '<pre>';
-print_r($stream->build());
-echo '</pre>';
+echo json_encode($result);
