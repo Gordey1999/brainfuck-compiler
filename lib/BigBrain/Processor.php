@@ -236,7 +236,7 @@ class Processor
 	public function add(int $from, ...$to) : void
 	{
 		$this->stream->startGroup("add $from to " . implode(", ", $to));
-		$this->copyNumber($from, $to);
+		$this->moveNumber($from, ...$to);
 		$this->stream->endGroup();
 	}
 

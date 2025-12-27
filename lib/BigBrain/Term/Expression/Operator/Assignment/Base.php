@@ -1,10 +1,9 @@
 <?php
 
-namespace Gordy\Brainfuck\BigBrain\Term\Expression\Assignment;
+namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
 
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
-use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
@@ -17,7 +16,6 @@ class Base implements Expression
 	protected Expression\Variable $variable;
 	protected Expression $expression;
 
-
 	public function __construct(Expression\Variable $variable, Expression $expr, Lexeme $lexeme)
 	{
 		$this->variable = $variable;
@@ -27,20 +25,42 @@ class Base implements Expression
 
 	public function compile(BigBrain\Environment $env) : void
 	{
+		$env->stream()->blockComment($this);
 		$variables = $this->variables();
 		$value = $this->value();
 		foreach ($variables as $variable)
 		{
 			$address = $env->memory()->address($variable->name());
 
-			$env->processor()->unset($address);
-			if ($value instanceof Expression\Literal) // todo check type
+			if ($value->isComputable($env))
 			{
-				$env->processor()->addConstant($address, $value->numberValue());
+				$computed = $value->compute($env); // todo check type !!!!!!!!!!
+
+				$env->processor()->unset($address);
+				$env->processor()->addConstant($address, $computed->getNumeric());
 			}
 			else
 			{
-				throw new CompileError('unexpected expression', $value->lexeme());
+				// todo приведение типов !!!!!
+
+				if ($value->hasVariable($variable->name()->value()))
+				{
+					$tempResult = $env->processor()->reserve($address);
+
+					$value->compileCalculation($env, $tempResult);
+
+					$env->processor()->unset($address);
+					$env->processor()->moveNumber($tempResult, $address);
+					$env->processor()->release($tempResult);
+				}
+				else
+				{
+					$env->processor()->unset($address);
+					$value->compileCalculation($env, $address);
+				}
+
+
+				// todo если переменная присутствует в выражении, надо скопировать
 			}
 		}
 	}
@@ -67,34 +87,9 @@ class Base implements Expression
 		return $this->expression;
 	}
 
-	public function calculate(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, int $resultAddress) : void
 	{
-		$env->processor()->unset($resultAddress);
-
-		if ($this->expression instanceof Literal) // todo check type
-		{
-			$env->processor()->addConstant($resultAddress, $this->expression->numberValue());
-		}
-		else if ($this->expression instanceof self)
-		{
-			if ($this->expression->isConstant())
-			{
-
-			}
-			$result = $this->expression->calculate($env);
-		}
-		else
-		{
-			throw new \Exception('not ready yet');
-		}
-		// unset
-		// todo a = b = 3;
-		// TODO: Implement calculate() method.
-	}
-
-	public function initialize(Environment $env, int $resultAddress) : void
-	{
-
+		$this->compile($env);
 	}
 
 	public function isComputable(Environment $env) : bool
@@ -105,5 +100,15 @@ class Base implements Expression
 	public function compute(Environment $env) : Type\Computable
 	{
 		throw new \Exception('not implemented');
+	}
+
+	public function hasVariable(string $name) : bool
+	{
+		return false;
+	}
+
+	public function __toString() : string
+	{
+		return sprintf('%s = %s', $this->variable, $this->expression);
 	}
 }

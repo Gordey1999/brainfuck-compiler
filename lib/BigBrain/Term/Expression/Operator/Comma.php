@@ -25,7 +25,7 @@ class Comma implements Expression
 
 	public function compile(BigBrain\Environment $env) : void
 	{
-		throw new CompileError('unexpected operator `,`', $this->lexeme);
+		throw new CompileError('unexpected operator ","', $this->lexeme);
 	}
 
 	/** @return Expression[] */
@@ -53,7 +53,7 @@ class Comma implements Expression
 		return $result;
 	}
 
-	public function calculate(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, int $resultAddress) : void
 	{
 		throw new \Exception('not implemented');
 	}
@@ -66,5 +66,15 @@ class Comma implements Expression
 	public function compute(Environment $env) : Type\Computable
 	{
 		throw new \Exception('not implemented');
+	}
+
+	public function hasVariable(string $name) : bool
+	{
+		return $this->left->hasVariable($name) || $this->right->hasVariable($name);
+	}
+
+	public function __toString() : string
+	{
+		return sprintf('%s, %s', $this->left, $this->right);
 	}
 }

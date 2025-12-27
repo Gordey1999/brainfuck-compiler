@@ -130,7 +130,7 @@ class ExpressionBuilder
 		}
 
 		return match ($operator->value()) {
-			'=' => new Term\Expression\Assignment\Base($left, $right, $operator),
+			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),
 			default => throw new SyntaxError('not supported yet', $operator),
 		};
 	}

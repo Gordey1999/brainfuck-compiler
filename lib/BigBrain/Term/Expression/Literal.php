@@ -23,7 +23,7 @@ class Literal implements Expression
 		// do nothing
 	}
 
-	public function calculate(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, int $resultAddress) : void
 	{
 		throw new \Exception('not implemented');
 	}
@@ -56,5 +56,15 @@ class Literal implements Expression
 		};
 
 		return new Type\Computable($parsed);
+	}
+
+	public function hasVariable(string $name) : bool
+	{
+		return false;
+	}
+
+	public function __toString() : string
+	{
+		return $this->lexeme()->value();
 	}
 }

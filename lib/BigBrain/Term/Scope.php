@@ -25,4 +25,9 @@ class Scope implements Term
 			$term->compile($env);
 		}
 	}
+
+	public function __toString() : string
+	{
+		return '';
+	}
 }

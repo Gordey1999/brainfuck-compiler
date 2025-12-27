@@ -54,14 +54,24 @@ class OutputStream
 		}
 	}
 
+	public function blockComment(string $comment) : void
+	{
+		$this->newBlock('', $comment, true);
+	}
+
 	public function build() : string
 	{
 		$result = [];
 		$indentCount = 0;
 
-		foreach ($this->stream as $key => $block)
+		foreach ($this->stream as $block)
 		{
-			if (empty($block['code'])) { continue; }
+			if ($block['commentOnly'])
+			{
+				$result[] = sprintf('### %s', $block['comment']);
+				continue;
+			}
+			if (!$block['commentOnly'] && empty($block['code'])) { continue; }
 
 			$firstLine = $block['code'][0];
 
@@ -100,11 +110,12 @@ class OutputStream
 		return implode(PHP_EOL, $result);
 	}
 
-	protected function newBlock(string $code, $comment) : void
+	protected function newBlock(string $code, string $comment, bool $commentOnly = false) : void
 	{
 		$this->stream[] = [
 			'code' => $this->split($code),
 			'comment' => $comment,
+			'commentOnly' => $commentOnly,
 		];
 	}
 
@@ -158,14 +169,14 @@ class OutputStream
 	protected function combineLines(array $lines, string $indent) : array
 	{
 		$result = [];
-		$indentLength = strlen($indent);
+		$indentLength = mb_strlen($indent);
 
 		$currentLine = [ $indent ];
 		$currentLength = $indentLength;
 
 		foreach ($lines as $line)
 		{
-			$lineLength = strlen($line);
+			$lineLength = mb_strlen($line);
 
 			if ($currentLength + $lineLength <= self::CODE_WIDTH)
 			{

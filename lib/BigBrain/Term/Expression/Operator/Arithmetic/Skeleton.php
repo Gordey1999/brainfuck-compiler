@@ -25,10 +25,11 @@ abstract class Skeleton implements Expression
 
 	protected abstract function computeValue(int $left, int $right) : int;
 
-	public function calculate(Environment $env, int $resultAddress) : void
-	{
-		throw new \Exception('not implemented');
-	}
+	protected abstract function compileForVariables(Environment $env, int $resultAddress) : void;
+
+	protected abstract function compileWithLeftConstant(Environment $env, int $constant, int $resultAddress) : void;
+
+	protected abstract function compileWithRightConstant(Environment $env, int $constant, int $resultAddress) : void;
 
 	public function isComputable(Environment $env) : bool
 	{
@@ -45,17 +46,59 @@ abstract class Skeleton implements Expression
 		$left = $this->left->compute($env);
 		$right = $this->right->compute($env);
 
-		if (!$left->numericCompatible() || !$right->numericCompatible())
-		{
-			throw new CompileError(sprintf('incompatible operand types %s %s %s',
-				$left->type(),
-				$this->lexeme->value(),
-				$right->type(),
-			), $this->lexeme);
-		}
+		$this->checkComputedType($left);
+		$this->checkComputedType($right);
 
 		$result = $this->computeValue($left->getNumeric(), $right->getNumeric());
 
 		return new Type\Computable($result);
+	}
+
+	protected function checkComputedType(Type\Computable $value) : void
+	{
+		if (!$value->numericCompatible())
+		{
+			throw new CompileError(sprintf('unsupported operand type "%s" for operator "%s"',
+				$value->type(),
+				$this->lexeme->value(),
+			), $this->lexeme);
+		}
+	}
+
+	public function compileCalculation(Environment $env, int $resultAddress) : void
+	{
+		if ($this->left->isComputable($env) && $this->right->isComputable($env))
+		{
+			throw new \Exception('not expected');
+		}
+
+		if ($this->left->isComputable($env))
+		{
+			$left = $this->left->compute($env);
+			$this->checkComputedType($left);
+
+			$this->compileWithLeftConstant($env, $left->getNumeric(), $resultAddress);
+		}
+		else if ($this->right->isComputable($env))
+		{
+			$right = $this->right->compute($env);
+			$this->checkComputedType($right);
+
+			$this->compileWithRightConstant($env, $right->getNumeric(), $resultAddress);
+		}
+		else
+		{
+			$this->compileForVariables($env, $resultAddress);
+		}
+	}
+
+	public function hasVariable(string $name) : bool
+	{
+		return $this->left->hasVariable($name) || $this->right->hasVariable($name);
+	}
+
+	public function __toString() : string
+	{
+		return sprintf('(%s %s %s)', $this->left, $this->lexeme()->value(), $this->right);
 	}
 }

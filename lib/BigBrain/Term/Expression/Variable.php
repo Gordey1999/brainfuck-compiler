@@ -27,9 +27,10 @@ class Variable implements Expression
 		return $this->lexeme;
 	}
 
-	public function calculate(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, int $resultAddress) : void
 	{
-		// TODO: Implement calculate() method.
+		$address = $env->memory()->address($this->lexeme);
+		$env->processor()->copyNumber($address, $resultAddress);
 	}
 
 	public function isComputable(Environment $env) : bool
@@ -40,5 +41,15 @@ class Variable implements Expression
 	public function compute(Environment $env) : Type\Computable
 	{
 		throw new \Exception('not implemented');
+	}
+
+	public function hasVariable(string $name) : bool
+	{
+		return $this->name()->value() === $name;
+	}
+
+	public function __toString() : string
+	{
+		return $this->lexeme()->value();
 	}
 }

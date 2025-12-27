@@ -38,7 +38,7 @@ class Computable
 			|| $this->type === self::CHAR;
 	}
 
-	public function getNumeric() : bool
+	public function getNumeric() : int
 	{
 		return match ($this->type) {
 			self::INTEGER => $this->value,
@@ -57,7 +57,7 @@ class Computable
 	public static function valueType(mixed $value) : string
 	{
 		return match (true) {
-			is_string($value) && strlen($value) === 1 => self::CHAR,
+			is_string($value) && mb_strlen($value) === 1 => self::CHAR,
 			is_string($value) => self::STRING,
 			is_array($value) => self::ARRAY,
 			is_int($value) => self::INTEGER,

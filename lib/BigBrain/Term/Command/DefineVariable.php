@@ -14,7 +14,7 @@ class DefineVariable implements Term\Command
 
 	private BigBrain\Type\Type $type;
 
-	/** @var Expression\Assignment\Base[]|Expression\Variable[] */
+	/** @var Expression\Operator\Assignment\Base[]|Expression\Variable[] */
 	private array $variables;
 
 	public function __construct(BigBrain\Type\Type $type, Expression $expr, Lexeme $lexeme)
@@ -37,7 +37,7 @@ class DefineVariable implements Term\Command
 
 		foreach ($varList as $var)
 		{
-			if (!$var instanceof Expression\Variable && !$var instanceof Expression\Assignment\Base)
+			if (!$var instanceof Expression\Variable && !$var instanceof Expression\Operator\Assignment\Base)
 			{
 				throw new SyntaxError('assignment or variable name expected', $var->lexeme());
 			}
@@ -50,7 +50,7 @@ class DefineVariable implements Term\Command
 	{
 		foreach ($this->variables as $expression)
 		{
-			if ($expression instanceof Expression\Assignment\Base)
+			if ($expression instanceof Expression\Operator\Assignment\Base)
 			{
 				foreach ($expression->variables() as $variable)
 				{
@@ -64,5 +64,10 @@ class DefineVariable implements Term\Command
 				$env->memory()->allocate($this->type, $expression->name());
 			}
 		}
+	}
+
+	public function __toString() : string
+	{
+		return '';
 	}
 }
