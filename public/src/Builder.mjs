@@ -77,6 +77,6 @@ export class Builder {
 
 	_showError(message, position) {
 		this._console.showError(message);
-		this._editor.highlightPosition(position);
+		this._editor.highlightError(position.start, position.length);
 	}
 }

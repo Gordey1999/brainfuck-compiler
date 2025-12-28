@@ -27,18 +27,13 @@ class Addition extends Skeleton
 	{
 		$this->right->compileCalculation($env, $resultAddress);
 
-		$this->compileForConstant($env, $constant, $resultAddress);
+		$env->processor()->addConstant($resultAddress, $constant);
 	}
 
 	protected function compileWithRightConstant(Environment $env, int $constant, int $resultAddress) : void
 	{
 		$this->left->compileCalculation($env, $resultAddress);
 
-		$this->compileForConstant($env, $constant, $resultAddress);
-	}
-
-	protected function compileForConstant(Environment $env, int $constant, int $resultAddress) : void
-	{
 		$env->processor()->addConstant($resultAddress, $constant);
 	}
 }

@@ -57,10 +57,15 @@ try
 }
 catch (BigBrain\Exception\Exception $e)
 {
+	$lexeme = $e->getLexeme();
+
 	$result = [
 		'status' => 'error',
 		'message' => $e->getMessage(),
-		'position' => $e->getPosition(),
+		'position' => [
+			'start' => $lexeme->index(),
+			'length'  => mb_strlen($lexeme->value()),
+		],
 	];
 }
 

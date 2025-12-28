@@ -6,10 +6,12 @@ class Lexeme
 {
 	protected mixed $value;
 	protected array $position;
+	protected int $index;
 
-	public function __construct(string $value, array $position)
+	public function __construct(string $value, int $index = 0, array $position = [0, 0])
 	{
 		$this->value = $value;
+		$this->index = $index;
 		$this->position = $position;
 	}
 
@@ -21,6 +23,11 @@ class Lexeme
 	public function position(): array
 	{
 		return $this->position;
+	}
+
+	public function index() : int
+	{
+		return $this->index;
 	}
 
 	public function isLiteral() : bool

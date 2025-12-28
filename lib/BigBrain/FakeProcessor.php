@@ -39,8 +39,8 @@ class FakeProcessor extends Processor
 		if ($this->registrySize !== 0)
 		{
 			throw new CompileError(
-				sprintf("memory leak detected: %s bytes", $this->registrySize),
-				new Lexeme('', [ 0, 0 ])
+				sprintf("memory leak detected: %s byte(s)", $this->registrySize),
+				new Lexeme('')
 			);
 		}
 

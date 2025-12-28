@@ -10,16 +10,16 @@ use Gordy\Brainfuck\BigBrain\Term;
 class ExpressionBuilder
 {
 	public const array PRIORITY = [
-		'++', '--',
-		'!',
-		'*', '/', '%',
-		'+', '-', '.',
-		'<', '<=', '>', '>=',
-		'==', '!=', '===', '!==', '<>',
-		'&&', '||',
-		'?', // todo ? :
-		'=', '+=', '-=', '*=', '/=', '%=', '.=', '&=', '|=',
-		',',
+		[ '++', '--' ],
+		[ '!' ],
+		[ '*', '/', '%' ],
+		[ '+', '-', '.' ],
+		[ '<', '<=', '>', '>=' ],
+		[ '==', '!=', '===', '!==', '<>' ],
+		[ '&&', '||' ],
+		[ '?' ], // todo ? :
+		[ '=', '+=', '-=', '*=', '/=', '%=', '.=', '&=', '|=' ],
+		[ ',' ],
 	];
 
 	public const array ASSIGNMENT_OPERATORS = [
@@ -147,8 +147,6 @@ class ExpressionBuilder
 
 	protected static function getMinPriorityIndex(LexemeScope $parts) : ?int
 	{
-		$priorityMap = array_flip(self::PRIORITY);
-
 		$minPriority = 0;
 		$minPriorityIndex = null;
 		foreach ($parts->children() as $key => $part)
@@ -156,10 +154,13 @@ class ExpressionBuilder
 			if ($part instanceof LexemeScope) { continue; }
 			$value = $part->value();
 
-			if (isset($priorityMap[$value]) && $priorityMap[$value] > $minPriority)
+			foreach (self::PRIORITY as $priority => $operators)
 			{
-				$minPriority = $priorityMap[$value];
-				$minPriorityIndex = $key;
+				if (in_array($value, $operators, true) && $priority >= $minPriority)
+				{
+					$minPriority = $priority;
+					$minPriorityIndex = $key;
+				}
 			}
 		}
 

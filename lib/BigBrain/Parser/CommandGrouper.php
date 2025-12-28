@@ -9,7 +9,7 @@ class CommandGrouper
 	/** @param Lexeme[] $words */
 	public static function groupScopes(array $words) : LexemeScope
 	{
-		return new LexemeScope('', self::groupScopesRecursive($words), [ 0, 0 ]);
+		return new LexemeScope('', self::groupScopesRecursive($words));
 	}
 
 	/** @param Lexeme[] $words */
@@ -58,6 +58,7 @@ class CommandGrouper
 					$result[] = new LexemeScope(
 						$scopeStart->value(),
 						self::groupScopesRecursive($scopeWords),
+						$scopeStart->index(),
 						$scopeStart->position(),
 					);
 
@@ -83,7 +84,7 @@ class CommandGrouper
 
 	public static function groupCommands(LexemeScope $words) : LexemeScope
 	{
-		return new LexemeScope('', self::groupCommandsRecursive($words->children()), [ 0, 0 ]);
+		return new LexemeScope('', self::groupCommandsRecursive($words->children()));
 	}
 
 	/** @param Lexeme[] $words */
@@ -103,23 +104,34 @@ class CommandGrouper
 			if ($word instanceof LexemeScope && $word->value() === '{')
 			{
 				$group[] = new LexemeScope(
-					'structure',
+					'{',
 					self::groupCommandsRecursive($word->children()),
+					$word->index(),
 					$word->position(),
 				);
-				if (empty($group()))
+				if (empty($group))
 				{
 					$result[] = $group[0];
 				}
 				else
 				{
-					$result[] = new LexemeScope('', $group, $groupStart->position());
+					$result[] = new LexemeScope(
+						'structure',
+						$group,
+						$groupStart->index(),
+						$groupStart->position()
+					);
 				}
 				$group = [];
 			}
 			else if ($word->value() === ';')
 			{
-				$result[] = new LexemeScope(';', $group, $groupStart->position());
+				$result[] = new LexemeScope(
+					';',
+					$group,
+					$groupStart->index(),
+					$groupStart->position()
+				);
 				$group = [];
 			}
 			else

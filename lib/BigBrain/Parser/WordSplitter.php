@@ -105,7 +105,11 @@ class WordSplitter
 			{
 				throw new ParseError(
 					"unknown token '$char'",
-					new Lexeme($char, self::getPosition($code, $index))
+					new Lexeme(
+						$char,
+						$index,
+						self::getPosition($code, $index)
+					)
 				);
 			}
 
@@ -113,7 +117,11 @@ class WordSplitter
 			{
 				if (!empty($word))
 				{
-					$result[] = new Lexeme(implode('', $word), self::getPosition($code, $wordIndex));
+					$result[] = new Lexeme(
+						implode('', $word),
+						$wordIndex,
+						self::getPosition($code, $wordIndex)
+					);
 				}
 
 				$word = [];
@@ -124,7 +132,11 @@ class WordSplitter
 			$word[] = $char;
 		}
 
-		$result[] = new Lexeme(implode('', $word), self::getPosition($code, $wordIndex));
+		$result[] = new Lexeme(
+			implode('', $word),
+			$wordIndex,
+			self::getPosition($code, $wordIndex)
+		);
 
 		return $result;
 	}

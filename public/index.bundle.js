@@ -25369,6 +25369,11 @@
   	class: "cm-active-debug-char"
   });
 
+  const setErrorPosition = StateEffect.define();
+  const errorDeco = Decoration.mark({
+  	class: "cm-compile-error"
+  });
+
   const activeLineField = StateField.define({
   	create() {
   		return Decoration.none
@@ -25403,6 +25408,43 @@
   	provide: f => EditorView.decorations.from(f)
   });
 
+  const compileErrorField = StateField.define({
+  	create() {
+  		return Decoration.none
+  	},
+
+  	update(deco, tr) {
+  		deco = deco.map(tr.changes);
+
+  		for (let e of tr.effects) {
+  			if (e.is(setErrorPosition)) {
+  				if (e.value === null) {
+  					return Decoration.none
+  				}
+
+  				try {
+  					const charFrom = e.value[0];
+  					const length = e.value[1];
+
+  					if (length === 0) {
+  						return Decoration.none
+  					}
+
+  					deco = Decoration.set([
+  						errorDeco.range(charFrom, charFrom + length)
+  					]);
+  				}
+  				catch (e) {
+  					return Decoration.none
+  				}
+  			}
+  		}
+  		return deco
+  	},
+
+  	provide: f => EditorView.decorations.from(f)
+  });
+
   class Editor {
   	constructor(parent, code = '') {
   		this._defineBf();
@@ -25415,6 +25457,7 @@
   				keymap.of(indentWithTab),
   				bracketMatching(),
   				activeLineField,
+  				compileErrorField,
   			],
   			doc: code,
   			parent: parent,
@@ -25493,6 +25536,10 @@
 
   	highlightPosition(position) {
   		this._editor.dispatch({effects: setActivePosition.of(position)});
+  	}
+
+  	highlightError(from, length) {
+  		this._editor.dispatch({effects: setErrorPosition.of([from, length])});
   	}
 
   	getCode() {
@@ -25781,7 +25828,7 @@
   		if (this._el.textContent.length > 0) {
   			this.echo('\n');
   		}
-  		this.echo(message);
+  		this.echo(message + '\n');
   	}
 
   	checkBufferSize() {
@@ -26289,7 +26336,7 @@
 
   	_showError(message, position) {
   		this._console.showError(message);
-  		this._editor.highlightPosition(position);
+  		this._editor.highlightError(position.start, position.length);
   	}
   }
 

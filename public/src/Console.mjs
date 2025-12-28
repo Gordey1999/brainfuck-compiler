@@ -142,7 +142,7 @@ export class Console {
 		if (this._el.textContent.length > 0) {
 			this.echo('\n');
 		}
-		this.echo(message);
+		this.echo(message + '\n');
 	}
 
 	checkBufferSize() {

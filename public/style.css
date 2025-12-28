@@ -193,6 +193,10 @@ pre {
 	background-color: #ff000024 !important;
 }
 
+.cm-compile-error {
+	text-decoration: wavy underline red;
+}
+
 
 .right {
 	display: flex;
