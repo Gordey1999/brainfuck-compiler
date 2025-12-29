@@ -25,7 +25,7 @@ class Memory
 		array_pop($this->stack);
 	}
 
-	public function allocate(Type\Type $type, Lexeme $name) : int
+	public function allocate(Type\BaseType $type, Lexeme $name) : int
 	{
 		if (isset($this->stack[$name->value()]))
 		{
@@ -33,7 +33,10 @@ class Memory
 		}
 		$address = count($this->stack) + $this->offset;
 
-		$this->stack[$name->value()] = $address;
+		$this->stack[$name->value()] = [
+			'type' => $type,
+			'address' => $address,
+		];
 
 		return $address;
 	}
@@ -45,6 +48,16 @@ class Memory
 			throw new CompileError("variable '{$name->value()}' not defined", $name);
 		}
 
-		return $this->stack[$name->value()];
+		return $this->stack[$name->value()]['address'];
+	}
+
+	public function type(Lexeme $name) : Type\BaseType
+	{
+		if (!isset($this->stack[$name->value()]))
+		{
+			throw new CompileError("variable '{$name->value()}' not defined", $name);
+		}
+
+		return $this->stack[$name->value()]['type'];
 	}
 }

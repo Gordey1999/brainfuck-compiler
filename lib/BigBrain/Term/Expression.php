@@ -7,11 +7,9 @@ use Gordy\Brainfuck\BigBrain\Type;
 
 interface Expression extends Term
 {
+	public function resultType(Environment $env) : Type\Type;
+
 	public function compileCalculation(Environment $env, int $resultAddress) : void;
-
-	public function isComputable(Environment $env) : bool;
-
-	public function compute(Environment $env) : Type\Computable;
 
 	public function hasVariable(string $name) : bool;
 }

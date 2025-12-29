@@ -158,6 +158,7 @@ class ExpressionBuilder
 			{
 				if (in_array($value, $operators, true) && $priority >= $minPriority)
 				{
+					if ($value === '=' && $priority === $minPriority) { continue; }
 					$minPriority = $priority;
 					$minPriorityIndex = $key;
 				}

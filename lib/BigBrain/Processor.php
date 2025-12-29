@@ -18,7 +18,7 @@ class Processor
 		$this->registry = array_fill(0, $registrySize, false);
 	}
 
-	public function reserve(...$near) : int
+	public function reserve(int ...$near) : int
 	{
 		$nearest = null;
 		$minDistance = 1000;
@@ -49,7 +49,7 @@ class Processor
 		return $nearest;
 	}
 
-	public function reserveSeveral(int $count, ...$near) : array
+	public function reserveSeveral(int $count, int ...$near) : array
 	{
 		$result = [];
 
@@ -61,7 +61,7 @@ class Processor
 		return $result;
 	}
 
-	public function release(...$addresses) : void
+	public function release(int ...$addresses) : void
 	{
 		foreach ($addresses as $address)
 		{
@@ -218,21 +218,21 @@ class Processor
 		$this->release($temp);
 	}
 
-	public function copyNumber(int $from, ...$to) : void
+	public function copyNumber(int $from, int ...$to) : void
 	{
 		$to = array_combine($to, array_fill(0, count($to), self::NUMBER));
 
 		$this->copy($from, $to);
 	}
 
-	public function copyBoolean(int $from, ...$to) : void
+	public function copyBoolean(int $from, int ...$to) : void
 	{
 		$to = array_combine($to, array_fill(0, count($to), self::BOOLEAN));
 
 		$this->copy($from, $to);
 	}
 
-	public function add(int $from, ...$to) : void
+	public function add(int $from, int ...$to) : void
 	{
 		$this->stream->startGroup("add $from to " . implode(", ", $to));
 		$this->moveNumber($from, ...$to);
@@ -251,14 +251,14 @@ class Processor
 		$this->release($temp);
 	}
 
-	public function moveNumber(int $from, ...$to) : void
+	public function moveNumber(int $from, int ...$to) : void
 	{
 		$to = array_combine($to, array_fill(0, count($to), self::NUMBER));
 
 		$this->move($from, $to);
 	}
 
-	public function moveBoolean(int $from, ...$to) : void
+	public function moveBoolean(int $from, int ...$to) : void
 	{
 		$this->stream->startGroup("make bool from $from to " . implode(", ", $to));
 
@@ -296,6 +296,15 @@ class Processor
 	{
 		$this->stream->write(Encoder::goto($this->pointer, $to), "goto $to");
 		$this->pointer = $to;
+	}
+
+	public function unsetSeveral(int ...$to) : void
+	{
+		sort($to);
+		foreach ($to as $address)
+		{
+			$this->unset($address);
+		}
 	}
 
 	public function unset(int $to) : void

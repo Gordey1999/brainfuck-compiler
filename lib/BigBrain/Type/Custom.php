@@ -2,7 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain\Type;
 
-class Byte implements BaseType
+class Custom implements Type
 {
 
 }

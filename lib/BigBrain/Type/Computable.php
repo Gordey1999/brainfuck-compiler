@@ -2,7 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain\Type;
 
-class Computable
+class Computable implements Type
 {
 	public const string STRING = 'string';
 	public const string CHAR = 'char';

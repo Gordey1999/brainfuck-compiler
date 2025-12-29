@@ -31,60 +31,49 @@ abstract class Skeleton implements Expression
 
 	protected abstract function compileWithRightConstant(Environment $env, int $constant, int $resultAddress) : void;
 
-	public function isComputable(Environment $env) : bool
-	{
-		return $this->left->isComputable($env) && $this->right->isComputable($env);
-	}
-
 	public function compile(Environment $env) : void
 	{
 		// do nothing
 	}
 
-	public function compute(Environment $env) : Type\Computable
+	public function resultType(Environment $env) : Type\Type
 	{
-		$left = $this->left->compute($env);
-		$right = $this->right->compute($env);
+		$leftType = $this->left->resultType($env);
+		$rightType = $this->right->resultType($env);
 
-		$this->checkComputedType($left);
-		$this->checkComputedType($right);
-
-		$result = $this->computeValue($left->getNumeric(), $right->getNumeric());
-
-		return new Type\Computable($result);
-	}
-
-	protected function checkComputedType(Type\Computable $value) : void
-	{
-		if (!$value->numericCompatible())
+		if ($leftType instanceof Type\Computable && $rightType instanceof Type\Computable)
 		{
-			throw new CompileError(sprintf('unsupported operand type "%s" for operator "%s"',
-				$value->type(),
-				$this->lexeme->value(),
-			), $this->lexeme);
+			$this->checkComputedType($leftType);
+			$this->checkComputedType($rightType);
+
+			$result = $this->computeValue($leftType->getNumeric(), $rightType->getNumeric());
+			return new Type\Computable($result);
 		}
+
+		return new Type\Byte();
 	}
 
 	public function compileCalculation(Environment $env, int $resultAddress) : void
 	{
-		if ($this->left->isComputable($env) && $this->right->isComputable($env))
+		$resultType = $this->resultType($env);
+		if ($resultType instanceof Type\Computable)
 		{
-			throw new \Exception('not expected');
+			$env->processor()->addConstant($resultAddress, $resultType->value());
+			return;
 		}
 
-		if ($this->left->isComputable($env))
-		{
-			$left = $this->left->compute($env);
-			$this->checkComputedType($left);
+		$leftType = $this->left->resultType($env);
+		$rightType = $this->right->resultType($env);
 
-			$this->compileWithLeftConstant($env, $left->getNumeric(), $resultAddress);
+		if ($leftType instanceof Type\Computable)
+		{
+			$this->checkComputedType($leftType);
+			$this->compileWithLeftConstant($env, $leftType->getNumeric(), $resultAddress);
 		}
-		else if ($this->right->isComputable($env))
+		else if ($rightType instanceof Type\Computable)
 		{
-			$right = $this->right->compute($env);
-			$this->checkComputedType($right);
-
-			$this->compileWithRightConstant($env, $right->getNumeric(), $resultAddress);
+			$this->checkComputedType($rightType);
+			$this->compileWithRightConstant($env, $rightType->getNumeric(), $resultAddress);
 		}
 		else
 		{
@@ -100,5 +89,16 @@ abstract class Skeleton implements Expression
 	public function __toString() : string
 	{
 		return sprintf('(%s %s %s)', $this->left, $this->lexeme()->value(), $this->right);
+	}
+
+	protected function checkComputedType(Type\Computable $value) : void
+	{
+		if (!$value->numericCompatible())
+		{
+			throw new CompileError(sprintf('unsupported operand type "%s" for operator "%s"',
+				$value->type(),
+				$this->lexeme->value(),
+			), $this->lexeme);
+		}
 	}
 }

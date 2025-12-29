@@ -23,30 +23,7 @@ class Literal implements Expression
 		// do nothing
 	}
 
-	public function compileCalculation(Environment $env, int $resultAddress) : void
-	{
-		throw new \Exception('not implemented');
-	}
-
-	public function numberValue() : int
-	{
-		$value = $this->lexeme->value();
-		if (is_numeric($value))
-		{
-			return (int)$this->lexeme->value();
-		}
-		else
-		{
-			throw new \Exception('not ready 2');
-		}
-	}
-
-	public function isComputable(Environment $env) : bool
-	{
-		return true;
-	}
-
-	public function compute(Environment $env) : Type\Computable
+	public function resultType(Environment $env) : Type\Computable
 	{
 		$value = $this->lexeme->value();
 		$parsed = match(true) {
@@ -56,6 +33,11 @@ class Literal implements Expression
 		};
 
 		return new Type\Computable($parsed);
+	}
+
+	public function compileCalculation(Environment $env, int $resultAddress) : void
+	{
+		$env->processor()->addConstant($resultAddress, $this->resultType($env)->getNumeric());
 	}
 
 	public function hasVariable(string $name) : bool

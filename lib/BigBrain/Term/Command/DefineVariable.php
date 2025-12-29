@@ -12,12 +12,12 @@ class DefineVariable implements Term\Command
 {
 	use Term\HasLexeme;
 
-	private BigBrain\Type\Type $type;
+	private BigBrain\Type\BaseType $type;
 
 	/** @var Expression\Operator\Assignment\Base[]|Expression\Variable[] */
 	private array $variables;
 
-	public function __construct(BigBrain\Type\Type $type, Expression $expr, Lexeme $lexeme)
+	public function __construct(BigBrain\Type\BaseType $type, Expression $expr, Lexeme $lexeme)
 	{
 		$this->type = $type;
 		$this->variables = $this->getVariableList($expr);

@@ -39,6 +39,8 @@ class CommandBuilder
 
 		$typeObj = match ($type->value()) {
 			self::TYPE_BYTE => new BigBrain\Type\Byte(),
+			self::TYPE_CHAR => new BigBrain\Type\Char(),
+			self::TYPE_BOOL => new BigBrain\Type\Boolean(),
 		};
 		return new Term\Command\DefineVariable($typeObj, ExpressionBuilder::build($expr), $type);
 	}

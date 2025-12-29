@@ -27,20 +27,20 @@ class Variable implements Expression
 		return $this->lexeme;
 	}
 
+	public function address(Environment $env) : int
+	{
+		return $env->memory()->address($this->name());
+	}
+
+	public function resultType(Environment $env) : Type\BaseType
+	{
+		return $env->memory()->type($this->lexeme);
+	}
+
 	public function compileCalculation(Environment $env, int $resultAddress) : void
 	{
 		$address = $env->memory()->address($this->lexeme);
 		$env->processor()->copyNumber($address, $resultAddress);
-	}
-
-	public function isComputable(Environment $env) : bool
-	{
-		return false;
-	}
-
-	public function compute(Environment $env) : Type\Computable
-	{
-		throw new \Exception('not implemented');
 	}
 
 	public function hasVariable(string $name) : bool

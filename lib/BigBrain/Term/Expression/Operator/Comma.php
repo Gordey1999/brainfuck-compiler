@@ -53,17 +53,12 @@ class Comma implements Expression
 		return $result;
 	}
 
+	public function resultType(Environment $env) : Type\Type
+	{
+		throw new CompileError('unexpected operator ","', $this->lexeme);
+	}
+
 	public function compileCalculation(Environment $env, int $resultAddress) : void
-	{
-		throw new \Exception('not implemented');
-	}
-
-	public function isComputable(Environment $env) : bool
-	{
-		return false;
-	}
-
-	public function compute(Environment $env) : Type\Computable
 	{
 		throw new \Exception('not implemented');
 	}
