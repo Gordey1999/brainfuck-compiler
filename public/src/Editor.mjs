@@ -195,8 +195,15 @@ export class Editor {
 					return "string"
 				}
 
-				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|true|false/)) {
+				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|true|false|in|out|eol/)) {
 					return "keyword"
+				}
+
+				if (stream.match(/^\d+/)) {
+					return "number"
+				}
+				if (stream.match(/^[$_a-zA-Z][$_a-zA-Z0-9]*/)) {
+					return "variableName"
 				}
 
 				stream.next()
@@ -206,8 +213,10 @@ export class Editor {
 
 		const bbHighlight = HighlightStyle.define([
 			{ tag: tags.comment, color: "#777", fontStyle: "italic" },
-			{ tag: tags.keyword, color: "#224395", fontWeight: "bold" },
+			{ tag: tags.keyword, color: "#224395", fontWeight: "600" },
 			{ tag: tags.string, color: "#1d7f2f" },
+			{ tag: tags.number, color: "#0062c7" },
+			{ tag: tags.variableName, color: "#a22222" },
 		])
 
 		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight) ];
