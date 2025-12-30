@@ -1,6 +1,7 @@
 <?php
 
 namespace Gordy\Brainfuck\BigBrain;
+use Gordy\Brainfuck\BigBrain\Utils\Encoder;
 
 class Processor
 {
@@ -393,6 +394,11 @@ class Processor
 
 	public function addConstant(MemoryCell $to, int $value) : void
 	{
+		if ($value < 0)
+		{
+			$this->subConstant($to, -$value);
+			return;
+		}
 		$this->stream->startGroup("add `$value` to $to");
 		$this->goto($to);
 		$value = $this->normalizeConstant($value);
@@ -404,6 +410,11 @@ class Processor
 
 	public function subConstant(MemoryCell $from, int $value) : void
 	{
+		if ($value < 0)
+		{
+			$this->addConstant($from, -$value);
+			return;
+		}
 		$this->stream->startGroup("sub `$value` from $from");
 		$value = $value % 256;
 		$this->goto($from);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Gordy\Brainfuck\BigBrain;
+namespace Gordy\Brainfuck\BigBrain\Utils;
 
 class Encoder
 {

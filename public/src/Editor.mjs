@@ -135,7 +135,7 @@ export class Editor {
 				}
 
 				if (state.inComment) {
-					if (stream.match(/^`\d+`/)) {
+					if (stream.match(/^`-?\d+`/)) {
 						return "number"
 					}
 					if (stream.match(/^R\d+/)) {
@@ -181,17 +181,44 @@ export class Editor {
 	_defineBb() {
 		const bbLanguage = StreamLanguage.define({
 			name: "bigBrain",
+			startState() {
+				return { inString: false, inComment: false };
+			},
 
-			token(stream) {
-				if (stream.match(/^#.*/)) {
-					return "comment"
-				}
-
-				if (stream.match(/"[^"]*"/)) {
+			token(stream, state) {
+				if (state.inString && stream.eat(state.inString)) {
+					state.inString = false
 					return "string"
 				}
+				if (stream.sol()) {
+					state.inComment = false;
+				}
 
-				if (stream.match(/'[^']*'/)) {
+				if (!state.inString && !state.inComment) {
+					if (stream.eat('"')) {
+						state.inString = '"'
+						return "string"
+					}
+					if (stream.eat("'")) {
+						state.inString = "'"
+						return "string"
+					}
+					if (stream.eat('#')) {
+						state.inComment = true
+						return "comment"
+					}
+				}
+
+				if (state.inComment) {
+					stream.next()
+					return "comment"
+				}
+				if (state.inString) {
+					if (stream.match(/^\\n/)) {
+						return "number"
+					}
+
+					stream.next()
 					return "string"
 				}
 

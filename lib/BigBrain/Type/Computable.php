@@ -2,6 +2,8 @@
 
 namespace Gordy\Brainfuck\BigBrain\Type;
 
+use Gordy\Brainfuck\BigBrain\Utils;
+
 class Computable implements Type
 {
 	public const string STRING = 'string';
@@ -44,8 +46,17 @@ class Computable implements Type
 			self::INTEGER => $this->value,
 			self::BOOLEAN => (int)$this->value,
 			self::FLOAT => (float)$this->value,
-			self::CHAR => self::charToNumber($this->value),
+			self::CHAR => Utils\CharHelper::charToNumber($this->value),
 			default => throw new \Exception('not compatible'),
+		};
+	}
+
+	public function getString() : string
+	{
+		return match ($this->type) {
+			self::BOOLEAN => $this->value ? '1': '0',
+			self::STRING, self::CHAR => $this->value,
+			default => (string)$this->value,
 		};
 	}
 
@@ -65,17 +76,5 @@ class Computable implements Type
 			is_float($value)  => self::FLOAT,
 			default => 'undefined',
 		};
-	}
-
-	public static function charToNumber(string $char) : int
-	{
-		$converted = iconv('UTF-8', 'Windows-1251', $char);
-		return ord($converted);
-	}
-
-	public static function numberToChar(int $char) : string
-	{
-		$char = chr($char);
-		return iconv('Windows-1251', 'UTF-8', $char);
 	}
 }

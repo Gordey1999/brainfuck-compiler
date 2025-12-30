@@ -6,6 +6,8 @@ import {Controller} from "./Controller.mjs";
 import {Builder} from "./Builder.mjs";
 import {TabManager} from "./TabManager.mjs";
 
+// node_modules/.bin/rollup public/src/index.mjs -f iife -o public/index.bundle.js -p @rollup/plugin-node-resolve
+
 const editorEl = document.querySelector('.edit-area');
 const profilerEl = document.querySelector('.tracing-container');
 const consoleEl = document.querySelector('.console-container');
