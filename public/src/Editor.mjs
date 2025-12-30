@@ -113,10 +113,40 @@ export class Editor {
 	_defineBf() {
 		const bfLanguage = StreamLanguage.define({
 			name: "brainfuck",
+			startState() {
+				return { inComment: false };
+			},
+			token(stream, state) {
+				if (stream.sol()) {
+					state.inComment = false;
+				}
 
-			token(stream) {
 				if (stream.match(/^###.*/)) {
 					return "string"
+				}
+
+				if (stream.match(/^# @memory.*/)) {
+					return "attributeName"
+				}
+
+				if (!state.inComment && stream.eat('#')) {
+					state.inComment = true
+					return "comment"
+				}
+
+				if (state.inComment) {
+					if (stream.match(/^`\d+`/)) {
+						return "number"
+					}
+					if (stream.match(/^R\d+/)) {
+						return "variableName"
+					}
+					if (stream.match(/^[$_a-zA-Z][$_a-zA-Z0-9]*\(\d+\)/)) {
+						return "variableName"
+					}
+
+					stream.next()
+					return "comment"
 				}
 
 				if (stream.match(/^#.*/)) {
@@ -140,6 +170,9 @@ export class Editor {
 			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
 			{ tag: tags.keyword, color: "#952222", fontWeight: "bold" },
 			{ tag: tags.string, color: "#0062c7", fontStyle: "italic" },
+			{ tag: tags.number, color: "#0062c7" },
+			{ tag: tags.variableName, color: "#bd8b29" },
+			{ tag: tags.attributeName, color: "#bd8b29" },
 		])
 
 		this._bfExt = [ bfLanguage, syntaxHighlighting(bfHighlight) ];
@@ -147,7 +180,7 @@ export class Editor {
 
 	_defineBb() {
 		const bbLanguage = StreamLanguage.define({
-			name: "brainfuck",
+			name: "bigBrain",
 
 			token(stream) {
 				if (stream.match(/^#.*/)) {
@@ -162,7 +195,7 @@ export class Editor {
 					return "string"
 				}
 
-				if (stream.match(/const|char|int|byte|if|while|for|echo|true|false/)) {
+				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|true|false/)) {
 					return "keyword"
 				}
 
@@ -174,7 +207,7 @@ export class Editor {
 		const bbHighlight = HighlightStyle.define([
 			{ tag: tags.comment, color: "#777", fontStyle: "italic" },
 			{ tag: tags.keyword, color: "#224395", fontWeight: "bold" },
-			{ tag: tags.string, color: "#1d7f2f" }
+			{ tag: tags.string, color: "#1d7f2f" },
 		])
 
 		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight) ];

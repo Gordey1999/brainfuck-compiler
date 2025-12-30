@@ -25467,10 +25467,40 @@
   	_defineBf() {
   		const bfLanguage = StreamLanguage.define({
   			name: "brainfuck",
+  			startState() {
+  				return { inComment: false };
+  			},
+  			token(stream, state) {
+  				if (stream.sol()) {
+  					state.inComment = false;
+  				}
 
-  			token(stream) {
   				if (stream.match(/^###.*/)) {
   					return "string"
+  				}
+
+  				if (stream.match(/^# @memory.*/)) {
+  					return "attributeName"
+  				}
+
+  				if (!state.inComment && stream.eat('#')) {
+  					state.inComment = true;
+  					return "comment"
+  				}
+
+  				if (state.inComment) {
+  					if (stream.match(/^`\d+`/)) {
+  						return "number"
+  					}
+  					if (stream.match(/^R\d+/)) {
+  						return "variableName"
+  					}
+  					if (stream.match(/^[$_a-zA-Z][$_a-zA-Z0-9]*\(\d+\)/)) {
+  						return "variableName"
+  					}
+
+  					stream.next();
+  					return "comment"
   				}
 
   				if (stream.match(/^#.*/)) {
@@ -25494,6 +25524,9 @@
   			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
   			{ tag: tags.keyword, color: "#952222", fontWeight: "bold" },
   			{ tag: tags.string, color: "#0062c7", fontStyle: "italic" },
+  			{ tag: tags.number, color: "#0062c7" },
+  			{ tag: tags.variableName, color: "#bd8b29" },
+  			{ tag: tags.attributeName, color: "#bd8b29" },
   		]);
 
   		this._bfExt = [ bfLanguage, syntaxHighlighting(bfHighlight) ];
@@ -25501,7 +25534,7 @@
 
   	_defineBb() {
   		const bbLanguage = StreamLanguage.define({
-  			name: "brainfuck",
+  			name: "bigBrain",
 
   			token(stream) {
   				if (stream.match(/^#.*/)) {
@@ -25516,7 +25549,7 @@
   					return "string"
   				}
 
-  				if (stream.match(/const|char|int|byte|if|while|for|echo|true|false/)) {
+  				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|true|false/)) {
   					return "keyword"
   				}
 
@@ -25528,7 +25561,7 @@
   		const bbHighlight = HighlightStyle.define([
   			{ tag: tags.comment, color: "#777", fontStyle: "italic" },
   			{ tag: tags.keyword, color: "#224395", fontWeight: "bold" },
-  			{ tag: tags.string, color: "#1d7f2f" }
+  			{ tag: tags.string, color: "#1d7f2f" },
   		]);
 
   		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight) ];
@@ -25607,10 +25640,14 @@
   	_rowSize = 20;
   	_pointer = 0;
   	_pointedCell = null;
+  	_storage = null;
+  	_labels = null;
+  	_labelsMap = null;
 
   	constructor(el, storageSize) {
   		this._el = el;
   		this._storage = Array(storageSize).fill(0);
+  		this._labels = Array(storageSize).fill(null);
   		this._build();
   		this._movePointer(0);
   	}
@@ -25623,45 +25660,105 @@
   			const value = document.createElement("div");
   			const char = document.createElement("div");
 
+  			const addressLabel = document.createElement("div");
+  			const addressValue = document.createElement("div");
+
   			cell.classList.add("tracing-cell");
   			address.classList.add("tracing-address");
   			value.classList.add("tracing-value");
   			char.classList.add("tracing-char");
+  			addressLabel.classList.add("tracing-address-label");
+  			addressValue.classList.add("tracing-address-value");
 
   			cell.appendChild(address);
+  			address.appendChild(addressLabel);
+  			address.appendChild(addressValue);
   			cell.appendChild(char);
   			cell.appendChild(value);
 
-  			address.textContent = i;
+  			addressValue.textContent = i;
 
   			this._el.appendChild(cell);
-  			this._render(i, 0);
+  			this._renderValue(i, 0);
   		}
   	}
 
-  	reset() {
+  	_initLabels(code) {
+  		const lines = code.split("\n");
+
+  		const result = [];
+
+  		for (let i = 0; i < lines.length; i++) {
+  			const matches = lines[i].match(/# @memory (\d+):(.*)/);
+  			if (matches) {
+  				result.push({
+  					line: i,
+  					address: parseInt(matches[1]),
+  					label: matches[2],
+  				});
+  			}
+  		}
+
+  		this._labelsMap = result;
+  	}
+
+  	reset(code) {
+  		this._initLabels(code);
   		this._movePointer(0);
-  		this._storage.fill(0);
+  		this._renderValues(this._storage.slice().fill(0));
+  		this._renderLabels(this._labels.slice().fill(null));
+  	}
 
-  		for (const i in this._el.children) {
-  			this._render(i, 0);
+  	render(storage, pointer, position) {
+  		const labels = this._calculateLabels(position);
+  		this._renderLabels(labels);
+  		this._renderValues(storage);
+  		this._movePointer(pointer);
+  	}
+
+  	_calculateLabels(position) {
+  		const currentLine = position !== null ? position[0] : Number.MAX_SAFE_INTEGER;
+  		const labels = Array(this._labels.length).fill(null);
+  		for (const row of this._labelsMap) {
+  			if (row.line > currentLine) { break; }
+
+  			labels[row.address] = row.label;
+  		}
+
+  		return labels;
+  	}
+
+  	_renderLabels(labels) {
+  		const count = this._labels.length;
+  		for (let i = 0; i < count; i++) {
+  			if (this._labels[i] !== labels[i]) {
+
+  				this._renderLabel(i, labels[i]);
+  				this._labels[i] = labels[i];
+  			}
   		}
   	}
 
-  	render(storage, pointer) {
-  		this._movePointer(pointer);
+  	_renderLabel(i, value) {
+  		const child = this._el.children[i];
+  		if (child) {
+  			const valueEl = child.querySelector('.tracing-address-label');
+  			valueEl.textContent = value === null ? '' : value;
+  		}
+  	}
 
+  	_renderValues(storage) {
   		const count = this._storage.length;
   		for (let i = 0; i < count; i++) {
   			if (this._storage[i] !== storage[i]) {
 
-  				this._render(i, storage[i]);
+  				this._renderValue(i, storage[i]);
   				this._storage[i] = storage[i];
   			}
   		}
   	}
 
-  	_render(i, value) {
+  	_renderValue(i, value) {
   		const child = this._el.children[i];
   		if (child) {
   			const valueEl = child.querySelector('.tracing-value');
@@ -26203,6 +26300,7 @@
   			const text = this._editor.getCode();
   			this._translator.compile(text);
   			this._translator.pushInput(this._input.get());
+  			this._profiler.reset(text);
   		}
   		catch (e) {
   			this._console.showError(e.message);
@@ -26252,8 +26350,9 @@
   	}
 
   	_renderState() {
-  		this._editor.highlightPosition(this._translator.getCurrentPosition());
-  		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
+  		const position = this._translator.getCurrentPosition();
+  		this._editor.highlightPosition(position);
+  		this._profiler.render(this._translator.getStorage(), this._translator.getPointer(), position);
   		this._console.setCommandsCount(this._translator.commandsCount());
   	}
   }

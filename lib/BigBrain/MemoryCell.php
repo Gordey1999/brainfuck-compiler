@@ -20,6 +20,13 @@ class MemoryCell
 
 	public function __toString() : string
 	{
-		return sprintf('%s(%s)', $this->label, $this->address);
+		if (preg_match('/R\d+/', $this->label))
+		{
+			return sprintf('%s', $this->label);
+		}
+		else
+		{
+			return sprintf('%s(%s)', $this->label, $this->address);
+		}
 	}
 }

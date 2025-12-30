@@ -335,6 +335,7 @@ pre {
 	display: flex;
 	flex-direction: column;
 	flex-wrap: wrap;
+	align-content: stretch;
 	overflow: auto;
 }
 
@@ -343,11 +344,24 @@ pre {
 }
 
 .tracing-address {
+	flex-grow: 1;
 	background: rgba(255, 200, 0, 0.16);
-	width: 30px;
-	text-align: end;
-	padding: 2px;
+	padding: 2px 2px 2px 5px;
+	min-width: 30px;
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: nowrap;
+}
+
+.tracing-address-label {
+	color: #0062c7;
+	text-align: start;
+	margin-right: 5px;
+}
+
+.tracing-address-value {
 	color: rgba(0, 0, 0, 0.55);
+	text-align: end;
 }
 
 .tracing-value {

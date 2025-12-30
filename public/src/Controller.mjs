@@ -60,6 +60,7 @@ export class Controller {
 			const text = this._editor.getCode();
 			this._translator.compile(text);
 			this._translator.pushInput(this._input.get());
+			this._profiler.reset(text);
 		}
 		catch (e) {
 			this._console.showError(e.message);
@@ -109,8 +110,9 @@ export class Controller {
 	}
 
 	_renderState() {
-		this._editor.highlightPosition(this._translator.getCurrentPosition());
-		this._profiler.render(this._translator.getStorage(), this._translator.getPointer());
+		const position = this._translator.getCurrentPosition();
+		this._editor.highlightPosition(position);
+		this._profiler.render(this._translator.getStorage(), this._translator.getPointer(), position);
 		this._console.setCommandsCount(this._translator.commandsCount());
 	}
 }
