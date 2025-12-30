@@ -5,7 +5,6 @@ namespace Gordy\Brainfuck\BigBrain;
 class OutputStream
 {
 	private array $stream = [];
-	private array $comment = [];
 
 	private bool $inGroup = false;
 	private string $groupComment;

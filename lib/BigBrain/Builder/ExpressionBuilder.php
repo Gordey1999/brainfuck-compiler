@@ -140,6 +140,8 @@ class ExpressionBuilder
 		return match($operator->value()) {
 			'+' => new Term\Expression\Operator\Arithmetic\Addition($left, $right, $operator),
 			'-' => new Term\Expression\Operator\Arithmetic\Subtraction($left, $right, $operator),
+			'*' => new Term\Expression\Operator\Arithmetic\Multiplication($left, $right, $operator),
+			'/' => new Term\Expression\Operator\Arithmetic\Division($left, $right, $operator),
 			',' => new Term\Expression\Operator\Comma($left, $right, $operator),
 			default => throw new SyntaxError('unknown operator', $operator),
 		};

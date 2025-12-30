@@ -85,6 +85,15 @@ class Processor
 			$this->decrement($a);
 			$this->copyNumber($b, $result);
 		}, "$a * $b");
+		$this->unset($b);
+	}
+
+	public function multiplyByConstant(MemoryCell $a, int $constant, MemoryCell $result) : void
+	{
+		$this->while($a, function() use ($a, $constant, $result) {
+			$this->decrement($a);
+			$this->addConstant($result, $constant);
+		}, "$a * `$constant`");
 	}
 
 	public function subUntilZero(MemoryCell $from, MemoryCell $sub) : void
@@ -120,7 +129,7 @@ class Processor
 			$this->moveBoolean($temp, $a, $b);
 			$this->if($a, function () use ($quotient) {
 				$this->decrement($quotient);
-			}, "if remainder > `0`, sub 1 from quotient");
+			}, "if remainder > `0`, sub `1` from quotient");
 			$this->not($b);
 			$this->if($b, function () use ($remainder) {
 				$this->unset($remainder);
@@ -149,7 +158,7 @@ class Processor
 			$this->moveBoolean($a, $temp, $temp2);
 			$this->if($temp, function () use ($quotient) {
 				$this->decrement($quotient);
-			}, "if remainder > `0`, sub 1 from quotient");
+			}, "if remainder > `0`, sub `1` from quotient");
 			$this->not($temp2);
 			$this->if($temp2, function () use ($remainder) {
 				$this->unset($remainder);
@@ -251,6 +260,8 @@ class Processor
 	/** @param array<int, array{0: MemoryCell, 1: string}> $to */
 	public function copy(MemoryCell $from, array $to) : void
 	{
+		if (empty($to)) { return; }
+
 		$cells = array_column($to, 0);
 		$temp = $this->reserve(...$cells);
 
@@ -288,6 +299,8 @@ class Processor
 	/** @param array<int, array{0: MemoryCell, 1: string}> $to */
 	public function move(MemoryCell $from, array $to) : void
 	{
+		if (empty($to)) { return; }
+
 		$toParts = [];
 		usort($to, function($a, $b) {
 			return $a[0]->address() <=> $b[0]->address();
@@ -373,7 +386,7 @@ class Processor
 
 	public function subConstant(MemoryCell $from, int $value) : void
 	{
-		$this->stream->startGroup("sub $value from $from");
+		$this->stream->startGroup("sub `$value` from $from");
 		$value = $value % 256;
 		$this->goto($from);
 		$value = $this->normalizeConstant($value);
