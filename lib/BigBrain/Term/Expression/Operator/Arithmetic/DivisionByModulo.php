@@ -6,11 +6,11 @@ use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 
-class Division extends Skeleton
+class DivisionByModulo extends Skeleton
 {
 	protected function computeValue(int $left, int $right) : int
 	{
-		return $left / $right;
+		return $left % $right;
 	}
 
 	protected function compileForVariables(Environment $env, MemoryCell $result) : void
@@ -42,15 +42,11 @@ class Division extends Skeleton
 	protected function compileWithRightConstant(Environment $env, int $constant, MemoryCell $result) : void
 	{
 		if ($constant === 0) { throw new CompileError('division by zero', $this->lexeme()); }
-		if ($constant === 1)
-		{
-			$this->left->compileCalculation($env, $result);
-			return;
-		}
+		if ($constant === 1) { return; }
 
 		$left = $env->processor()->reserve($result);
-
 		$this->left->compileCalculation($env, $left);
+
 		$this->divideByConstant($env, $left, $constant, $result);
 
 		$env->processor()->release($left);
@@ -59,46 +55,46 @@ class Division extends Skeleton
 	protected function divide(Environment $env, MemoryCell $a, MemoryCell $b, MemoryCell $result) : void
 	{
 		$proc = $env->processor();
-		[$temp, $remainder] = $proc->reserveSeveral(2, $a, $b, $result);
+		$temp = $proc->reserve($a, $b, $result);
 
-		$proc->while($a, static function() use ($a, $b, $result, $remainder, $temp, $proc) {
-			$proc->while($a, static function() use ($a, $b, $result, $remainder, $temp, $proc) {
-				$proc->unset($remainder);
-				$proc->copyNumber($a, $remainder);
+		$proc->while($a, static function() use ($a, $b, $result, $temp, $proc) {
+			$proc->while($a, static function() use ($a, $b, $result, $temp, $proc) {
+				$proc->unset($result);
+				$proc->copyNumber($a, $result);
 				$proc->copyNumber($b, $temp);
 				$proc->subUntilZero($a, $temp);
-				$proc->increment($result);
 			}, "division cycle");
 
-			$proc->sub($remainder, $b);
-			$proc->if($remainder, static function () use ($result, $proc) {
-				$proc->decrement($result);
-			}, "if remainder > `0`, sub `1` from result");
-		}, "$a / $b (result: $result, remainder: $remainder)");
+			$proc->copyNumber($result, $a);
+			$proc->equals($a, $b, $temp);
+			$proc->if($temp, static function () use ($result, $proc) {
+				$proc->unset($result);
+			}, "if result === divider, unset remainder");
+		}, "$a % $b (result: $result)");
 
-		$proc->release($temp, $remainder);
+		$proc->release($temp);
 	}
 
 	protected function divideByConstant(Environment $env, MemoryCell $a, int $constant, MemoryCell $result) : void
 	{
 		$proc = $env->processor();
-		[$temp, $remainder] = $proc->reserveSeveral(2, $a, $result);
+		$temp = $proc->reserve($a, $result);
 
-		$proc->while($a, static function() use ($a, $constant, $result, $remainder, $temp, $proc) {
-			$proc->while($a, static function() use ($a, $constant, $result, $remainder, $temp, $proc) {
-				$proc->unset($remainder);
-				$proc->copyNumber($a, $remainder);
+		$proc->while($a, static function() use ($a, $constant, $result, $temp, $proc) {
+			$proc->while($a, static function() use ($a, $constant, $result, $temp, $proc) {
+				$proc->unset($result);
+				$proc->copyNumber($a, $result);
 				$proc->addConstant($temp, $constant);
 				$proc->subUntilZero($a, $temp);
-				$proc->increment($result);
 			}, "division cycle");
 
-			$proc->subConstant($remainder, $constant);
-			$proc->if($remainder, static function () use ($result, $proc) {
-				$proc->decrement($result);
-			}, "if remainder > `0`, sub `1` from quotient");
-		}, "$a / `$constant` (result: $result, remainder: $remainder)");
+			$proc->copyNumber($result, $a);
+			$proc->equalsToConstant($a, $constant, $temp);
+			$proc->if($temp, static function () use ($result, $proc) {
+				$proc->unset($result);
+			}, "if result === divider, unset remainder");
+		}, "$a % `$constant` (result: $result)");
 
-		$proc->release($temp, $remainder);
+		$proc->release($temp);
 	}
 }

@@ -25524,8 +25524,8 @@
   			{ tag: tags.comment, color: "#1d7f2f", fontStyle: "italic" },
   			{ tag: tags.keyword, color: "#952222", fontWeight: "bold" },
   			{ tag: tags.string, color: "#0062c7", fontStyle: "italic" },
-  			{ tag: tags.number, color: "#0062c7" },
-  			{ tag: tags.variableName, color: "#bd8b29" },
+  			{ tag: tags.number, color: "#0062c7", fontStyle: "italic" },
+  			{ tag: tags.variableName, color: "#bd8b29", fontStyle: "italic" },
   			{ tag: tags.attributeName, color: "#bd8b29" },
   		]);
 

@@ -6,7 +6,7 @@ class OutputStream
 {
 	private array $stream = [];
 
-	private bool $inGroup = false;
+	private int $inGroup = 0;
 	private string $groupComment;
 
 	protected const int CODE_WIDTH = 30;
@@ -14,21 +14,24 @@ class OutputStream
 
 	public function startGroup(string $comment) : void
 	{
-		if ($this->inGroup) { return; }
-		$this->inGroup = true;
+		if ($this->inGroup > 0) {
+			$this->inGroup++;
+			return;
+		}
+		$this->inGroup++;
 		$this->groupComment = $comment;
 	}
 
 	public function endGroup() : void
 	{
-		$this->inGroup = false;
+		$this->inGroup--;
 	}
 
 	public function write(string $code, string $comment = '') : void
 	{
 		if (empty(trim($code))) { return; }
 
-		if ($this->inGroup)
+		if ($this->inGroup > 0)
 		{
 			$comment = '';
 			if ($this->groupComment)

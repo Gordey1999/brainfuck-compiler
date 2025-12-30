@@ -219,6 +219,24 @@ class Processor
 		$this->stream->write("]");
 	}
 
+	public function equals(MemoryCell $a, MemoryCell $b, MemoryCell $result) : void
+	{
+		$this->stream->startGroup("$result = $a === $b");
+		$this->sub($a, $b);
+		$this->moveBoolean($a, $result);
+		$this->not($result);
+		$this->stream->endGroup();
+	}
+
+	public function equalsToConstant(MemoryCell $value, int $constant, MemoryCell $result) : void
+	{
+		$this->stream->startGroup("$result = $value === `$constant`");
+		$this->subConstant($value, $constant);
+		$this->moveBoolean($value, $result);
+		$this->not($result);
+		$this->stream->endGroup();
+	}
+
 	public function ifMoreThenConstant(MemoryCell $a, int $constant, callable $callback) : void
 	{
 		$temp = $this->reserve($a);
@@ -353,7 +371,7 @@ class Processor
 
 	public function not(MemoryCell $bool) : void
 	{
-		$this->stream->startGroup("apply logical negation to $bool");
+		$this->stream->startGroup("$bool = !$bool");
 		$this->goto($bool);
 		$this->subConstant($bool, 1);
 		$this->stream->endGroup();
