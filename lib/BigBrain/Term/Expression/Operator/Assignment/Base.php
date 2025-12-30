@@ -5,6 +5,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
+use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
@@ -58,16 +59,16 @@ class Base implements Expression
 
 		foreach ($variables as $variable)
 		{
-			$address = $variable->address($env);
-			$env->processor()->unset($address);
+			$cell = $variable->memoryCell($env);
+			$env->processor()->unset($cell);
 
 			if ($variable->resultType($env) instanceof Type\Boolean)
 			{
-				$env->processor()->addConstant($address, $result->getNumeric() !== 0);
+				$env->processor()->addConstant($cell, $result->getNumeric() !== 0);
 			}
 			else
 			{
-				$env->processor()->addConstant($address, $result->getNumeric());
+				$env->processor()->addConstant($cell, $result->getNumeric());
 			}
 		}
 	}
@@ -78,8 +79,8 @@ class Base implements Expression
 		$value = $this->value();
 		$last = array_shift($variables);
 
-		$variableAddresses = array_map(static function ($variable) use ($env) {
-			return $variable->address($env);
+		$variableCells = array_map(static function ($variable) use ($env) {
+			return $variable->memoryCell($env);
 		}, $variables);
 
 		$boolCastingNeed = !$result instanceof Type\Boolean
@@ -87,24 +88,24 @@ class Base implements Expression
 
 		if ($boolCastingNeed || $value->hasVariable($last->name()->value()))
 		{
-			$address = $last->address($env);
-			$tempResult = $env->processor()->reserve($address);
+			$cell = $last->memoryCell($env);
+			$tempResult = $env->processor()->reserve($cell);
 
 			$value->compileCalculation($env, $tempResult);
 
-			$env->processor()->unsetSeveral($address, ...$variableAddresses);
+			$env->processor()->unsetSeveral($cell, ...$variableCells);
 			$env->processor()->move($tempResult, $this->buildMoveAddresses($env, $last, ...$variables));
 			$env->processor()->release($tempResult);
 		}
 		else
 		{
-			$address = $last->address($env);
-			$env->processor()->unset($address);
+			$cell = $last->memoryCell($env);
+			$env->processor()->unset($cell);
 
-			$value->compileCalculation($env, $address);
+			$value->compileCalculation($env, $cell);
 
-			$env->processor()->unsetSeveral(...$variableAddresses);
-			$env->processor()->copy($address, $this->buildMoveAddresses($env, ...$variables));
+			$env->processor()->unsetSeveral(...$variableCells);
+			$env->processor()->copy($cell, $this->buildMoveAddresses($env, ...$variables));
 		}
 	}
 
@@ -117,11 +118,17 @@ class Base implements Expression
 		{
 			if ($variable->resultType($env) instanceof Type\Boolean)
 			{
-				$result[$variable->address($env)] = $env->processor()::BOOLEAN;
+				$result[] = [
+					$variable->memoryCell($env),
+					$env->processor()::BOOLEAN,
+				];
 			}
 			else
 			{
-				$result[$variable->address($env)] = $env->processor()::NUMBER;
+				$result[] = [
+					$variable->memoryCell($env),
+					$env->processor()::NUMBER,
+				];
 			}
 		}
 
@@ -150,7 +157,7 @@ class Base implements Expression
 		return $this->expression;
 	}
 
-	public function compileCalculation(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
 		throw new \Exception('not implemented');
 	}

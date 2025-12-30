@@ -3,6 +3,7 @@
 namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Arithmetic;
 
 use Gordy\Brainfuck\BigBrain\Environment;
+use Gordy\Brainfuck\BigBrain\MemoryCell;
 
 class Subtraction extends Skeleton
 {
@@ -11,33 +12,33 @@ class Subtraction extends Skeleton
 		return $left - $right;
 	}
 
-	protected function compileForVariables(Environment $env, int $resultAddress) : void
+	protected function compileForVariables(Environment $env, MemoryCell $result) : void
 	{
-		$rightResultAddress = $env->processor()->reserve($resultAddress);
+		$rightResultAddress = $env->processor()->reserve($result);
 
-		$this->left->compileCalculation($env, $resultAddress);
+		$this->left->compileCalculation($env, $result);
 		$this->right->compileCalculation($env, $rightResultAddress);
 
-		$env->processor()->sub($resultAddress, $rightResultAddress);
+		$env->processor()->sub($result, $rightResultAddress);
 
 		$env->processor()->release($rightResultAddress);
 	}
 
-	protected function compileWithLeftConstant(Environment $env, int $constant, int $resultAddress) : void
+	protected function compileWithLeftConstant(Environment $env, int $constant, MemoryCell $result) : void
 	{
-		$temp = $env->processor()->reserve($resultAddress);
+		$temp = $env->processor()->reserve($result);
 		$this->right->compileCalculation($env, $temp);
 
-		$env->processor()->addConstant($resultAddress, $constant);
-		$env->processor()->sub($resultAddress, $temp);
+		$env->processor()->addConstant($result, $constant);
+		$env->processor()->sub($result, $temp);
 
 		$env->processor()->release($temp);
 	}
 
-	protected function compileWithRightConstant(Environment $env, int $constant, int $resultAddress) : void
+	protected function compileWithRightConstant(Environment $env, int $constant, MemoryCell $result) : void
 	{
-		$this->left->compileCalculation($env, $resultAddress);
+		$this->left->compileCalculation($env, $result);
 
-		$env->processor()->subConstant($resultAddress, $constant);
+		$env->processor()->subConstant($result, $constant);
 	}
 }

@@ -4,6 +4,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator;
 
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
+use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
@@ -58,7 +59,7 @@ class Comma implements Expression
 		throw new CompileError('unexpected operator ","', $this->lexeme);
 	}
 
-	public function compileCalculation(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
 		throw new \Exception('not implemented');
 	}

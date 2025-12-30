@@ -2,6 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Arithmetic;
 
+use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Environment;
@@ -25,11 +26,11 @@ abstract class Skeleton implements Expression
 
 	protected abstract function computeValue(int $left, int $right) : int;
 
-	protected abstract function compileForVariables(Environment $env, int $resultAddress) : void;
+	protected abstract function compileForVariables(Environment $env, MemoryCell $result) : void;
 
-	protected abstract function compileWithLeftConstant(Environment $env, int $constant, int $resultAddress) : void;
+	protected abstract function compileWithLeftConstant(Environment $env, int $constant, MemoryCell $result) : void;
 
-	protected abstract function compileWithRightConstant(Environment $env, int $constant, int $resultAddress) : void;
+	protected abstract function compileWithRightConstant(Environment $env, int $constant, MemoryCell $result) : void;
 
 	public function compile(Environment $env) : void
 	{
@@ -53,12 +54,12 @@ abstract class Skeleton implements Expression
 		return new Type\Byte();
 	}
 
-	public function compileCalculation(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
 		$resultType = $this->resultType($env);
 		if ($resultType instanceof Type\Computable)
 		{
-			$env->processor()->addConstant($resultAddress, $resultType->value());
+			$env->processor()->addConstant($result, $resultType->value());
 			return;
 		}
 
@@ -68,16 +69,16 @@ abstract class Skeleton implements Expression
 		if ($leftType instanceof Type\Computable)
 		{
 			$this->checkComputedType($leftType);
-			$this->compileWithLeftConstant($env, $leftType->getNumeric(), $resultAddress);
+			$this->compileWithLeftConstant($env, $leftType->getNumeric(), $result);
 		}
 		else if ($rightType instanceof Type\Computable)
 		{
 			$this->checkComputedType($rightType);
-			$this->compileWithRightConstant($env, $rightType->getNumeric(), $resultAddress);
+			$this->compileWithRightConstant($env, $rightType->getNumeric(), $result);
 		}
 		else
 		{
-			$this->compileForVariables($env, $resultAddress);
+			$this->compileForVariables($env, $result);
 		}
 	}
 

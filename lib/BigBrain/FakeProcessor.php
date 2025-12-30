@@ -16,7 +16,7 @@ class FakeProcessor extends Processor
 		$this->stream = $stream;
 	}
 
-	public function reserve(...$near) : int
+	public function reserve(MemoryCell ...$near) : MemoryCell
 	{
 		$this->registrySize++;
 		if ($this->registrySize > $this->maxRegistrySize)
@@ -27,7 +27,7 @@ class FakeProcessor extends Processor
 		return parent::reserve(...$near);
 	}
 
-	public function release(...$addresses) : void
+	public function release(MemoryCell ...$addresses) : void
 	{
 		$this->registrySize -= count($addresses);
 

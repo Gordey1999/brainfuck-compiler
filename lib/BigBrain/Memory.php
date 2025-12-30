@@ -7,12 +7,16 @@ use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 
 class Memory
 {
+	/** @var array<string, MemoryCellTyped> */
 	private array $stack = [];
 	protected $offset;
 
-	public function __construct(int $offset)
+	protected OutputStream $stream;
+
+	public function __construct(OutputStream $stream, int $offset)
 	{
 		$this->offset = $offset;
+		$this->stream = $stream;
 	}
 
 	private function addScope() : void
@@ -25,39 +29,26 @@ class Memory
 		array_pop($this->stack);
 	}
 
-	public function allocate(Type\BaseType $type, Lexeme $name) : int
+	public function allocate(Type\BaseType $type, Lexeme $name) : MemoryCellTyped
 	{
 		if (isset($this->stack[$name->value()]))
 		{
 			throw new CompileError("variable '{$name->value()}' is already defined", $name);
 		}
-		$address = count($this->stack) + $this->offset;
+		$address = $this->offset + count($this->stack);
 
-		$this->stack[$name->value()] = [
-			'type' => $type,
-			'address' => $address,
-		];
+		$this->stream->memoryComment($address, $name->value());
 
-		return $address;
+		return $this->stack[$name->value()] = new MemoryCellTyped($address, $name->value(), $type);
 	}
 
-	public function address(Lexeme $name) : int
+	public function get(Lexeme $name) : MemoryCellTyped
 	{
 		if (!isset($this->stack[$name->value()]))
 		{
 			throw new CompileError("variable '{$name->value()}' not defined", $name);
 		}
 
-		return $this->stack[$name->value()]['address'];
-	}
-
-	public function type(Lexeme $name) : Type\BaseType
-	{
-		if (!isset($this->stack[$name->value()]))
-		{
-			throw new CompileError("variable '{$name->value()}' not defined", $name);
-		}
-
-		return $this->stack[$name->value()]['type'];
+		return $this->stack[$name->value()];
 	}
 }

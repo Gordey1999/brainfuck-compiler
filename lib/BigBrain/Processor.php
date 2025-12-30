@@ -16,20 +16,25 @@ class Processor
 	{
 		$this->stream = $stream;
 		$this->registry = array_fill(0, $registrySize, false);
+
+		foreach ($this->registry as $address => $isReserved)
+		{
+			$this->stream->memoryComment($address, "R$address");
+		}
 	}
 
-	public function reserve(int ...$near) : int
+	public function reserve(MemoryCell ...$near) : MemoryCell
 	{
 		$nearest = null;
 		$minDistance = 1000;
-		foreach ($this->registry as $address => $value)
+		foreach ($this->registry as $address => $isReserved)
 		{
-			if ($value) { continue; }
+			if ($isReserved) { continue; }
 
 			$distance = 0;
 			foreach ($near as $nearAddress)
 			{
-				$distance += abs($address - $nearAddress);
+				$distance += abs($address - $nearAddress->address());
 			}
 
 			if ($distance < $minDistance)
@@ -46,10 +51,10 @@ class Processor
 
 		$this->registry[$nearest] = true;
 
-		return $nearest;
+		return new MemoryCell($nearest, "R$nearest");
 	}
 
-	public function reserveSeveral(int $count, int ...$near) : array
+	public function reserveSeveral(int $count, MemoryCell ...$near) : array
 	{
 		$result = [];
 
@@ -61,20 +66,20 @@ class Processor
 		return $result;
 	}
 
-	public function release(int ...$addresses) : void
+	public function release(MemoryCell ...$cells) : void
 	{
-		foreach ($addresses as $address)
+		foreach ($cells as $cell)
 		{
-			if (!$this->registry[$address])
+			if (!$this->registry[$cell->address()])
 			{
 				throw new \RuntimeException("Addrress is already released");
 			}
 
-			$this->registry[$address] = false;
+			$this->registry[$cell->address()] = false;
 		}
 	}
 
-	public function multiply(int $a, int $b, int $result) : void
+	public function multiply(MemoryCell $a, MemoryCell $b, MemoryCell $result) : void
 	{
 		$this->while($a, function() use ($a, $b, $result) {
 			$this->decrement($a);
@@ -82,7 +87,7 @@ class Processor
 		}, "$a * $b");
 	}
 
-	public function subUntilZero(int $from, int $sub) : void
+	public function subUntilZero(MemoryCell $from, MemoryCell $sub) : void
 	{
 		$temp = $this->reserve($from);
 
@@ -97,7 +102,7 @@ class Processor
 		$this->release($temp);
 	}
 
-	public function divide(int $a, int $b, int $quotient, int $remainder) : void
+	public function divide(MemoryCell $a, MemoryCell $b, MemoryCell $quotient, MemoryCell $remainder) : void
 	{
 		$temp = $this->reserve($a, $b, $quotient, $remainder);
 
@@ -126,7 +131,7 @@ class Processor
 		$this->release($temp);
 	}
 
-	public function divideByConstant(int $a, int $constant, int $quotient, int $remainder) : void
+	public function divideByConstant(MemoryCell $a, int $constant, MemoryCell $quotient, MemoryCell $remainder) : void
 	{
 		[ $temp, $temp2 ] = $this->reserveSeveral(2, $a, $quotient, $remainder);
 
@@ -154,7 +159,7 @@ class Processor
 		$this->release($temp, $temp2);
 	}
 
-	public function printNumber(int $number) : void
+	public function printNumber(MemoryCell $number) : void
 	{
 		[ $a, $b ] = $this->reserveSeveral(2, $number);
 
@@ -182,30 +187,30 @@ class Processor
 		$this->release($a, $b, $c, $d);
 	}
 
-	public function while(int $address, callable $callback, string $comment) : void
+	public function while(MemoryCell $value, callable $callback, string $comment) : void
 	{
-		$this->goto($address);
+		$this->goto($value);
 		$this->stream->write("[", $comment);
 
 		$callback();
 
-		$this->goto($address);
+		$this->goto($value);
 		$this->stream->write("]");
 	}
 
-	public function if(int $address, callable $callback, string $comment) : void
+	public function if(MemoryCell $value, callable $callback, string $comment) : void
 	{
-		$this->goto($address);
+		$this->goto($value);
 		$this->stream->write("[", $comment);
-		$this->unset($address);
+		$this->unset($value);
 
 		$callback();
 
-		$this->goto($address);
+		$this->goto($value);
 		$this->stream->write("]");
 	}
 
-	public function ifMoreThenConstant(int $a, int $constant, callable $callback) : void
+	public function ifMoreThenConstant(MemoryCell $a, int $constant, callable $callback) : void
 	{
 		$temp = $this->reserve($a);
 
@@ -218,87 +223,105 @@ class Processor
 		$this->release($temp);
 	}
 
-	public function copyNumber(int $from, int ...$to) : void
+	public function copyNumber(MemoryCell $from, MemoryCell ...$to) : void
 	{
-		$to = array_combine($to, array_fill(0, count($to), self::NUMBER));
+		$to = array_map(static function ($cell) {
+			return [ $cell, self::NUMBER ];
+		}, $to);
 
 		$this->copy($from, $to);
 	}
 
-	public function copyBoolean(int $from, int ...$to) : void
+	public function copyBoolean(MemoryCell $from, MemoryCell ...$to) : void
 	{
-		$to = array_combine($to, array_fill(0, count($to), self::BOOLEAN));
+		$to = array_map(static function ($cell) {
+			return [ $cell, self::BOOLEAN ];
+		}, $to);
 
 		$this->copy($from, $to);
 	}
 
-	public function add(int $from, int ...$to) : void
+	public function add(MemoryCell $from, MemoryCell ...$to) : void
 	{
 		$this->stream->startGroup("add $from to " . implode(", ", $to));
 		$this->moveNumber($from, ...$to);
 		$this->stream->endGroup();
 	}
 
-	public function copy(int $from, array $to) : void
+	/** @param array<int, array{0: MemoryCell, 1: string}> $to */
+	public function copy(MemoryCell $from, array $to) : void
 	{
-		$temp = $this->reserve(...array_keys($to));
+		$cells = array_column($to, 0);
+		$temp = $this->reserve(...$cells);
 
-		$this->stream->startGroup("copy $from to " . implode(", ", array_keys($to)));
-		$this->move($from, $to + [ $temp => self::NUMBER ]);
+		$this->stream->startGroup("copy $from to " . implode(", ", $cells));
+		$to[] = [ $temp, self::NUMBER ];
+		$this->move($from, $to);
 		$this->moveNumber($temp, $from);
 		$this->stream->endGroup();
 
 		$this->release($temp);
 	}
 
-	public function moveNumber(int $from, int ...$to) : void
+	public function moveNumber(MemoryCell $from, MemoryCell ...$to) : void
 	{
-		$to = array_combine($to, array_fill(0, count($to), self::NUMBER));
+		$to = array_map(static function ($cell) {
+			return [ $cell, self::NUMBER ];
+		}, $to);
 
 		$this->move($from, $to);
 	}
 
-	public function moveBoolean(int $from, int ...$to) : void
+	public function moveBoolean(MemoryCell $from, MemoryCell ...$to) : void
 	{
 		$this->stream->startGroup("make bool from $from to " . implode(", ", $to));
 
-		$to = array_combine($to, array_fill(0, count($to), self::BOOLEAN));
+		$to = array_map(static function ($cell) {
+			return [ $cell, self::BOOLEAN ];
+		}, $to);
+
 		$this->move($from, $to);
 
 		$this->stream->endGroup();
 	}
 
-	public function move(int $from, array $to) : void
+	/** @param array<int, array{0: MemoryCell, 1: string}> $to */
+	public function move(MemoryCell $from, array $to) : void
 	{
 		$toParts = [];
-		ksort($to);
+		usort($to, function($a, $b) {
+			return $a[0]->address() <=> $b[0]->address();
+		});
+
 		$last = $from;
-		foreach ($to as $address => $type)
+		/** @var MemoryCell $cell */
+		/** @var string $type */
+		foreach ($to as [$cell, $type])
 		{
 			$operation = $type === self::BOOLEAN ? '[-]+' : '+';
-			$toParts[] = Encoder::goto($last, $address) . $operation;
-			$last = $address;
+			$toParts[] = Encoder::goto($last->address(), $cell->address()) . $operation;
+			$last = $cell;
 		}
 
-		$toList = array_keys($to);
+		$toCells = array_column($to, 0);
 
 		$this->goto($from);
 		$this->stream->write(sprintf(
 			"[-%s%s]\n",
 			implode($toParts),
-			Encoder::goto($toList[count($toList) - 1], $from)
-		), "move value from $from to " . implode(', ', $toList));
+			Encoder::goto($last->address(), $from->address())
+		), "move value from $from to " . implode(', ', $toCells));
 
-		$this->pointer = $from;
+		$this->pointer = $from->address();
 	}
 
-	public function goto(int $to) : void
+	public function goto(MemoryCell $to) : void
 	{
-		$this->stream->write(Encoder::goto($this->pointer, $to), "goto $to");
-		$this->pointer = $to;
+		$this->stream->write(Encoder::goto($this->pointer, $to->address()), "goto $to");
+		$this->pointer = $to->address();
 	}
 
-	public function unsetSeveral(int ...$to) : void
+	public function unsetSeveral(MemoryCell ...$to) : void
 	{
 		sort($to);
 		foreach ($to as $address)
@@ -307,7 +330,7 @@ class Processor
 		}
 	}
 
-	public function unset(int $to) : void
+	public function unset(MemoryCell $to) : void
 	{
 		$this->stream->startGroup("unset $to");
 		$this->goto($to);
@@ -315,7 +338,7 @@ class Processor
 		$this->stream->endGroup();
 	}
 
-	public function not(int $bool) : void
+	public function not(MemoryCell $bool) : void
 	{
 		$this->stream->startGroup("apply logical negation to $bool");
 		$this->goto($bool);
@@ -323,21 +346,21 @@ class Processor
 		$this->stream->endGroup();
 	}
 
-	public function increment(int $to) : void
+	public function increment(MemoryCell $to) : void
 	{
 		$this->stream->startGroup("increment $to");
 		$this->addConstant($to, 1);
 		$this->stream->endGroup();
 	}
 
-	public function decrement(int $to) : void
+	public function decrement(MemoryCell $to) : void
 	{
 		$this->stream->startGroup("decrement $to");
 		$this->subConstant($to, 1);
 		$this->stream->endGroup();
 	}
 
-	public function addConstant(int $to, int $value) : void
+	public function addConstant(MemoryCell $to, int $value) : void
 	{
 		$this->stream->startGroup("add `$value` to $to");
 		$this->goto($to);
@@ -348,7 +371,7 @@ class Processor
 		$this->stream->endGroup();
 	}
 
-	public function subConstant(int $from, int $value) : void
+	public function subConstant(MemoryCell $from, int $value) : void
 	{
 		$this->stream->startGroup("sub $value from $from");
 		$value = $value % 256;
@@ -370,19 +393,19 @@ class Processor
 		return $value;
 	}
 
-	public function sub(int $a, int $b) : void
+	public function sub(MemoryCell $a, MemoryCell $b) : void
 	{
 		$this->stream->startGroup("sub $b from $a");
 		$this->goto($b);
 		$this->stream->write(sprintf(
 			"[-%s-%s]\n",
-			Encoder::goto($b, $a),
-			Encoder::goto($a, $b),
+			Encoder::goto($b->address(), $a->address()),
+			Encoder::goto($a->address(), $b->address()),
 		));
 		$this->stream->endGroup();
 	}
 
-	public function print(int $value) : void
+	public function print(MemoryCell $value) : void
 	{
 		$this->goto($value);
 		$this->stream->write('.', "print $value");

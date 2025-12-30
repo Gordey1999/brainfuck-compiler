@@ -4,6 +4,8 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression;
 
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
+use Gordy\Brainfuck\BigBrain\MemoryCell;
+use Gordy\Brainfuck\BigBrain\MemoryCellTyped;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
@@ -27,20 +29,20 @@ class Variable implements Expression
 		return $this->lexeme;
 	}
 
-	public function address(Environment $env) : int
+	public function memoryCell(Environment $env) : MemoryCellTyped
 	{
-		return $env->memory()->address($this->name());
+		return $env->memory()->get($this->name());
 	}
 
 	public function resultType(Environment $env) : Type\BaseType
 	{
-		return $env->memory()->type($this->lexeme);
+		return $env->memory()->get($this->name())->type();
 	}
 
-	public function compileCalculation(Environment $env, int $resultAddress) : void
+	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
-		$address = $env->memory()->address($this->lexeme);
-		$env->processor()->copyNumber($address, $resultAddress);
+		$cell = $env->memory()->get($this->lexeme);
+		$env->processor()->copyNumber($cell, $result);
 	}
 
 	public function hasVariable(string $name) : bool

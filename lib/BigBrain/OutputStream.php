@@ -54,9 +54,14 @@ class OutputStream
 		}
 	}
 
+	public function memoryComment(int $address, string $name) : void
+	{
+		$this->newBlock('', "# @memory $address:$name", true);
+	}
+
 	public function blockComment(string $comment) : void
 	{
-		$this->newBlock('', $comment, true);
+		$this->newBlock('', "\n### $comment", true);
 	}
 
 	public function build() : string
@@ -68,7 +73,7 @@ class OutputStream
 		{
 			if ($block['commentOnly'])
 			{
-				$result[] = sprintf("\n### %s", $block['comment']);
+				$result[] = $block['comment'];
 				continue;
 			}
 			if (!$block['commentOnly'] && empty($block['code'])) { continue; }

@@ -60,8 +60,8 @@ class Computable implements Type
 			is_string($value) && mb_strlen($value) === 1 => self::CHAR,
 			is_string($value) => self::STRING,
 			is_array($value) => self::ARRAY,
-			is_int($value) => self::INTEGER,
 			is_bool($value) => self::BOOLEAN,
+			is_int($value) => self::INTEGER,
 			is_float($value)  => self::FLOAT,
 			default => 'undefined',
 		};
