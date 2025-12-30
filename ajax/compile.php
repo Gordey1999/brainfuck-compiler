@@ -18,7 +18,7 @@ try
 
 	$stream = new BigBrain\OutputStream();
 	$processor = new BigBrain\FakeProcessor($stream, 100);
-	$memory = new BigBrain\Memory(100);
+	$memory = new BigBrain\Memory($stream, 100);
 	$env = new BigBrain\Environment($processor, $stream, $memory);
 	$program->compile($env);
 
@@ -27,7 +27,7 @@ try
 
 	$stream = new BigBrain\OutputStream();
 	$processor = new BigBrain\Processor($stream, $registrySize);
-	$memory = new BigBrain\Memory($registrySize);
+	$memory = new BigBrain\Memory($stream, $registrySize);
 	$env = new BigBrain\Environment($processor, $stream, $memory);
 	$program->compile($env);
 
