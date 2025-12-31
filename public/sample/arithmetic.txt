@@ -1,0 +1,15 @@
+# title: untitled
+
+byte a = b = 0;
+
+out 'inter a: ';
+in a;
+out 'inter b: ';
+in b;
+out a, ' + ', b, ' = ', a + b, '\n';
+out a, ' - ', b, ' = ', a - b, '\n';
+out a, ' * ', b, ' = ', a * b, '\n';
+out a, ' / ', b, ' = ', a / b, '\n';
+out a, ' % ', b, ' = ', a % b, '\n';
+
+можно сократить, сохраняя строковые значения
