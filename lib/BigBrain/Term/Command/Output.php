@@ -23,6 +23,7 @@ class Output implements Term\Command
 		$this->lexeme = $lexeme;
 	}
 
+	/** @return Expression[] */
 	protected function getParts(Expression $expr) : array
 	{
 		if ($expr instanceof Expression\Operator\Comma)

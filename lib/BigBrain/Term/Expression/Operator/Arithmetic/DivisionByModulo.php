@@ -70,7 +70,7 @@ class DivisionByModulo extends Skeleton
 			$proc->if($temp, static function () use ($result, $proc) {
 				$proc->unset($result);
 			}, "if result === divider, unset remainder");
-		}, "$a % $b (result: $result)");
+		}, "$result = $a % $b");
 
 		$proc->release($temp);
 	}
@@ -93,7 +93,7 @@ class DivisionByModulo extends Skeleton
 			$proc->if($temp, static function () use ($result, $proc) {
 				$proc->unset($result);
 			}, "if result === divider, unset remainder");
-		}, "$a % `$constant` (result: $result)");
+		}, "$result = $a % `$constant`");
 
 		$proc->release($temp);
 	}

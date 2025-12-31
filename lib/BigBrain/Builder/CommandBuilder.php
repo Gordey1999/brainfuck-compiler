@@ -33,6 +33,11 @@ class CommandBuilder
 			$expr = ExpressionBuilder::build($scope->slice(1));
 			return new Term\Command\Output($expr, $first);
 		}
+		else if ($first->value() === self::IN)
+		{
+			$expr = ExpressionBuilder::build($scope->slice(1));
+			return new Term\Command\Input($expr, $first);
+		}
 		else
 		{
 			return ExpressionBuilder::build($scope);

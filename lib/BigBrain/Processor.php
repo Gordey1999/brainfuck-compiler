@@ -28,7 +28,7 @@ class Processor
 	{
 		$nearest = null;
 		$minDistance = 1000;
-		foreach ($this->registry as $address => $isReserved)
+		foreach (array_reverse($this->registry, true) as $address => $isReserved)
 		{
 			if ($isReserved) { continue; }
 
@@ -85,7 +85,7 @@ class Processor
 		$this->while($a, function() use ($a, $b, $result) {
 			$this->decrement($a);
 			$this->copyNumber($b, $result);
-		}, "$a * $b");
+		}, "$result = $a * $b");
 		$this->unset($b);
 	}
 
@@ -94,7 +94,7 @@ class Processor
 		$this->while($a, function() use ($a, $constant, $result) {
 			$this->decrement($a);
 			$this->addConstant($result, $constant);
-		}, "$a * `$constant`");
+		}, "$result = $a * `$constant`");
 	}
 
 	public function subUntilZero(MemoryCell $from, MemoryCell $sub) : void
@@ -235,6 +235,14 @@ class Processor
 		$this->subConstant($value, $constant);
 		$this->moveBoolean($value, $result);
 		$this->not($result);
+		$this->stream->endGroup();
+	}
+
+	public function notEqualsToConstant(MemoryCell $value, int $constant, MemoryCell $result) : void
+	{
+		$this->stream->startGroup("$result = $value !== `$constant`");
+		$this->subConstant($value, $constant);
+		$this->moveBoolean($value, $result);
 		$this->stream->endGroup();
 	}
 
@@ -449,7 +457,17 @@ class Processor
 
 	public function print(MemoryCell $value) : void
 	{
+		$this->stream->startGroup("print $value");
 		$this->goto($value);
-		$this->stream->write('.', "print $value");
+		$this->stream->write('.');
+		$this->stream->endGroup();
+	}
+
+	public function input(MemoryCell $to) : void
+	{
+		$this->stream->startGroup("input $to");
+		$this->goto($to);
+		$this->stream->write(',');
+		$this->stream->endGroup();
 	}
 }

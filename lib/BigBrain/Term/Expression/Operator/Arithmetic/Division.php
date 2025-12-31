@@ -74,7 +74,7 @@ class Division extends Skeleton
 			$proc->if($remainder, static function () use ($result, $proc) {
 				$proc->decrement($result);
 			}, "if remainder > `0`, sub `1` from result");
-		}, "$a / $b (result: $result, remainder: $remainder)");
+		}, "$result = $a / $b (remainder: $remainder)");
 
 		$proc->release($temp, $remainder);
 	}
@@ -97,7 +97,7 @@ class Division extends Skeleton
 			$proc->if($remainder, static function () use ($result, $proc) {
 				$proc->decrement($result);
 			}, "if remainder > `0`, sub `1` from quotient");
-		}, "$a / `$constant` (result: $result, remainder: $remainder)");
+		}, "$result = $a / `$constant` (remainder: $remainder)");
 
 		$proc->release($temp, $remainder);
 	}
