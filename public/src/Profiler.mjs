@@ -7,6 +7,7 @@ export class Profiler {
 	_storage = null;
 	_labels = null;
 	_labelsMap = null;
+	_changed = [];
 
 	constructor(el, storageSize) {
 		this._el = el;
@@ -53,13 +54,18 @@ export class Profiler {
 		const result = [];
 
 		for (let i = 0; i < lines.length; i++) {
-			const matches = lines[i].match(/# @memory (\d+):(.*)/);
+			const matches = lines[i].match(/# @memory(.*)/);
 			if (matches) {
-				result.push({
-					line: i,
-					address: parseInt(matches[1]),
-					label: matches[2],
-				});
+				const valuesStr = matches[1] + ' ';
+				const values = [...valuesStr.matchAll(/(\d+):(.+?)\s/g)];
+
+				for (const pair of values) {
+					result.push({
+						line: i,
+						address: parseInt(pair[1]),
+						label: pair[2],
+					});
+				}
 			}
 		}
 
@@ -69,13 +75,15 @@ export class Profiler {
 	reset(code) {
 		this._initLabels(code);
 		this._movePointer(0);
-		this._renderValues(this._storage.slice().fill(0));
+		this._clearChanged();
+		this._renderValues(this._storage.slice().fill(0), false);
 		this._renderLabels(this._labels.slice().fill(null));
 	}
 
 	render(storage, pointer, position) {
 		const labels = this._calculateLabels(position)
 		this._renderLabels(labels);
+		this._clearChanged();
 		this._renderValues(storage);
 		this._movePointer(pointer);
 	}
@@ -111,14 +119,34 @@ export class Profiler {
 		}
 	}
 
-	_renderValues(storage) {
+	_renderValues(storage, markChanged = true) {
 		const count = this._storage.length;
 		for (let i = 0; i < count; i++) {
 			if (this._storage[i] !== storage[i]) {
 
 				this._renderValue(i, storage[i]);
+				if (markChanged) {
+					this._setChanged(i);
+				}
 				this._storage[i] = storage[i];
 			}
+		}
+	}
+
+	_clearChanged() {
+		for (const el of this._changed) {
+			const valueEl = el.querySelector('.tracing-value');
+			valueEl.classList.remove('--changed');
+		}
+		this._changed = [];
+	}
+
+	_setChanged(i) {
+		const child = this._el.children[i];
+		if (child) {
+			const valueEl = child.querySelector('.tracing-value');
+			valueEl.classList.add('--changed');
+			this._changed.push(child);
 		}
 	}
 

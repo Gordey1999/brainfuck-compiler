@@ -96,6 +96,8 @@ export class Editor {
 		this._defineBf();
 		this._defineBb();
 
+		const scrollExt = EditorView.scrollMargins.of(() => ({ top: 50, bottom: 50 }));
+
 		this._editor = new EditorView({
 			extensions: [
 				basicSetup,
@@ -104,6 +106,7 @@ export class Editor {
 				bracketMatching(),
 				activeLineField,
 				compileErrorField,
+				scrollExt,
 			],
 			doc: code,
 			parent: parent,
@@ -251,6 +254,19 @@ export class Editor {
 
 	highlightPosition(position) {
 		this._editor.dispatch({effects: setActivePosition.of(position)});
+
+		if (position !== null) {
+			const line = this._editor.state.doc.line(position[0]);
+			this._editor.dispatch({
+				effects: EditorView.scrollIntoView(
+					line.from,
+					{
+						y: 'nearest',
+						yMargin: 200,
+					}
+				)
+			});
+		}
 	}
 
 	highlightError(from, length) {
