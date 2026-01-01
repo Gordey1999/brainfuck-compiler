@@ -12,15 +12,20 @@ class LexemeScope extends Lexeme
 		$this->children = $children;
 	}
 
-	public function hasChildren() : bool
+	public function empty() : bool
 	{
-		return !empty($this->children);
+		return empty($this->children);
 	}
 
 	/** @return self[] */
 	public function children() : array
 	{
 		return $this->children;
+	}
+
+	public function count() : int
+	{
+		return count($this->children);
 	}
 
 	public function isSingle() : bool
@@ -31,6 +36,13 @@ class LexemeScope extends Lexeme
 	public function first() : Lexeme
 	{
 		return $this->children[0] ?? throw new \Exception("empty children");
+	}
+
+	public function last() : Lexeme
+	{
+		$length = count($this->children);
+		if ($length === 0) { throw new \Exception("empty children"); }
+		return $this->children[$length - 1];
 	}
 
 	public function get(int $index) : Lexeme

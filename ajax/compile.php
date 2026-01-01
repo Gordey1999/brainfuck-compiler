@@ -16,22 +16,21 @@ try
 	$parser = new BigBrain\Parser();
 	$program = $parser->parse($request['code']);
 
-	$stream = new BigBrain\OutputStream();
-	$processor = new BigBrain\FakeProcessor($stream, 100);
-	$memory = new BigBrain\Memory($stream, 100);
-	$env = new BigBrain\Environment($processor, $stream, $memory);
-	$program->compile($env);
+	$precompileEnv = BigBrain\Environment::makeForPrecompile(100, 500, 256);
+	$program->compile($precompileEnv);
 
-	$registrySize = $processor->computedRegistrySize();
+	$registrySize = $precompileEnv->processor()->computedRegistrySize();
+	$memorySize = $precompileEnv->memory()->computedMemorySize();
+	$arraysMemorySize = $precompileEnv->arraysMemory()->computedMemorySize();
+
 	$log .= "registry size computed: $registrySize\n";
+	$log .= "memory size computed: $memorySize\n";
+	$log .= "arrays memory size computed: $arraysMemorySize\n";
 
-	$stream = new BigBrain\OutputStream();
-	$processor = new BigBrain\Processor($stream, $registrySize);
-	$memory = new BigBrain\Memory($stream, $registrySize);
-	$env = new BigBrain\Environment($processor, $stream, $memory);
+	$env = BigBrain\Environment::makeForRelease($registrySize, $memorySize, $arraysMemorySize);
 	$program->compile($env);
 
-	$min = $stream->buildMin();
+	$min = $env->stream()->buildMin();
 	$minLength = strlen($min);
 
 	if ($request['min'])
@@ -43,7 +42,7 @@ try
 	else
 	{
 		$result = sprintf("# title: .bf\n\n");
-		$result .= $stream->build();
+		$result .= $env->stream()->build();
 	}
 
 

@@ -58,7 +58,24 @@ class OutputStream
 
 	public function memoryComment(int $address, string $name) : void
 	{
-		$this->newBlock('', "# @memory $address:$name", true);
+		$maxLength = 100;
+		$part = " $address:$name";
+
+		$last = $this->getLastComment();
+		if (mb_strpos($last, "# @memory") === false)
+		{
+			$this->newBlock('', "\n# @memory" . $part, true);
+			return;
+		}
+
+		if (mb_strlen($last) + mb_strlen($part) < $maxLength)
+		{
+			$this->setLastComment($last . $part);
+		}
+		else
+		{
+			$this->newBlock('', '# @memory' . $part, true);
+		}
 	}
 
 	public function blockComment(string $comment) : void
@@ -212,5 +229,19 @@ class OutputStream
 
 		$result[] = implode('', $currentLine);
 		return $result;
+	}
+
+	protected function getLastComment() : string
+	{
+		$count = count($this->stream);
+		if ($count === 0) { return ''; }
+		return $this->stream[$count - 1]['comment'];
+	}
+
+	protected function setLastComment(string $comment) : void
+	{
+		$count = count($this->stream);
+		if ($count === 0) { return; }
+		$this->stream[$count - 1]['comment'] = $comment;
 	}
 }

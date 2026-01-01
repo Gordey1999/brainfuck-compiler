@@ -37,7 +37,7 @@ class ExpressionBuilder
 
 	protected static function parseExpression(LexemeScope $scope) : Term\Expression
 	{
-		if (!$scope->hasChildren())
+		if ($scope->empty())
 		{
 			throw new \Exception('something went wrong');
 		}
@@ -77,27 +77,20 @@ class ExpressionBuilder
 			$left = self::parseExpression($scope->slice(0, $minPriorityIndex));
 			$right = self::parseExpression($scope->slice($minPriorityIndex + 1));
 
-			if (in_array($operator->value(), self::ASSIGNMENT_OPERATORS, true))
-			{
-				return self::parseAssignment($left, $right, $operator);
-			}
-			else
-			{
-				return self::parseBinaryOperator($left, $right, $operator);
-			}
+			return self::parseBinaryOperator($left, $right, $operator);
 		}
 
 		throw new SyntaxError('cant parse expression', $scope);
 	}
 
-	protected static function parseSpecialExpression(LexemeScope $parts) : Term\Expression
+	protected static function parseSpecialExpression(LexemeScope $scope) : Term\Expression
 	{
 		// todo fn(a + b)[i]
 		// todo (int)
 		// todo a[i]
-		if (count($parts->children()) === 1)
+		if ($scope->count() === 1)
 		{
-			$first = $parts->first();
+			$first = $scope->first();
 			if ($first instanceof LexemeScope)
 			{
 				$scopeType = $first->value();
@@ -106,38 +99,61 @@ class ExpressionBuilder
 				{
 					return self::parseExpression($first);
 				}
+				else if ($scopeType === '[')
+				{
+					return new Term\Expression\ArrayScope(
+						self::parseExpression($first),
+						$first,
+					);
+				}
 				else
 				{
-					throw new SyntaxError('not supported yet', $parts->first());
+					throw new SyntaxError('not supported yet', $scope->first());
 				}
 			}
 			else
 			{
-				return new Term\Expression\Variable($parts->first());
+				return new Term\Expression\Variable($scope->first());
+			}
+		}
+		else if ($scope->first()->isName()) // fn(), a[][]
+		{
+			return self::parseAccess($scope);
+		}
+		else
+		{
+			throw new SyntaxError('not supported yet', $scope->first());
+		}
+	}
+
+	protected static function parseAccess(LexemeScope $scope) : Term\Expression
+	{
+		$last = $scope->last();
+		if ($last instanceof LexemeScope)
+		{
+			if ($last->value() === '[')
+			{
+				return new Term\Expression\Operator\ArrayAccess(
+					self::parseAccess($scope->slice(0, -1)),
+					$last->empty() ? new Term\Expression\None() : self::parseExpression($last),
+					$last
+				);
+			}
+			else
+			{
+				throw new SyntaxError('not supported yet(parseAccess)', $scope->last());
 			}
 		}
 		else
 		{
-			throw new SyntaxError('not supported yet', $parts->first());
+			return self::parseExpression($scope);
 		}
-	}
-
-	protected static function parseAssignment(Term\Expression $left, Term\Expression $right, Lexeme $operator)
-	{
-		if (!$left instanceof Term\Expression\Variable)
-		{
-			throw new SyntaxError('left operand must be a variable', $operator);
-		}
-
-		return match ($operator->value()) {
-			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),
-			default => throw new SyntaxError('not supported yet', $operator),
-		};
 	}
 
 	protected static function parseBinaryOperator(Term\Expression $left, Term\Expression $right, Lexeme $operator)
 	{
 		return match($operator->value()) {
+			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),
 			'+' => new Term\Expression\Operator\Arithmetic\Addition($left, $right, $operator),
 			'-' => new Term\Expression\Operator\Arithmetic\Subtraction($left, $right, $operator),
 			'*' => new Term\Expression\Operator\Arithmetic\Multiplication($left, $right, $operator),

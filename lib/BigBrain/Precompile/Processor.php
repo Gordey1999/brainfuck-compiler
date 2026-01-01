@@ -1,20 +1,16 @@
 <?php
 
-namespace Gordy\Brainfuck\BigBrain;
+namespace Gordy\Brainfuck\BigBrain\Precompile;
 
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
+use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Processor as BaseProcessor;
 
-class FakeProcessor extends Processor
+class Processor extends BaseProcessor
 {
 	protected int $maxRegistrySize = 0;
 	protected int $registrySize = 0;
-
-	public function __construct(OutputStream $stream, int $registrySize)
-	{
-		parent::__construct($stream, $registrySize);
-		$this->stream = $stream;
-	}
 
 	public function reserve(MemoryCell ...$near) : MemoryCell
 	{

@@ -18,6 +18,11 @@ class MemoryCell
 		return $this->address;
 	}
 
+	public function label() : string
+	{
+		return $this->label;
+	}
+
 	public function __toString() : string
 	{
 		if (preg_match('/R\d+/', $this->label))

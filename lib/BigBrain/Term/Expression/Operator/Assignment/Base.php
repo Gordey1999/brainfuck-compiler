@@ -3,9 +3,11 @@
 namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
 
 use Gordy\Brainfuck\BigBrain;
+use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
+use Gordy\Brainfuck\BigBrain\MemoryCellPointer;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
@@ -15,12 +17,12 @@ class Base implements Expression
 {
 	use HasLexeme;
 
-	protected Expression\Variable $variable;
+	protected Expression $to;
 	protected Expression $expression;
 
-	public function __construct(Expression\Variable $variable, Expression $expr, Lexeme $lexeme)
+	public function __construct(Expression $to, Expression $expr, Lexeme $lexeme)
 	{
-		$this->variable = $variable;
+		$this->to = $to;
 		$this->expression = $expr;
 		$this->lexeme = $lexeme;
 	}
@@ -135,6 +137,54 @@ class Base implements Expression
 		return $result;
 	}
 
+	public function initArray(Environment $env, MemoryCellPointer $pointer) : void
+	{
+		$env->stream()->blockComment($this);
+
+		$result = $this->expression->resultType($env);
+		if (!$result instanceof Type\Computable)
+		{
+			throw new CompileError('wrong assignment value', $this->lexeme);
+		}
+		if ($result->arrayCompatible())
+		{
+			$value = $result->getArray();
+			$pointerSizes = $pointer->sizes();
+
+			$valueSizes = Utils\ArraysHelper::dimensions($value);
+
+			if (!Utils\ArraysHelper::dimensionsCompatible($valueSizes, $pointerSizes))
+			{
+				throw new CompileError(
+					sprintf(
+						"value dimensions not compatible with '%s' dimensions: [%s] != [%s]",
+						$pointer->label(),
+						implode(', ', $pointerSizes),
+						implode(', ', $valueSizes)
+					),
+					$this->lexeme
+				);
+			}
+
+			$plainArray = Utils\ArraysHelper::plainArray($value, $pointerSizes);
+			if ($pointer->type() instanceof Type\Boolean)
+			{
+				$plainArray = Utils\ArraysHelper::toBoolArray($plainArray);
+			}
+			$env->arraysProcessor()->fill($pointer, $plainArray);
+		}
+		else if ($result->numericCompatible())
+		{
+			$value = $result->getNumeric();
+			$plainArray = array_fill(0, $pointer->plainSize(), $value);
+			if ($pointer->type() instanceof Type\Boolean)
+			{
+				$plainArray = Utils\ArraysHelper::toBoolArray($plainArray);
+			}
+			$env->arraysProcessor()->fill($pointer, $plainArray);
+		}
+	}
+
 	/** @return Expression\Variable[] */
 	public function variables() : array
 	{
@@ -143,9 +193,14 @@ class Base implements Expression
 		{
 			$result = $this->expression->variables();
 		}
-		$result[] = $this->variable;
+		$result[] = $this->to;
 
 		return $result;
+	}
+
+	public function left() : Expression
+	{
+		return $this->to;
 	}
 
 	public function value() : Expression
@@ -169,6 +224,6 @@ class Base implements Expression
 
 	public function __toString() : string
 	{
-		return sprintf('%s = %s', $this->variable, $this->expression);
+		return sprintf('%s = %s', $this->to, $this->expression);
 	}
 }

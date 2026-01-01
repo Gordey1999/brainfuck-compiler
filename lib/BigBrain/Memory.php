@@ -9,7 +9,7 @@ class Memory
 {
 	/** @var array<string, MemoryCellTyped> */
 	private array $stack = [];
-	protected $offset;
+	protected int $offset;
 
 	protected OutputStream $stream;
 

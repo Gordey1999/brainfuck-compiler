@@ -40,6 +40,12 @@ class Computable implements Type
 			|| $this->type === self::CHAR;
 	}
 
+	public function arrayCompatible() : bool
+	{
+		return $this->type === self::ARRAY
+			|| $this->type === self::STRING;
+	}
+
 	public function getNumeric() : int
 	{
 		return match ($this->type) {
@@ -60,9 +66,13 @@ class Computable implements Type
 		};
 	}
 
-	public function stringCompatible() : bool
+	public function getArray() : array
 	{
-		return $this->type === self::STRING || $this->type === self::CHAR;
+		return match ($this->type) {
+			self::ARRAY => $this->value,
+			self::STRING => Utils\CharHelper::stringToBytes($this->value),
+			default => throw new \Exception('not compatible'),
+		};
 	}
 
 	public static function valueType(mixed $value) : string

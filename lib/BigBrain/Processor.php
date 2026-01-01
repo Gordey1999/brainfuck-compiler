@@ -409,7 +409,7 @@ class Processor
 		}
 		$this->stream->startGroup("add `$value` to $to");
 		$this->goto($to);
-		$value = $this->normalizeConstant($value);
+		$value = Utils\ModuloHelper::normalizeConstant($value);
 		$this->stream->write(
 			$value > 0 ? Encoder::plus($value) : Encoder::minus(-$value)
 		);
@@ -426,21 +426,11 @@ class Processor
 		$this->stream->startGroup("sub `$value` from $from");
 		$value = $value % 256;
 		$this->goto($from);
-		$value = $this->normalizeConstant($value);
+		$value = Utils\ModuloHelper::normalizeConstant($value);
 		$this->stream->write(
 			$value > 0 ? Encoder::minus($value) : Encoder::plus(-$value)
 		);
 		$this->stream->endGroup();
-	}
-
-	protected function normalizeConstant(int $value) : int
-	{
-		$value = $value % 256;
-		if ($value > 128)
-		{
-			$value = -(256 - $value);
-		}
-		return $value;
 	}
 
 	public function sub(MemoryCell $a, MemoryCell $b) : void

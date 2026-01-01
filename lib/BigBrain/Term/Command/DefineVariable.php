@@ -7,6 +7,9 @@ use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
+use Gordy\Brainfuck\BigBrain\Term\Expression\Variable;
+use Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
+use Gordy\Brainfuck\BigBrain\Term\Expression\Operator\ArrayAccess;
 
 class DefineVariable implements Term\Command
 {
@@ -14,7 +17,7 @@ class DefineVariable implements Term\Command
 
 	private BigBrain\Type\BaseType $type;
 
-	/** @var Expression\Operator\Assignment\Base[]|Expression\Variable[] */
+	/** @var Expression[] $variables */
 	private array $variables;
 
 	public function __construct(BigBrain\Type\BaseType $type, Expression $expr, Lexeme $lexeme)
@@ -37,9 +40,9 @@ class DefineVariable implements Term\Command
 
 		foreach ($varList as $var)
 		{
-			if (!$var instanceof Expression\Variable && !$var instanceof Expression\Operator\Assignment\Base)
+			if (!$var instanceof Variable && !$var instanceof Assignment\Base && !$var instanceof ArrayAccess)
 			{
-				throw new SyntaxError('assignment or variable name expected', $var->lexeme());
+				throw new SyntaxError('variable name expected', $var->lexeme());
 			}
 		}
 
@@ -50,14 +53,31 @@ class DefineVariable implements Term\Command
 	{
 		foreach ($this->variables as $expression)
 		{
-			if ($expression instanceof Expression\Operator\Assignment\Base)
+			if ($expression instanceof Assignment\Base)
 			{
-				foreach ($expression->variables() as $variable)
+				if ($expression->left() instanceof ArrayAccess)
 				{
-					$env->memory()->allocate($this->type, $variable->name());
+					$array = $expression->left();
+					$name = $array->variableName();
+					$dimensions = $array->dimensions($env);
+					$pointer = $env->arraysMemory()->allocate($this->type, $name, $dimensions);
+					$expression->initArray($env, $pointer);
 				}
+				else
+				{
+					foreach ($expression->variables() as $variable)
+					{
+						$env->memory()->allocate($this->type, $variable->name());
+					}
 
-				$expression->compile($env);
+					$expression->compile($env);
+				}
+			}
+			else if ($expression instanceof ArrayAccess)
+			{
+				$name = $expression->variableName();
+				$dimensions = $expression->dimensions($env);
+				$env->arraysMemory()->allocate($this->type, $name, $dimensions);
 			}
 			else
 			{
