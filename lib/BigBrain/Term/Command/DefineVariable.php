@@ -86,6 +86,10 @@ class DefineVariable implements Term\Command
 			{
 				$name = $expression->variableName();
 				$dimensions = $expression->dimensions($env);
+				if (Utils\ArraysHelper::hasNull($dimensions))
+				{
+					throw new CompileError('array size expected', $expression->lexeme());
+				}
 				$env->arraysMemory()->allocate($this->type, $name, $dimensions);
 			}
 			else
