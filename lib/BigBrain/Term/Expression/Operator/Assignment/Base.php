@@ -3,6 +3,7 @@
 namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
 
 use Gordy\Brainfuck\BigBrain;
+use Gordy\Brainfuck\BigBrain\MemoryCellTyped;
 use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
@@ -18,130 +19,103 @@ class Base implements Expression
 	use HasLexeme;
 
 	protected Expression $to;
-	protected Expression $expression;
+	protected Expression $value;
 
 	public function __construct(Expression $to, Expression $expr, Lexeme $lexeme)
 	{
 		$this->to = $to;
-		$this->expression = $expr;
+		$this->value = $expr;
 		$this->lexeme = $lexeme;
 	}
 
 	public function resultType(Environment $env) : Type\Type
 	{
-		throw new \Exception('Not implemented');
+		return $this->to->resultType($env);
 	}
 
 	public function compile(BigBrain\Environment $env) : void
 	{
 		$env->stream()->blockComment($this);
 
-		$variables = $this->variables();
-
-		$value = $this->value();
-		$resultType = $value->resultType($env);
-
-		if ($resultType instanceof Type\Computable)
+		if ($this->to instanceof Expression\Variable)
 		{
-			$this->assignComputed($env, $variables, $resultType);
-		}
-		else
-		{
-			$this->assignCalculate($env, $variables, $resultType);
-		}
-	}
+			$memoryCell = $this->to->memoryCell($env);
 
-	/** @param Expression\Variable[] $variables */
-	protected function assignComputed(Environment $env, array $variables, Type\Computable $result) : void
-	{
-		if (!$result->numericCompatible())
-		{
-			throw new CompileError('numeric type expected', $this->lexeme);
-		}
-
-		foreach ($variables as $variable)
-		{
-			$cell = $variable->memoryCell($env);
-			$env->processor()->unset($cell);
-
-			if ($variable->resultType($env) instanceof Type\Boolean)
+			if ($memoryCell instanceof MemoryCellPointer)
 			{
-				$env->processor()->addConstant($cell, $result->getNumeric() !== 0);
+				$this->fillArray($env, $memoryCell);
 			}
 			else
 			{
-				$env->processor()->addConstant($cell, $result->getNumeric());
+				$this->assignVariable($env, $memoryCell);
 			}
 		}
-	}
-
-	/** @param Expression\Variable[] $variables */
-	protected function assignCalculate(Environment $env, array $variables, Type\Type $result) : void
-	{
-		$value = $this->value();
-		$last = array_shift($variables);
-
-		$variableCells = array_map(static function ($variable) use ($env) {
-			return $variable->memoryCell($env);
-		}, $variables);
-
-		$boolCastingNeed = !$result instanceof Type\Boolean
-			&& $last->resultType($env) instanceof Type\Boolean;
-
-		if ($boolCastingNeed || $value->hasVariable($last->name()->value()))
+		else if ($this->to instanceof Expression\Operator\ArrayAccess)
 		{
-			$cell = $last->memoryCell($env);
-			$tempResult = $env->processor()->reserve($cell);
-
-			$value->compileCalculation($env, $tempResult);
-
-			$env->processor()->unsetSeveral($cell, ...$variableCells);
-			$env->processor()->move($tempResult, $this->buildMoveAddresses($env, $last, ...$variables));
-			$env->processor()->release($tempResult);
+			echo 'not ready';die;
 		}
 		else
 		{
-			$cell = $last->memoryCell($env);
-			$env->processor()->unset($cell);
-
-			$value->compileCalculation($env, $cell);
-
-			$env->processor()->unsetSeveral(...$variableCells);
-			$env->processor()->copy($cell, $this->buildMoveAddresses($env, ...$variables));
+			throw new CompileError('variable expected', $this->lexeme);
 		}
 	}
 
-	/** @param Expression\Variable[] $variables */
-	protected function buildMoveAddresses(Environment $env, ...$variables) : array
+	protected function assignVariable(Environment $env, MemoryCellTyped $memoryCell) : void
 	{
-		$result = [];
+		$result = $this->value->resultType($env);
 
-		foreach ($variables as $variable)
+		if ($result instanceof Type\Computable)
 		{
-			if ($variable->resultType($env) instanceof Type\Boolean)
+			if (!$result->numericCompatible())
 			{
-				$result[] = [
-					$variable->memoryCell($env),
-					$env->processor()::BOOLEAN,
-				];
+				throw new CompileError('numeric type expected', $this->lexeme);
+			}
+
+			$env->processor()->unset($memoryCell);
+
+			if ($memoryCell->type() instanceof Type\Boolean)
+			{
+				$env->processor()->addConstant($memoryCell, $result->getNumeric() !== 0);
 			}
 			else
 			{
-				$result[] = [
-					$variable->memoryCell($env),
-					$env->processor()::NUMBER,
-				];
+				$env->processor()->addConstant($memoryCell, $result->getNumeric());
 			}
 		}
+		else
+		{
+			$boolCastingNeed = $this->to->resultType($env) instanceof Type\Boolean
+				&& !$result instanceof Type\Boolean;
 
-		return $result;
+			if ($boolCastingNeed || $this->value->hasVariable($memoryCell->label()))
+			{
+				$tempResult = $env->processor()->reserve($memoryCell);
+				$this->value->compileCalculation($env, $tempResult);
+
+				$env->processor()->unset($memoryCell);
+				if ($boolCastingNeed)
+				{
+					$env->processor()->moveBoolean($tempResult, $memoryCell);
+				}
+				else
+				{
+					$env->processor()->moveNumber($tempResult, $memoryCell);
+				}
+				$env->processor()->release($tempResult);
+			}
+			else
+			{
+				$env->processor()->unset($memoryCell);
+				$this->value->compileCalculation($env, $memoryCell);
+			}
+		}
 	}
 
 	public function fillArray(Environment $env, MemoryCellPointer $pointer) : void
 	{
 		$env->stream()->blockComment($this);
 
-		$result = $this->expression->resultType($env);
+		$result = $this->value->resultType($env);
 		if (!$result instanceof Type\Computable)
 		{
 			throw new CompileError('wrong assignment value', $this->lexeme);
@@ -192,12 +166,11 @@ class Base implements Expression
 	/** @return Expression\Variable[] */
 	public function variables() : array
 	{
-		$result = [];
-		if ($this->expression instanceof self) // a = b = c = 0;
+		$result = [ $this->to ];
+		if ($this->value instanceof self) // a = (b = (c = 0));
 		{
-			$result = $this->expression->variables();
+			array_push($result, ...$this->value->variables());
 		}
-		$result[] = $this->to;
 
 		return $result;
 	}
@@ -209,30 +182,37 @@ class Base implements Expression
 
 	public function right() : Expression
 	{
-		return $this->expression;
-	}
-
-	public function value() : Expression
-	{
-		if ($this->expression instanceof self) // a = b = c = 0;
-		{
-			return $this->expression->value();
-		}
-		return $this->expression;
+		return $this->value;
 	}
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
-		throw new \Exception('not implemented');
+		$this->compile($env);
+
+		if ($this->to instanceof Expression\Variable)
+		{
+			$memoryCell = $this->to->memoryCell($env);
+
+			if ($memoryCell instanceof MemoryCellPointer)
+			{
+				throw new CompileError('not supported', $this->lexeme);
+			}
+
+			$env->processor()->copyNumber($memoryCell, $result);
+		}
+		else if ($this->to instanceof Expression\Operator\ArrayAccess)
+		{
+			echo 'not ready';die; // todo
+		}
 	}
 
 	public function hasVariable(string $name) : bool
 	{
-		return false;
+		return $this->value->hasVariable($name);
 	}
 
 	public function __toString() : string
 	{
-		return sprintf('%s = %s', $this->to, $this->expression);
+		return sprintf('%s = %s', $this->to, $this->value);
 	}
 }

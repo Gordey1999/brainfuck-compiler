@@ -69,6 +69,7 @@ class DefineVariable implements Term\Command
 						$dimensions = $this->calculateArrayDimensions($env, $array, $expression);
 					}
 
+					$env->memory()->failIfHas($name);
 					$pointer = $env->arraysMemory()->allocate($this->type, $name, $dimensions);
 					$expression->fillArray($env, $pointer);
 				}
@@ -76,6 +77,7 @@ class DefineVariable implements Term\Command
 				{
 					foreach ($expression->variables() as $variable)
 					{
+						$env->arraysMemory()->failIfHas($variable->name());
 						$env->memory()->allocate($this->type, $variable->name());
 					}
 
@@ -90,10 +92,13 @@ class DefineVariable implements Term\Command
 				{
 					throw new CompileError('array size expected', $expression->lexeme());
 				}
+
+				$env->memory()->failIfHas($name);
 				$env->arraysMemory()->allocate($this->type, $name, $dimensions);
 			}
 			else
 			{
+				$env->arraysMemory()->failIfHas($expression->name());
 				$env->memory()->allocate($this->type, $expression->name());
 			}
 		}

@@ -31,12 +31,17 @@ class Variable implements Expression
 
 	public function memoryCell(Environment $env) : MemoryCellTyped
 	{
+		if ($env->arraysMemory()->has($this->name()))
+		{
+			return $env->arraysMemory()->get($this->name());
+		}
+
 		return $env->memory()->get($this->name());
 	}
 
 	public function resultType(Environment $env) : Type\BaseType
 	{
-		return $env->memory()->get($this->name())->type();
+		return $this->memoryCell($env)->type();
 	}
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void

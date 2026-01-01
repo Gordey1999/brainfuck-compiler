@@ -47,6 +47,29 @@ class ArraysMemory
 		return $this->stack[$name->value()] = $cell;
 	}
 
+	public function get(Lexeme $name) : MemoryCellPointer
+	{
+		if (!isset($this->stack[$name->value()]))
+		{
+			throw new CompileError("array '{$name->value()}' not defined", $name);
+		}
+
+		return $this->stack[$name->value()];
+	}
+
+	public function has(Lexeme $name) : bool
+	{
+		return isset($this->stack[$name->value()]);
+	}
+
+	public function failIfHas(Lexeme $name) : void
+	{
+		if ($this->has($name))
+		{
+			throw new CompileError("array '{$name->value()}' is already defined", $name);
+		}
+	}
+
 	protected function commentIndexes() : void
 	{
 		$this->stream->memoryComment($this->offset, "adr_s");
@@ -62,33 +85,15 @@ class ArraysMemory
 
 	protected function commentArray(int $address, string $varName, array $sizes, int $plainSize) : void
 	{
-		//$index = $address - $this->startPosition();
-
-		// arr[0][0][1]
 		for ($i = 0; $i < $plainSize; $i++)
 		{
-			$indexes = $this->complexIndex($i, $sizes);
+			$indexes = Utils\ArraysHelper::complexIndex($i, $sizes);
 			$this->stream->memoryComment(
 				$address + 1,
 				sprintf("%s[%s]", $varName, implode(',', $indexes))
 			);
 			$address += 2;
 		}
-	}
-
-	function complexIndex(int $index, array $dimensions) : array
-	{
-		$indices = [];
-
-		for ($i = count($dimensions) - 1; $i >= 0; $i--) {
-			$dimSize = $dimensions[$i];
-
-			$indices[$i] = $index % $dimSize;
-			$index = intdiv($index, $dimSize);
-		}
-
-		ksort($indices);
-		return $indices;
 	}
 
 	protected function lastIndex() : int

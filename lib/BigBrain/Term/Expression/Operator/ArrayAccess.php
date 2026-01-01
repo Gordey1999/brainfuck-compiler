@@ -64,7 +64,7 @@ class ArrayAccess implements Expression
 
 	public function resultType(Environment $env) : Type\Type
 	{
-		throw new \Exception('not implemented');
+		return new Type\Pointer();
 	}
 
 	public function compile(BigBrain\Environment $env) : void

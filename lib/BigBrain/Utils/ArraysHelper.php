@@ -106,4 +106,19 @@ class ArraysHelper
 		}
 		return false;
 	}
+
+	public static function complexIndex(int $index, array $dimensions) : array
+	{
+		$indices = [];
+
+		for ($i = count($dimensions) - 1; $i >= 0; $i--) {
+			$dimSize = $dimensions[$i];
+
+			$indices[$i] = $index % $dimSize;
+			$index = intdiv($index, $dimSize);
+		}
+
+		ksort($indices);
+		return $indices;
+	}
 }

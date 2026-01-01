@@ -51,4 +51,17 @@ class Memory
 
 		return $this->stack[$name->value()];
 	}
+
+	public function has(Lexeme $name) : bool
+	{
+		return isset($this->stack[$name->value()]);
+	}
+
+	public function failIfHas(Lexeme $name) : void
+	{
+		if ($this->has($name))
+		{
+			throw new CompileError("variable '{$name->value()}' is already defined", $name);
+		}
+	}
 }
