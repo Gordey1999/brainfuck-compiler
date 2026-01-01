@@ -12,6 +12,7 @@ class Computable implements Type
 	public const BOOLEAN = 'boolean';
 	public const FLOAT = 'float';
 	public const ARRAY = 'array';
+	public const NULL = 'null';
 
 	protected mixed $value;
 	protected string $type;
@@ -40,6 +41,12 @@ class Computable implements Type
 			|| $this->type === self::CHAR;
 	}
 
+	public function numericNullableCompatible() : bool
+	{
+		return $this->type === self::NULL
+			|| $this->numericCompatible();
+	}
+
 	public function arrayCompatible() : bool
 	{
 		return $this->type === self::ARRAY
@@ -55,6 +62,12 @@ class Computable implements Type
 			self::CHAR => Utils\CharHelper::charToNumber($this->value),
 			default => throw new \Exception('not compatible'),
 		};
+	}
+
+	public function getNumericNullable() : ?int
+	{
+		if ($this->type === self::NULL) { return null; }
+		return $this->getNumeric();
 	}
 
 	public function getString() : string
@@ -84,7 +97,8 @@ class Computable implements Type
 			is_bool($value) => self::BOOLEAN,
 			is_int($value) => self::INTEGER,
 			is_float($value)  => self::FLOAT,
-			default => 'undefined',
+			is_null($value)  => self::NULL,
+			default => throw new \Exception('type not supported'),
 		};
 	}
 }

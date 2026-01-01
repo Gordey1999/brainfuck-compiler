@@ -12,7 +12,7 @@ class None implements Expression
 {
 	public function resultType(Environment $env) : Type\Type
 	{
-		throw new \Exception('Not implemented');
+		return new Type\Computable(null);
 	}
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void

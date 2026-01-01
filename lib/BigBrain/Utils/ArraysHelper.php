@@ -39,13 +39,29 @@ class ArraysHelper
 	{
 		foreach ($dimensions as $key => $size)
 		{
-			if ($size > $to[$key])
+			if ($to[$key] !== null && $size > $to[$key])
 			{
 				return false;
 			}
 		}
 
 		return true;
+	}
+
+	public static function dimensionsUnion(array $a, array $b) : array
+	{
+		foreach ($b as $key => $size)
+		{
+			if ($a[$key] === null)
+			{
+				$a[$key] = $size;
+			}
+			else if ($size !== null)
+			{
+				$a[$key] = max($a[$key], $b);
+			}
+		}
+		return $a;
 	}
 
 	public static function dimensions(array $array, array &$dimensions = [], int $level = 0) : array
@@ -77,5 +93,17 @@ class ArraysHelper
 		}
 
 		return $result;
+	}
+
+	public static function hasNull(array $array) : bool
+	{
+		foreach ($array as $value)
+		{
+			if ($value === null)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

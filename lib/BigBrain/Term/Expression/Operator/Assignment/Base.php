@@ -137,7 +137,7 @@ class Base implements Expression
 		return $result;
 	}
 
-	public function initArray(Environment $env, MemoryCellPointer $pointer) : void
+	public function fillArray(Environment $env, MemoryCellPointer $pointer) : void
 	{
 		$env->stream()->blockComment($this);
 
@@ -183,6 +183,10 @@ class Base implements Expression
 			}
 			$env->arraysProcessor()->fill($pointer, $plainArray);
 		}
+		else
+		{
+			throw new CompileError('wrong assignment value', $this->lexeme);
+		}
 	}
 
 	/** @return Expression\Variable[] */
@@ -201,6 +205,11 @@ class Base implements Expression
 	public function left() : Expression
 	{
 		return $this->to;
+	}
+
+	public function right() : Expression
+	{
+		return $this->expression;
 	}
 
 	public function value() : Expression

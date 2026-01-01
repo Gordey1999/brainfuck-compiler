@@ -47,7 +47,7 @@ class ArrayAccess implements Expression
 		{
 			throw new CompileError('dynamic expressions not allowed here', $this->index->lexeme());
 		}
-		if (!$resultType->numericCompatible())
+		if (!$resultType->numericNullableCompatible())
 		{
 			throw new CompileError('numeric expected', $this->index->lexeme());
 		}
@@ -56,10 +56,10 @@ class ArrayAccess implements Expression
 		{
 			return array_merge(
 				$this->to->dimensions($env),
-				[ $resultType->getNumeric() ]
+				[ $resultType->getNumericNullable() ]
 			);
 		}
-		return [$resultType->getNumeric()];
+		return [$resultType->getNumericNullable()];
 	}
 
 	public function resultType(Environment $env) : Type\Type
