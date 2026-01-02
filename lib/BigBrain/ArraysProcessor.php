@@ -35,21 +35,32 @@ class ArraysProcessor
 		{
 			$this->stream->startGroup("init pointer with $index");
 			$this->processor->addConstant($this->startCell(), $index->relativeAddress());
-			$this->processor->goto($this->initCell());
+			$this->processor->goto($this->startCell());
 			$this->stream->endGroup();
 			return;
 		}
 		if ($index->address() === $this->startCell()->address())
 		{
-			$this->processor->goto($this->initCell());
+			$this->processor->goto($this->startCell());
 		}
 		else
 		{
 			$this->stream->startGroup("init pointer with $index");
 			$this->processor->moveNumber($index, $this->startCell());
-			$this->processor->goto($this->initCell());
+			$this->processor->goto($this->startCell());
 			$this->stream->endGroup();
 		}
+	}
+
+	public function get(MemoryCell $index) : MemoryCell
+	{
+		$this->initIndex($index);
+		$this->stream->write('[[->>+<<]+>>-]>', 'goto pointer');
+		$this->stream->write('[-<+>>+<]<[->+<]+', 'copy carry');
+		$this->stream->write('[->>[-<<+>>]<<<<]', 'move carry');
+		$this->processor->setPointer($this->initCell());
+
+		return $this->startCell();
 	}
 
 	public function setConstant(MemoryCell $index, int $value) : void
@@ -82,11 +93,12 @@ class ArraysProcessor
 	protected function goto(MemoryCell $index, callable $callback) : void
 	{
 		$this->initIndex($index);
-		$this->stream->write('>>[[->>+<<]+>>-]+>', 'goto pointer');
+		$this->stream->write('[[->>+<<]+>>-]+>', 'goto pointer');
 
 		$callback();
 
 		$this->stream->write('<[-<<]', 'return to start');
+		$this->processor->setPointer($this->initCell());
 	}
 
 	protected function walk(MemoryCell $index, int $count, callable $callback) : void

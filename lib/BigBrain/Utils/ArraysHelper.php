@@ -25,7 +25,7 @@ class ArraysHelper
 				else
 				{
 					$count = array_product($dimensions);
-					$values = array_fill(0, $count, $value);
+					$values = array_fill(0, $count, $value ?? 0);
 
 					$result = array_merge($result, $values);
 				}
@@ -37,6 +37,11 @@ class ArraysHelper
 
 	public static function dimensionsCompatible(array $dimensions, array $to) : bool
 	{
+		if (count($dimensions) !== count($to))
+		{
+			return false;
+		}
+
 		foreach ($dimensions as $key => $size)
 		{
 			if ($to[$key] !== null && $size > $to[$key])
@@ -58,7 +63,7 @@ class ArraysHelper
 			}
 			else if ($size !== null)
 			{
-				$a[$key] = max($a[$key], $b);
+				$a[$key] = max($a[$key], $size);
 			}
 		}
 		return $a;
@@ -120,5 +125,19 @@ class ArraysHelper
 
 		ksort($indices);
 		return $indices;
+	}
+
+	public static function indexMultipliers(array $sizes) : array
+	{
+		$last = 1;
+		$result = [$last];
+		array_shift($sizes);
+		foreach (array_reverse($sizes) as $size)
+		{
+			$result[] = $last * $size;
+			$last = $last * $size;
+		}
+
+		return array_reverse($result);
 	}
 }

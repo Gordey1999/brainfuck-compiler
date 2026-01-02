@@ -61,12 +61,13 @@ class DefineVariable implements Term\Command
 			{
 				if ($expression->left() instanceof ArrayAccess)
 				{
+					/** @var ArrayAccess $array */
 					$array = $expression->left();
-					$name = $array->variableName();
+					$name = $array->variable($env)->name();
 					$dimensions = $array->dimensions($env);
 					if (Utils\ArraysHelper::hasNull($dimensions))
 					{
-						$dimensions = $this->calculateArrayDimensions($env, $array, $expression);
+						$dimensions = $this->calculateArrayDimensions($env, $expression);
 					}
 
 					$env->memory()->failIfHas($name);
@@ -86,7 +87,7 @@ class DefineVariable implements Term\Command
 			}
 			else if ($expression instanceof ArrayAccess)
 			{
-				$name = $expression->variableName();
+				$name = $expression->variable($env)->name();
 				$dimensions = $expression->dimensions($env);
 				if (Utils\ArraysHelper::hasNull($dimensions))
 				{
@@ -104,8 +105,10 @@ class DefineVariable implements Term\Command
 		}
 	}
 
-	protected function calculateArrayDimensions(Environment $env, ArrayAccess $array, Assignment\Base $assignment) : array
+	protected function calculateArrayDimensions(Environment $env, Assignment\Base $assignment) : array
 	{
+		/** @var ArrayAccess $array */
+		$array = $assignment->left();
 		$expression = $assignment->right();
 		$result = $expression->resultType($env);
 
@@ -125,7 +128,7 @@ class DefineVariable implements Term\Command
 				throw new CompileError(
 					sprintf(
 						"value dimensions not compatible with '%s' dimensions: [%s] != [%s]",
-						$array->variableName()->value(),
+						$array->variable($env)->name()->value(),
 						implode(', ', $targetSizes),
 						implode(', ', $valueSizes)
 					),

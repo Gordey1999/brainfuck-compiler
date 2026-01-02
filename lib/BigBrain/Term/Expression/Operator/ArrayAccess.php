@@ -7,10 +7,12 @@ use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
+use Gordy\Brainfuck\BigBrain\MemoryCellPointer;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
 use Gordy\Brainfuck\BigBrain\Type;
+use Gordy\Brainfuck\BigBrain\Utils;
 
 class ArrayAccess implements Expression
 {
@@ -26,17 +28,18 @@ class ArrayAccess implements Expression
 		$this->lexeme = $lexeme;
 	}
 
-	public function variableName() : Lexeme
+	public function variable($env) : Expression\Variable
 	{
 		if ($this->to instanceof Expression\Variable)
 		{
-			return $this->to->name();
+			return $this->to;
 		}
 		if ($this->to instanceof self)
 		{
-			return $this->to->variableName();
+			return $this->to->variable($env);
 		}
-		throw new SyntaxError('variable expected', $this->to->lexeme());
+
+		throw new SyntaxError('array name expected', $this->to->lexeme());
 	}
 
 	public function dimensions(Environment $env) : array
@@ -64,7 +67,16 @@ class ArrayAccess implements Expression
 
 	public function resultType(Environment $env) : Type\Type
 	{
-		return new Type\Pointer();
+		$indexes = $this->indexes($env);
+		$sizes = $this->startCell($env)->sizes();
+		if (count($indexes) < count($sizes))
+		{
+			return new Type\Pointer();
+		}
+		else
+		{
+			return $this->variable($env)->resultType($env);
+		}
 	}
 
 	public function compile(BigBrain\Environment $env) : void
@@ -72,14 +84,88 @@ class ArrayAccess implements Expression
 		throw new \Exception('not implemented');
 	}
 
+	protected function startCell($env) : MemoryCellPointer
+	{
+		$cell = $this->variable($env)->memoryCell($env);
+		if (!$cell instanceof MemoryCellPointer)
+		{
+			throw new SyntaxError('array expected', $this->to->lexeme());
+		}
+		return $cell;
+	}
+
+	/** @return Expression[] */
+	protected function indexes(Environment $env) : array
+	{
+		$result = [];
+		if ($this->to instanceof self)
+		{
+			$result = $this->to->indexes($env);
+		}
+		$result[] = $this->index;
+
+		$sizes = $this->startCell($env)->sizes();
+		if (count($result) > count($sizes))
+		{
+			throw new CompileError(
+				sprintf('wrong index count. Array has only %s dimensions', count($sizes)),
+				$this->lexeme()
+			);
+		}
+
+		return $result;
+	}
+
+	protected function calculateIndex(Environment $env, MemoryCell $result) : void
+	{
+		$sizes = $this->startCell($env)->sizes();
+		$multipliers = Utils\ArraysHelper::indexMultipliers($sizes);
+		$indexes = $this->indexes($env);
+
+		$computedIndex = $this->startCell($env)->relativeAddress();
+		foreach ($indexes as $key => $index)
+		{
+			$indexResult = $index->resultType($env);
+			if ($indexResult instanceof Type\Computable)
+			{
+				if (!$indexResult->numericCompatible())
+				{
+					throw new CompileError('numeric expected', $index->lexeme());
+				}
+				$computedIndex += $indexResult->getNumeric() * $multipliers[$key];
+			}
+			else
+			{
+				if ($multipliers[$key] === 1)
+				{
+					$index->compileCalculation($env, $result);
+				}
+				else
+				{
+					$temp = $env->processor()->reserve($result);
+					$index->compileCalculation($env, $temp);
+					$env->processor()->multiplyByConstant($temp, $multipliers[$key], $result);
+					$env->processor()->release($temp);
+				}
+			}
+		}
+		if  ($computedIndex > 0)
+		{
+			$env->processor()->addConstant($result, $computedIndex);
+		}
+	}
+
 	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
-		throw new \Exception('not implemented');
+		$startCell = $env->arraysProcessor()->startCell();
+		$this->calculateIndex($env, $startCell);
+		$carry = $env->arraysProcessor()->get($startCell);
+		$env->processor()->moveNumber($carry, $result);
 	}
 
 	public function hasVariable(string $name) : bool
 	{
-		return false;// todo [a]
+		return $this->index->hasVariable($name) || $this->to->hasVariable($name);
 	}
 
 	public function __toString() : string

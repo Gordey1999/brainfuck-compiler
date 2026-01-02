@@ -55,6 +55,12 @@ class Processor
 		return new MemoryCell($nearest, "R$nearest");
 	}
 
+	/** @internal */
+	public function setPointer(MemoryCell $pointer) : void
+	{
+		$this->pointer = $pointer->address();
+	}
+
 	public function reserveSeveral(int $count, MemoryCell ...$near) : array
 	{
 		$result = [];
@@ -352,13 +358,13 @@ class Processor
 			Encoder::goto($last->address(), $from->address())
 		), "move value from $from to " . implode(', ', $toCells));
 
-		$this->pointer = $from->address();
+		$this->setPointer($from);
 	}
 
 	public function goto(MemoryCell $to) : void
 	{
 		$this->stream->write(Encoder::goto($this->pointer, $to->address()), "goto $to");
-		$this->pointer = $to->address();
+		$this->setPointer($to);
 	}
 
 	public function unsetSeveral(MemoryCell ...$to) : void
