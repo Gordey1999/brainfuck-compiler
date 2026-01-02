@@ -8,7 +8,7 @@ use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\MemoryCellPointer;
+use Gordy\Brainfuck\BigBrain\MemoryCellArray;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
@@ -41,7 +41,7 @@ class Base implements Expression
 		{
 			$memoryCell = $this->to->memoryCell($env);
 
-			if ($memoryCell instanceof MemoryCellPointer)
+			if ($memoryCell instanceof MemoryCellArray)
 			{
 				$this->fillArray($env, $memoryCell);
 			}
@@ -111,7 +111,7 @@ class Base implements Expression
 		}
 	}
 
-	public function fillArray(Environment $env, MemoryCellPointer $pointer) : void
+	public function fillArray(Environment $env, MemoryCellArray $pointer) : void
 	{
 		$env->stream()->blockComment($this);
 
@@ -193,7 +193,7 @@ class Base implements Expression
 		{
 			$memoryCell = $this->to->memoryCell($env);
 
-			if ($memoryCell instanceof MemoryCellPointer)
+			if ($memoryCell instanceof MemoryCellArray)
 			{
 				throw new CompileError('not supported', $this->lexeme);
 			}

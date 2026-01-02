@@ -7,7 +7,7 @@ use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\MemoryCellPointer;
+use Gordy\Brainfuck\BigBrain\MemoryCellArray;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
@@ -84,10 +84,10 @@ class ArrayAccess implements Expression
 		throw new \Exception('not implemented');
 	}
 
-	protected function startCell($env) : MemoryCellPointer
+	protected function startCell($env) : MemoryCellArray
 	{
 		$cell = $this->variable($env)->memoryCell($env);
-		if (!$cell instanceof MemoryCellPointer)
+		if (!$cell instanceof MemoryCellArray)
 		{
 			throw new SyntaxError('array expected', $this->to->lexeme());
 		}

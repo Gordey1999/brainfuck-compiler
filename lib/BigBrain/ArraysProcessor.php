@@ -31,7 +31,7 @@ class ArraysProcessor
 
 	public function initIndex(MemoryCell $index) : void
 	{
-		if ($index instanceof MemoryCellPointer)
+		if ($index instanceof MemoryCellArray)
 		{
 			$this->stream->startGroup("init pointer with $index");
 			$this->processor->addConstant($this->startCell(), $index->relativeAddress());

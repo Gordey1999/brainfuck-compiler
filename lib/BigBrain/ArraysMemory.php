@@ -7,7 +7,7 @@ use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 
 class ArraysMemory
 {
-	/** @var array<string, MemoryCellPointer> */
+	/** @var array<string, MemoryCellArray> */
 	private array $stack = [];
 	protected int $offset;
 	protected const int CELL_SIZE = 2;
@@ -30,7 +30,7 @@ class ArraysMemory
 		}
 	}
 
-	public function allocate(Type\BaseType $type, Lexeme $name, array $sizes) : MemoryCellPointer
+	public function allocate(Type\BaseType $type, Lexeme $name, array $sizes) : MemoryCellArray
 	{
 		if (isset($this->stack[$name->value()]))
 		{
@@ -40,14 +40,14 @@ class ArraysMemory
 		$address = $this->startPosition() + $this->lastIndex() * self::CELL_SIZE; // todo check size
 		$relativeAddress = $this->lastIndex();
 
-		$cell = new MemoryCellPointer($address, $name->value(), $type, $relativeAddress, $sizes);
+		$cell = new MemoryCellArray($address, $name->value(), $type, $relativeAddress, $sizes);
 
 		$this->commentArray($address, $name->value(), $sizes, $cell->plainSize());
 
 		return $this->stack[$name->value()] = $cell;
 	}
 
-	public function get(Lexeme $name) : MemoryCellPointer
+	public function get(Lexeme $name) : MemoryCellArray
 	{
 		if (!isset($this->stack[$name->value()]))
 		{

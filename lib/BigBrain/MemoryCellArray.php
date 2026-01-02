@@ -2,7 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain;
 
-class MemoryCellPointer extends MemoryCellTyped
+class MemoryCellArray extends MemoryCellTyped
 {
 	protected array $sizes;
 	protected int $relativeAddress;
