@@ -2,13 +2,18 @@
 
 namespace Gordy\Brainfuck\BigBrain;
 
+use Gordy\Brainfuck\BigBrain\Builder\CommandBuilder;
 use Gordy\Brainfuck\BigBrain\Parser\LexemeScope;
 
 class Parser
 {
+	protected Builder\Names $names;
+	protected CommandBuilder $command;
+
 	public function __construct()
 	{
-
+		$this->names = new Builder\Names();
+		$this->command = new Builder\CommandBuilder($this->names);
 	}
 
 	public function parse(string $code) : Term\Term
@@ -33,7 +38,7 @@ class Parser
 			}
 			if ($block->isCommand())
 			{
-				$result[] = Builder\CommandBuilder::build($block);
+				$result[] = $this->command->build($block);
 			}
 			else if ($block->isStructure())
 			{

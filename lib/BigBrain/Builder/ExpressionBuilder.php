@@ -30,16 +30,23 @@ class ExpressionBuilder
 		'++', '--', '!',
 	];
 
-	public static function build(LexemeScope $scope) : Term\Expression
+	protected Names $names;
+
+	public function __construct(Names $names)
 	{
-		return self::parseExpression($scope);
+		$this->names = $names;
 	}
 
-	protected static function parseExpression(LexemeScope $scope) : Term\Expression
+	public function build(LexemeScope $scope) : Term\Expression
+	{
+		return $this->parseExpression($scope);
+	}
+
+	protected function parseExpression(LexemeScope $scope) : Term\Expression
 	{
 		if ($scope->empty())
 		{
-			throw new \Exception('something went wrong');
+			throw new \Exception('something went wrong'); // todo появляется, если в массиве поставить лишнюю переменную
 		}
 
 		if ($scope->isSingle() && !$scope->first() instanceof LexemeScope)
@@ -56,11 +63,11 @@ class ExpressionBuilder
 		// a * b + c / (b + d);
 		// a ? b : c
 
-		$minPriorityIndex = self::getMinPriorityIndex($scope);
+		$minPriorityIndex = $this->getMinPriorityIndex($scope);
 
 		if ($minPriorityIndex === null)
 		{
-			return self::parseSpecialExpression($scope);
+			return $this->parseSpecialExpression($scope);
 		}
 
 		$operator = $scope->get($minPriorityIndex);
@@ -74,16 +81,16 @@ class ExpressionBuilder
 		}
 		else
 		{
-			$left = self::parseExpression($scope->slice(0, $minPriorityIndex));
-			$right = self::parseExpression($scope->slice($minPriorityIndex + 1));
+			$left = $this->parseExpression($scope->slice(0, $minPriorityIndex));
+			$right = $this->parseExpression($scope->slice($minPriorityIndex + 1));
 
-			return self::parseBinaryOperator($left, $right, $operator);
+			return $this->parseBinaryOperator($left, $right, $operator);
 		}
 
 		throw new SyntaxError('cant parse expression', $scope);
 	}
 
-	protected static function parseSpecialExpression(LexemeScope $scope) : Term\Expression
+	protected function parseSpecialExpression(LexemeScope $scope) : Term\Expression
 	{
 		// todo fn(a + b)[i]
 		// todo (int)
@@ -97,12 +104,12 @@ class ExpressionBuilder
 
 				if ($scopeType === '(')
 				{
-					return self::parseExpression($first);
+					return $this->parseExpression($first);
 				}
 				else if ($scopeType === '[')
 				{
 					return new Term\Expression\ArrayScope(
-						self::parseExpression($first),
+						$this->parseExpression($first),
 						$first,
 					);
 				}
@@ -118,7 +125,7 @@ class ExpressionBuilder
 		}
 		else if ($scope->first()->isName()) // fn(), a[][]
 		{
-			return self::parseAccess($scope);
+			return $this->parseAccess($scope);
 		}
 		else
 		{
@@ -126,7 +133,7 @@ class ExpressionBuilder
 		}
 	}
 
-	protected static function parseAccess(LexemeScope $scope) : Term\Expression
+	protected function parseAccess(LexemeScope $scope) : Term\Expression
 	{
 		$last = $scope->last();
 		if ($last instanceof LexemeScope)
@@ -134,8 +141,8 @@ class ExpressionBuilder
 			if ($last->value() === '[')
 			{
 				return new Term\Expression\Operator\ArrayAccess(
-					self::parseAccess($scope->slice(0, -1)),
-					$last->empty() ? new Term\Expression\None() : self::parseExpression($last),
+					$this->parseAccess($scope->slice(0, -1)),
+					$last->empty() ? new Term\Expression\None() : $this->parseExpression($last),
 					$last
 				);
 			}
@@ -146,11 +153,11 @@ class ExpressionBuilder
 		}
 		else
 		{
-			return self::parseExpression($scope);
+			return $this->parseExpression($scope);
 		}
 	}
 
-	protected static function parseBinaryOperator(Term\Expression $left, Term\Expression $right, Lexeme $operator)
+	protected function parseBinaryOperator(Term\Expression $left, Term\Expression $right, Lexeme $operator)
 	{
 		return match($operator->value()) {
 			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),
@@ -164,7 +171,7 @@ class ExpressionBuilder
 		};
 	}
 
-	protected static function getMinPriorityIndex(LexemeScope $parts) : ?int
+	protected function getMinPriorityIndex(LexemeScope $parts) : ?int
 	{
 		$minPriority = 0;
 		$minPriorityIndex = null;

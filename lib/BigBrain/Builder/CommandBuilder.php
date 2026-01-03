@@ -20,7 +20,16 @@ class CommandBuilder
 		self::TYPE_BOOL,
 	];
 
-	public static function build(LexemeScope $scope) : Term\Command | Term\Expression
+	protected Names $names;
+	protected ExpressionBuilder $expression;
+
+	public function __construct(Names $names)
+	{
+		$this->names = $names;
+		$this->expression = new ExpressionBuilder($names);
+	}
+
+	public function build(LexemeScope $scope) : Term\Command | Term\Expression
 	{
 		$first = $scope->first();
 
@@ -30,21 +39,21 @@ class CommandBuilder
 		}
 		else if ($first->value() === self::OUT)
 		{
-			$expr = ExpressionBuilder::build($scope->slice(1));
+			$expr = $this->expression->build($scope->slice(1));
 			return new Term\Command\Output($expr, $first);
 		}
 		else if ($first->value() === self::IN)
 		{
-			$expr = ExpressionBuilder::build($scope->slice(1));
+			$expr = $this->expression->build($scope->slice(1));
 			return new Term\Command\Input($expr, $first);
 		}
 		else
 		{
-			return ExpressionBuilder::build($scope);
+			return $this->expression->build($scope);
 		}
 	}
 
-	public static function buildVariable(LexemeScope $scope) : Term\Command
+	public function buildVariable(LexemeScope $scope) : Term\Command
 	{
 		$type = $scope->first();
 		$expr = $scope->slice(1);
@@ -54,6 +63,6 @@ class CommandBuilder
 			self::TYPE_CHAR => new Type\Char(),
 			self::TYPE_BOOL => new Type\Boolean(),
 		};
-		return new Term\Command\DefineVariable($typeObj, ExpressionBuilder::build($expr), $type);
+		return new Term\Command\DefineVariable($typeObj, $this->expression->build($expr), $type);
 	}
 }
