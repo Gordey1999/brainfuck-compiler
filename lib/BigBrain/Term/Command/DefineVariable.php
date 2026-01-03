@@ -9,7 +9,8 @@ use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
-use Gordy\Brainfuck\BigBrain\Term\Expression\Variable;
+use Gordy\Brainfuck\BigBrain\Term\Expression\ArrayVariable;
+use Gordy\Brainfuck\BigBrain\Term\Expression\ScalarVariable;
 use Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
 use Gordy\Brainfuck\BigBrain\Term\Expression\Operator\ArrayAccess;
 use Gordy\Brainfuck\BigBrain\Utils;
@@ -44,7 +45,10 @@ class DefineVariable implements Term\Command
 
 		foreach ($varList as $var)
 		{
-			if (!$var instanceof Variable && !$var instanceof Assignment\Base && !$var instanceof ArrayAccess)
+			if (!$var instanceof ScalarVariable
+				&& !$var instanceof ArrayVariable
+				&& !$var instanceof Assignment\Base
+				&& !$var instanceof ArrayAccess)
 			{
 				throw new SyntaxError('variable name expected', $var->lexeme());
 			}
@@ -61,6 +65,11 @@ class DefineVariable implements Term\Command
 			{
 				if ($expression->left() instanceof ArrayAccess)
 				{
+					if (count($expression->variables()) > 1)
+					{
+						throw new CompileError('array assignation to array not supported', $expression->lexeme());
+					}
+
 					/** @var ArrayAccess $array */
 					$array = $expression->left();
 					$name = $array->variable($env)->name();
@@ -70,7 +79,6 @@ class DefineVariable implements Term\Command
 						$dimensions = $this->calculateArrayDimensions($env, $expression);
 					}
 
-					$env->memory()->failIfHas($name);
 					$pointer = $env->arraysMemory()->allocate($this->type, $name, $dimensions);
 					$expression->fillArray($env, $pointer);
 				}
@@ -78,7 +86,6 @@ class DefineVariable implements Term\Command
 				{
 					foreach ($expression->variables() as $variable)
 					{
-						$env->arraysMemory()->failIfHas($variable->name());
 						$env->memory()->allocate($this->type, $variable->name());
 					}
 
@@ -94,12 +101,10 @@ class DefineVariable implements Term\Command
 					throw new CompileError('array size expected', $expression->lexeme());
 				}
 
-				$env->memory()->failIfHas($name);
 				$env->arraysMemory()->allocate($this->type, $name, $dimensions);
 			}
 			else
 			{
-				$env->arraysMemory()->failIfHas($expression->name());
 				$env->memory()->allocate($this->type, $expression->name());
 			}
 		}
@@ -129,7 +134,9 @@ class DefineVariable implements Term\Command
 					sprintf(
 						"value dimensions not compatible with '%s' dimensions: [%s] != [%s]",
 						$array->variable($env)->name()->value(),
-						implode(', ', $targetSizes),
+						implode(', ', array_map(function ($item) {
+							return $item === null ? 'n': $item;
+							}, $targetSizes)),
 						implode(', ', $valueSizes)
 					),
 					$assignment->lexeme()
