@@ -11,6 +11,8 @@ $request = json_decode(file_get_contents('php://input'), true);
 
 $log = "compiling...\n";
 
+$debug = true;
+
 try
 {
 	$parser = new BigBrain\Parser();
@@ -58,9 +60,19 @@ catch (BigBrain\Exception\Exception $e)
 {
 	$lexeme = $e->getLexeme();
 
+	$message = $debug ?
+		sprintf(
+			"%s\n\n\n\ndebug info:\n%s(%s)\n\ntrace:\n%s",
+			$e->getMessage(),
+			$e->getFile(),
+			$e->getLine(),
+			$e->getTraceAsString()
+		)
+		: $e->getMessage();
+
 	$result = [
 		'status' => 'error',
-		'message' => $e->getMessage(),
+		'message' => $message,
 		'position' => [
 			'start' => $lexeme->index(),
 			'length'  => mb_strlen($lexeme->value()),
