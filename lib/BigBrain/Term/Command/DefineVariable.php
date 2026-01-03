@@ -63,50 +63,71 @@ class DefineVariable implements Term\Command
 		{
 			if ($expression instanceof Assignment\Base)
 			{
-				if ($expression->left() instanceof ArrayAccess)
+				if (count($expression->variables()) > 1)
 				{
-					if (count($expression->variables()) > 1)
-					{
-						throw new CompileError('array assignation to array not supported', $expression->lexeme());
-					}
-
-					/** @var ArrayAccess $array */
-					$array = $expression->left();
-					$name = $array->variable($env)->name();
-					$dimensions = $array->dimensions($env);
-					if (Utils\ArraysHelper::hasNull($dimensions))
-					{
-						$dimensions = $this->calculateArrayDimensions($env, $expression);
-					}
-
-					$pointer = $env->arraysMemory()->allocate($this->type, $name, $dimensions);
-					$expression->fillArray($env, $pointer);
-				}
-				else
-				{
-					foreach ($expression->variables() as $variable)
-					{
-						$env->memory()->allocate($this->type, $variable->name());
-					}
-
-					$expression->compile($env);
-				}
-			}
-			else if ($expression instanceof ArrayAccess)
-			{
-				$name = $expression->variable($env)->name();
-				$dimensions = $expression->dimensions($env);
-				if (Utils\ArraysHelper::hasNull($dimensions))
-				{
-					throw new CompileError('array size expected', $expression->lexeme());
+					throw new CompileError('array multiple assignation not supported', $expression->right()->lexeme());
 				}
 
-				$env->arraysMemory()->allocate($this->type, $name, $dimensions);
+				$this->allocateAndInitialize($env, $expression);
 			}
 			else
 			{
-				$env->memory()->allocate($this->type, $expression->name());
+				$this->allocate($env, $expression);
 			}
+		}
+	}
+
+	protected function allocate(Environment $env, Expression $variable) : void
+	{
+		if ($variable instanceof ArrayAccess)
+		{
+			$name = $variable->variable()->name();
+			$dimensions = $variable->dimensions($env);
+			if (Utils\ArraysHelper::hasNull($dimensions))
+			{
+				throw new CompileError('array size expected', $variable->lexeme());
+			}
+
+			$env->arraysMemory()->allocate($this->type, $name, $dimensions);
+		}
+		else if ($variable instanceof ScalarVariable)
+		{
+			$env->memory()->allocate($this->type, $variable->name());
+		}
+		else
+		{
+			throw new CompileError('variable name expected', $variable->lexeme());
+		}
+	}
+
+	protected function allocateAndInitialize(Environment $env, Assignment\Base $assignment) : void
+	{
+		if ($assignment->left() instanceof ArrayAccess)
+		{
+			/** @var ArrayAccess $array */
+			$array = $assignment->left();
+			$name = $array->variable()->name();
+			$dimensions = $array->dimensions($env);
+			if (Utils\ArraysHelper::hasNull($dimensions))
+			{
+				$dimensions = $this->calculateArrayDimensions($env, $assignment);
+			}
+
+			$pointer = $env->arraysMemory()->allocate($this->type, $name, $dimensions);
+			$assignment->fillArray($env, $pointer);
+		}
+		else if ($assignment->left() instanceof ScalarVariable)
+		{
+			foreach ($assignment->variables() as $variable)
+			{
+				$env->memory()->allocate($this->type, $variable->name());
+			}
+
+			$assignment->compile($env);
+		}
+		else
+		{
+			throw new CompileError('variable name expected', $assignment->left()->lexeme());
 		}
 	}
 

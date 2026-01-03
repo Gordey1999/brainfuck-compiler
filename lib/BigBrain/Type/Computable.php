@@ -75,6 +75,7 @@ class Computable implements Type
 		return match ($this->type) {
 			self::BOOLEAN => $this->value ? '1': '0',
 			self::STRING, self::CHAR => $this->value,
+			self::ARRAY => Utils\ArraysHelper::stringify($this->value),
 			default => (string)$this->value,
 		};
 	}

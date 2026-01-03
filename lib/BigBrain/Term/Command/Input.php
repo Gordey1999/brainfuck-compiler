@@ -4,6 +4,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Command;
 
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
+use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term;
@@ -14,7 +15,7 @@ class Input implements Term\Command
 {
 	use Term\HasLexeme;
 
-	/** @var Expression */
+	/** @var Expression[] */
 	private array $parts;
 
 	public function __construct(Expression $expr, Lexeme $lexeme)
@@ -44,13 +45,23 @@ class Input implements Term\Command
 		{
 			$env->stream()->blockComment("in $part");
 
-			if (!$part instanceof Expression\Variable)
+			$resultType = $part->resultType($env);
+
+			if ($part instanceof Expression\ScalarVariable)
+			{
+				$this->inputVariable($env, $part);
+			}
+			else if ($resultType instanceof Type\Pointer)
+			{
+				$this->inputString($env, $part, $resultType);
+			}
+			else if ($resultType instanceof Type\Scalar)
 			{
 				$this->inputDummy($env);
 			}
 			else
 			{
-				$this->inputVariable($env, $part);
+				throw new CompileError('scalar variable expected', $part->lexeme());
 			}
 		}
 	}
@@ -65,7 +76,7 @@ class Input implements Term\Command
 		$env->processor()->release($temp);
 	}
 
-	public function inputVariable(Environment $env, Expression\Variable $var) : void
+	public function inputVariable(Environment $env, Expression\ScalarVariable $var) : void
 	{
 		$cell = $var->memoryCell($env);
 
@@ -88,7 +99,7 @@ class Input implements Term\Command
 		}
 	}
 
-	public function inputNumber(Environment $env, Expression\Variable $var) : void
+	public function inputNumber(Environment $env, Expression\ScalarVariable $var) : void
 	{
 		$result = $var->memoryCell($env);
 		$proc = $env->processor();
@@ -117,6 +128,30 @@ class Input implements Term\Command
 		}, 'input number cycle');
 
 		$proc->release($in, $a, $b, $c);
+	}
+
+	protected function inputString(Environment $env, Expression $part, Type\Pointer $resultType) : void
+	{
+		if (!$resultType->valueType() instanceof Type\Char)
+		{
+			$type = $resultType->valueType();
+			throw new CompileError("expected char array. '$type' array provided", $part->lexeme());
+		}
+		if ($part instanceof Expression\ArrayVariable)
+		{
+			$startCell = $part->memoryCell($env);
+			$env->arraysProcessor()->inputString($startCell);
+		}
+		else if ($part instanceof Expression\Operator\ArrayAccess)
+		{
+			$indexCell = $env->arraysProcessor()->startCell();
+			$part->calculateIndex($env, $indexCell);
+			$env->arraysProcessor()->inputString($indexCell);
+		}
+		else
+		{
+			throw new CompileError('something went wrong', $part->lexeme());
+		}
 	}
 
 	public function __toString() : string

@@ -28,15 +28,15 @@ class ArrayAccess implements Expression
 		$this->lexeme = $lexeme;
 	}
 
-	public function variable($env) : Expression\Variable
+	public function variable() : Expression\ArrayVariable
 	{
-		if ($this->to instanceof Expression\Variable)
+		if ($this->to instanceof Expression\ArrayVariable)
 		{
 			return $this->to;
 		}
 		if ($this->to instanceof self)
 		{
-			return $this->to->variable($env);
+			return $this->to->variable();
 		}
 
 		throw new SyntaxError('array name expected', $this->to->lexeme());
@@ -67,21 +67,24 @@ class ArrayAccess implements Expression
 
 	public function resultType(Environment $env) : Type\Type
 	{
-		$indexes = $this->indexes($env);
-		$sizes = $this->startCell($env)->sizes();
-		if (count($indexes) < count($sizes))
+		$result = $this->to->resultType($env);
+
+		if ($result instanceof Type\Pointer)
 		{
-			return new Type\Pointer();
+			return $result->valueType();
 		}
 		else
 		{
-			return $this->variable($env)->resultType($env);
+			throw new CompileError('array operand expected, scalar passed', $this->to->lexeme());
 		}
+		// todo check with char a; a[i]; and char[] a; a[i][j]
 	}
 
 	public function compile(BigBrain\Environment $env) : void
 	{
-		throw new \Exception('not implemented');
+		// do nothing
+		// todo expression may have $i++
+		// todo compile children until mutation expression
 	}
 
 	protected function startCell($env) : MemoryCellArray
@@ -104,7 +107,7 @@ class ArrayAccess implements Expression
 		}
 		$result[] = $this->index;
 
-		$sizes = $this->startCell($env)->sizes();
+		$sizes = $this->startCell($env)->type()->sizes();
 		if (count($result) > count($sizes))
 		{
 			throw new CompileError(
@@ -116,13 +119,13 @@ class ArrayAccess implements Expression
 		return $result;
 	}
 
-	protected function calculateIndex(Environment $env, MemoryCell $result) : void
+	public function calculateIndex(Environment $env, MemoryCell $result) : void
 	{
-		$sizes = $this->startCell($env)->sizes();
+		$sizes = $this->startCell($env)->type()->sizes();
 		$multipliers = Utils\ArraysHelper::indexMultipliers($sizes);
 		$indexes = $this->indexes($env);
 
-		$computedIndex = $this->startCell($env)->relativeAddress();
+		$computedIndex = $this->startCell($env)->startIndex();
 		foreach ($indexes as $key => $index)
 		{
 			$indexResult = $index->resultType($env);
@@ -130,7 +133,7 @@ class ArrayAccess implements Expression
 			{
 				if (!$indexResult->numericCompatible())
 				{
-					throw new CompileError('numeric expected', $index->lexeme());
+					throw new CompileError('numeric index expected', $this->lexeme());
 				}
 				$computedIndex += $indexResult->getNumeric() * $multipliers[$key];
 			}

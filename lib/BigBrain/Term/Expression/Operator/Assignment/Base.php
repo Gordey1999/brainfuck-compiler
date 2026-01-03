@@ -4,6 +4,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
 
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\MemoryCellTyped;
+use Gordy\Brainfuck\BigBrain\Term\Expression\ArrayVariable;
 use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
@@ -37,26 +38,47 @@ class Base implements Expression
 	{
 		$env->stream()->blockComment($this);
 
-		if ($this->to instanceof Expression\Variable)
-		{
-			$memoryCell = $this->to->memoryCell($env);
+		//$this->to->set( $this->value);
+		// если += или -=, то $this->to->set( $this);
 
-			if ($memoryCell instanceof MemoryCellArray)
-			{
-				$this->fillArray($env, $memoryCell);
-			}
-			else
-			{
-				$this->assignVariable($env, $memoryCell);
-			}
+		$resultType = $this->to->resultType($env);
+
+		if ($resultType instanceof Type\Pointer)
+		{
+			$this->assignArray($env, $resultType);
 		}
 		else if ($this->to instanceof Expression\Operator\ArrayAccess)
 		{
-			echo 'not ready';die;
+			// todo
+		}
+		else if ($this->to instanceof Expression\ScalarVariable)
+		{
+			$memoryCell = $this->to->memoryCell($env);
+			$this->assignVariable($env, $memoryCell);
 		}
 		else
 		{
 			throw new CompileError('variable expected', $this->lexeme);
+		}
+	}
+
+	protected function assignArray(Environment $env, Type\Pointer $result) : void
+	{
+		if ($this->to instanceof Expression\ArrayVariable)
+		{
+			$startCell = $this->to->memoryCell($env);
+			$this->fillArray($env, $startCell);
+		}
+		else if ($this->to instanceof Expression\Operator\ArrayAccess)
+		{
+			$indexCell = $env->arraysProcessor()->startCell();
+			$this->to->calculateIndex($env, $indexCell);
+			$plainArray = $this->prepareArrayValues($env, $result);
+			$env->arraysProcessor()->fill($indexCell, $plainArray);
+		}
+		else
+		{
+			throw new CompileError('something went wrong', $this->lexeme);
 		}
 	}
 
@@ -111,14 +133,12 @@ class Base implements Expression
 		}
 	}
 
-	public function fillArray(Environment $env, MemoryCellArray $pointer) : void
+	protected function prepareArrayValues(Environment $env, Type\Pointer $pointer) : array
 	{
-		$env->stream()->blockComment($this);
-
 		$result = $this->value->resultType($env);
 		if (!$result instanceof Type\Computable)
 		{
-			throw new CompileError('wrong assignment value', $this->lexeme);
+			throw new CompileError("can't assign dynamic value to array. only literals supported", $this->lexeme);
 		}
 		if ($result->arrayCompatible())
 		{
@@ -131,8 +151,7 @@ class Base implements Expression
 			{
 				throw new CompileError(
 					sprintf(
-						"value dimensions not compatible with '%s' dimensions: [%s] != [%s]",
-						$pointer->label(),
+						"array dimensions not compatible with value dimensions: [%s] != [%s]",
 						implode(', ', $pointerSizes),
 						implode(', ', $valueSizes)
 					),
@@ -141,29 +160,50 @@ class Base implements Expression
 			}
 
 			$plainArray = Utils\ArraysHelper::plainArray($value, $pointerSizes);
-			if ($pointer->type() instanceof Type\Boolean)
-			{
-				$plainArray = Utils\ArraysHelper::toBoolArray($plainArray);
-			}
-			$env->arraysProcessor()->fill($pointer, $plainArray);
 		}
 		else if ($result->numericCompatible())
 		{
 			$value = $result->getNumeric();
 			$plainArray = array_fill(0, $pointer->plainSize(), $value);
-			if ($pointer->type() instanceof Type\Boolean)
-			{
-				$plainArray = Utils\ArraysHelper::toBoolArray($plainArray);
-			}
-			$env->arraysProcessor()->fill($pointer, $plainArray);
 		}
 		else
 		{
-			throw new CompileError('wrong assignment value', $this->lexeme);
+			throw new CompileError(sprintf("can't assign '%s' value to array", $result->type()), $this->lexeme);
+		}
+
+		if ($pointer->valueType() instanceof Type\Boolean)
+		{
+			return Utils\ArraysHelper::toBoolArray($plainArray);
+		}
+		else
+		{
+			return $plainArray;
 		}
 	}
 
-	/** @return Expression\Variable[] */
+	public function fillArray(Environment $env, MemoryCellArray $pointer) : void
+	{
+		$plainArray = $this->prepareArrayValues($env, $pointer->type());
+		$env->stream()->blockComment($this);
+		$env->arraysProcessor()->fill($pointer, $plainArray);
+	}
+
+	public function assignArrayIndex(Environment $env) : void
+	{
+		if (!$this->to->isAssignable())
+		{
+			throw new CompileError();
+		}
+
+		$this->to->resultCell();
+		$this->to->assign();
+
+
+
+		// if is array => fillArray();
+	}
+
+	/** @return Expression\ScalarVariable[] */
 	public function variables() : array
 	{
 		$result = [ $this->to ];
@@ -174,6 +214,23 @@ class Base implements Expression
 
 		return $result;
 	}
+
+//	protected function arrayVariableName() : ArrayVariable
+//	{
+//		if ($this->value instanceof self)
+//		{
+//			throw new CompileError('array multiple assignation not supported', $this->value->lexeme());
+//		}
+//		if ($this->to instanceof Expression\Operator\ArrayAccess)
+//		{
+//			return $this->to->variable();
+//		}
+//		if ($this->to instanceof ArrayVariable)
+//		{
+//			return $this->to;
+//		}
+//		throw new CompileError('array variable expected', $this->to->lexeme());
+//	}
 
 	public function left() : Expression
 	{
@@ -187,23 +244,7 @@ class Base implements Expression
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
-		$this->compile($env);
-
-		if ($this->to instanceof Expression\Variable)
-		{
-			$memoryCell = $this->to->memoryCell($env);
-
-			if ($memoryCell instanceof MemoryCellArray)
-			{
-				throw new CompileError('not supported', $this->lexeme);
-			}
-
-			$env->processor()->copyNumber($memoryCell, $result);
-		}
-		else if ($this->to instanceof Expression\Operator\ArrayAccess)
-		{
-			echo 'not ready';die; // todo
-		}
+		$this->to->compileCalculation($env, $result);
 	}
 
 	public function hasVariable(string $name) : bool

@@ -34,7 +34,7 @@ class ArraysProcessor
 		if ($index instanceof MemoryCellArray)
 		{
 			$this->stream->startGroup("init pointer with $index");
-			$this->processor->addConstant($this->startCell(), $index->relativeAddress());
+			$this->processor->addConstant($this->startCell(), $index->startIndex());
 			$this->processor->goto($this->startCell());
 			$this->stream->endGroup();
 			return;
@@ -73,7 +73,21 @@ class ArraysProcessor
 	public function print(MemoryCell $index) : void
 	{
 		$this->goto($index, function() {
-			$this->stream->write('.', 'printValue');
+			$this->stream->write('.', 'print value');
+		});
+	}
+
+	public function printString(MemoryCell $pointer, int $size) : void
+	{
+		$this->walk($pointer, $size, function() use (&$values) {
+			$this->stream->write('.');
+		}, 'print array');
+	}
+
+	public function inputString(MemoryCell $pointer) : void
+	{
+		$this->gotoIndex($pointer, function() {
+			$this->stream->write('+[>>>>,----------[++++++++++[-<<<+>>>]<<+>>]<<]<<', "input until enter");
 		});
 	}
 
@@ -93,7 +107,7 @@ class ArraysProcessor
 	protected function goto(MemoryCell $index, callable $callback) : void
 	{
 		$this->initIndex($index);
-		$this->stream->write('[[->>+<<]+>>-]+>', 'goto pointer');
+		$this->stream->write('[[->>+<<]+>>-]+>', 'goto index');
 
 		$callback();
 
@@ -101,9 +115,24 @@ class ArraysProcessor
 		$this->processor->setPointer($this->initCell());
 	}
 
-	protected function walk(MemoryCell $index, int $count, callable $callback) : void
+	protected function gotoIndex(MemoryCell $index, callable $callback) : void
 	{
-		$this->goto($index, function() use ($count, $callback) {
+		$this->initIndex($index);
+		$this->stream->write('[[->>+<<]+>>-]', 'goto index');
+
+		$callback();
+
+		$this->stream->write('[-<<]', 'return to start');
+		$this->processor->setPointer($this->initCell());
+	}
+
+	protected function walk(MemoryCell $index, int $count, callable $callback, string $groupComment = null) : void
+	{
+		$this->goto($index, function() use ($count, $callback, $groupComment) {
+			if ($groupComment !== null)
+			{
+				$this->stream->startGroup($groupComment);
+			}
 			for ($i = 0; $i < $count; $i++)
 			{
 				$callback();
@@ -111,6 +140,10 @@ class ArraysProcessor
 				{
 					$this->stream->write('>+>', 'goto next');
 				}
+			}
+			if ($groupComment !== null)
+			{
+				$this->stream->endGroup();
 			}
 		});
 	}

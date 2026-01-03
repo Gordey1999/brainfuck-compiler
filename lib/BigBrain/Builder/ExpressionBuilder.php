@@ -46,7 +46,8 @@ class ExpressionBuilder
 	{
 		if ($scope->empty())
 		{
-			throw new \Exception('something went wrong'); // todo появляется, если в массиве поставить лишнюю переменную
+			throw new SyntaxError('expression expected', $scope);
+			// todo появляется, если в массиве поставить лишнюю переменную
 		}
 
 		if ($scope->isSingle() && !$scope->first() instanceof LexemeScope)
@@ -57,11 +58,16 @@ class ExpressionBuilder
 			}
 			else if ($scope->first()->isName())
 			{
-				return new Term\Expression\Variable($scope->first());
+				if ($this->names->isVariable($scope->first()->value()))
+				{
+					return new Term\Expression\ScalarVariable($scope->first());
+				}
+				else if ($this->names->isArray($scope->first()->value()))
+				{
+					return new Term\Expression\ArrayVariable($scope->first());
+				}
 			}
 		}
-		// a * b + c / (b + d);
-		// a ? b : c
 
 		$minPriorityIndex = $this->getMinPriorityIndex($scope);
 
@@ -120,7 +126,7 @@ class ExpressionBuilder
 			}
 			else
 			{
-				return new Term\Expression\Variable($scope->first());
+				return new Term\Expression\ScalarVariable($scope->first());
 			}
 		}
 		else if ($scope->first()->isName()) // fn(), a[][]
@@ -153,11 +159,15 @@ class ExpressionBuilder
 		}
 		else
 		{
+			if ($scope->first()->isName())
+			{
+				$this->names->remember($scope->first()->value(), $this->names::ARRAY);
+			}
 			return $this->parseExpression($scope);
 		}
 	}
 
-	protected function parseBinaryOperator(Term\Expression $left, Term\Expression $right, Lexeme $operator)
+	protected function parseBinaryOperator(Term\Expression $left, Term\Expression $right, Lexeme $operator) : Term\Expression
 	{
 		return match($operator->value()) {
 			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),

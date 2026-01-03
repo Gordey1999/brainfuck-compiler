@@ -25,7 +25,8 @@ class ArraysHelper
 				else
 				{
 					$count = array_product($dimensions);
-					$values = array_fill(0, $count, $value ?? 0);
+					$values = array_fill(0, $count, 0);
+					$values[0] = $value ?? 0;
 
 					$result = array_merge($result, $values);
 				}
@@ -139,5 +140,23 @@ class ArraysHelper
 		}
 
 		return array_reverse($result);
+	}
+
+	public static function stringify(mixed $value) : string
+	{
+		print_r($value);
+		if (is_array($value))
+		{
+			$parts = [];
+			foreach ($value as $item)
+			{
+				$parts[] = self::stringify($item);
+			}
+			return sprintf('[%s]', implode(', ', $parts));
+		}
+		else
+		{
+			return (string)$value;
+		}
 	}
 }

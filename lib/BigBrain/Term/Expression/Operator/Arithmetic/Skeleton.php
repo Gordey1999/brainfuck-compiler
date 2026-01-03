@@ -69,11 +69,13 @@ abstract class Skeleton implements Expression
 		if ($leftType instanceof Type\Computable)
 		{
 			$this->checkComputedType($leftType);
+			$this->checkScalarType($rightType);
 			$this->compileWithLeftConstant($env, $leftType->getNumeric(), $result);
 		}
 		else if ($rightType instanceof Type\Computable)
 		{
 			$this->checkComputedType($rightType);
+			$this->checkScalarType($leftType);
 			$this->compileWithRightConstant($env, $rightType->getNumeric(), $result);
 		}
 		else
@@ -98,6 +100,17 @@ abstract class Skeleton implements Expression
 		{
 			throw new CompileError(sprintf('unsupported operand type "%s" for operator "%s"',
 				$value->type(),
+				$this->lexeme->value(),
+			), $this->lexeme);
+		}
+	}
+
+	protected function checkScalarType(Type\Type $value) : void
+	{
+		if (!$value instanceof Type\Scalar)
+		{
+			throw new CompileError(sprintf('unsupported operand type "%s" for operator "%s"',
+				$value,
 				$this->lexeme->value(),
 			), $this->lexeme);
 		}
