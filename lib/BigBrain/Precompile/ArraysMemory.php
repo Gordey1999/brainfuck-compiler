@@ -13,10 +13,9 @@ class ArraysMemory extends BaseArraysMemory
 
 	public function allocate(Type\BaseType $type, Lexeme $name, array $sizes) : MemoryCellArray
 	{
-		$pointer = new MemoryCellArray(0, '',  $type, 0, $sizes);
-		$this->memorySize += $pointer->plainSize();
-
-		return parent::allocate($type, $name, $sizes);
+		$cell = parent::allocate($type, $name, $sizes);
+		$this->memorySize += $cell->type()->plainSize();
+		return $cell;
 	}
 
 	public function computedMemorySize() : int

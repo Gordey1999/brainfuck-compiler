@@ -7,20 +7,18 @@ use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 
 class ArraysMemory
 {
-	/** @var array<string, MemoryCellArray> */
-	private array $stack = [];
+	private Stack $stack;
 	protected int $offset;
 	protected const int CELL_SIZE = 2;
 	protected const int MAX_SIZE = 256;
 
 	protected OutputStream $stream;
-	protected Processor $processor;
 	protected int $size;
 
-	public function __construct(OutputStream $stream, Processor $processor,  int $offset, int $size)
+	public function __construct(Stack $stack, OutputStream $stream,  int $offset, int $size)
 	{
+		$this->stack = $stack;
 		$this->stream = $stream;
-		$this->processor = $processor;
 		$this->offset = $offset;
 		$this->size = $size;
 
@@ -32,42 +30,30 @@ class ArraysMemory
 
 	public function allocate(Type\BaseType $type, Lexeme $name, array $sizes) : MemoryCellArray
 	{
-		if (isset($this->stack[$name->value()]))
-		{
-			throw new CompileError("array '{$name->value()}' is already defined", $name);
-		}
-
 		$address = $this->startPosition() + $this->lastIndex() * self::CELL_SIZE; // todo check size
-		$relativeAddress = $this->lastIndex();
+		$startIndex = $this->lastIndex();
 
-		$cell = new MemoryCellArray($address, $name->value(), $type, $relativeAddress, $sizes);
+		$type = $this->buildType($type, $sizes);
+		$cell = new MemoryCellArray($address, $name->value(), $type, $startIndex);
 
-		$this->commentArray($address, $name->value(), $sizes, $cell->plainSize());
+		$this->commentArray($address, $name->value(), $cell->type());
 
-		return $this->stack[$name->value()] = $cell;
+		return $this->stack->push($name, $cell);
+	}
+
+	protected function buildType(Type\BaseType $type, array $sizes) : Type\Pointer
+	{
+		$lastType = $type;
+		foreach (array_reverse($sizes) as $size)
+		{
+			$lastType = new Type\Pointer($lastType, $size);
+		}
+		return $lastType;
 	}
 
 	public function get(Lexeme $name) : MemoryCellArray
 	{
-		if (!isset($this->stack[$name->value()]))
-		{
-			throw new CompileError("array '{$name->value()}' not defined", $name);
-		}
-
-		return $this->stack[$name->value()];
-	}
-
-	public function has(Lexeme $name) : bool
-	{
-		return isset($this->stack[$name->value()]);
-	}
-
-	public function failIfHas(Lexeme $name) : void
-	{
-		if ($this->has($name))
-		{
-			throw new CompileError("array '{$name->value()}' is already defined", $name);
-		}
+		return $this->stack->get($name, MemoryCellArray::class);
 	}
 
 	protected function commentIndexes() : void
@@ -83,8 +69,10 @@ class ArraysMemory
 		}
 	}
 
-	protected function commentArray(int $address, string $varName, array $sizes, int $plainSize) : void
+	protected function commentArray(int $address, string $varName, Type\Pointer $type) : void
 	{
+		$sizes = $type->sizes();
+		$plainSize = $type->plainSize();
 		for ($i = 0; $i < $plainSize; $i++)
 		{
 			$indexes = Utils\ArraysHelper::complexIndex($i, $sizes);
@@ -99,9 +87,9 @@ class ArraysMemory
 	protected function lastIndex() : int
 	{
 		$result = 0;
-		foreach ($this->stack as $item)
+		foreach ($this->stack->getAll(MemoryCellArray::class) as $item)
 		{
-			$result += $item->plainSize();
+			$result += $item->type()->plainSize();
 		}
 
 		return $result;

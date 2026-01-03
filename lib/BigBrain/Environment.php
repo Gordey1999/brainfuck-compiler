@@ -7,6 +7,7 @@ class Environment
 	public function __construct(
 		protected Processor $processor,
 		protected OutputStream $stream,
+		protected Stack $stack,
 		protected Memory $memory,
 		protected ArraysMemory $arraysMemory,
 		protected ArraysProcessor $arraysProcessor
@@ -39,18 +40,24 @@ class Environment
 		return $this->arraysProcessor;
 	}
 
+	public function stack() : Stack
+	{
+		return $this->stack;
+	}
+
 	public static function makeForPrecompile(int $registrySize, int $memorySize, int $arraysMemorySize) : self
 	{
 		$mOffset = $registrySize;
 		$amOffset = $registrySize + $memorySize;
 		$stream = new OutputStream();
+		$stack = new Stack();
 
 		$processor = new Precompile\Processor($stream, $registrySize);
-		$memory = new Precompile\Memory($stream, $mOffset);
-		$arraysMemory = new Precompile\ArraysMemory($stream, $processor, $amOffset, $arraysMemorySize);
+		$memory = new Precompile\Memory($stack, $stream, $mOffset);
+		$arraysMemory = new Precompile\ArraysMemory($stack, $stream, $amOffset, $arraysMemorySize);
 
 		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset);
-		return new self($processor, $stream, $memory, $arraysMemory, $arraysProcessor);
+		return new self($processor, $stream, $stack, $memory, $arraysMemory, $arraysProcessor);
 	}
 
 	public static function makeForRelease(int $registrySize, int $memorySize, int $arraysMemorySize) : self
@@ -58,12 +65,13 @@ class Environment
 		$mOffset = $registrySize;
 		$amOffset = $registrySize + $memorySize;
 		$stream = new OutputStream();
+		$stack = new Stack();
 
 		$processor = new Processor($stream, $registrySize);
-		$memory = new Memory($stream, $mOffset);
-		$arraysMemory = new ArraysMemory($stream, $processor, $amOffset, $arraysMemorySize);
+		$memory = new Memory($stack, $stream, $mOffset);
+		$arraysMemory = new ArraysMemory($stack, $stream, $amOffset, $arraysMemorySize);
 
 		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset);
-		return new self($processor, $stream, $memory, $arraysMemory, $arraysProcessor);
+		return new self($processor, $stream, $stack, $memory, $arraysMemory, $arraysProcessor);
 	}
 }
