@@ -77,6 +77,13 @@ class ArraysProcessor
 		});
 	}
 
+	public function input(MemoryCell $index) : void
+	{
+		$this->goto($index, function() {
+			$this->stream->write(',', 'input value');
+		});
+	}
+
 	public function printString(MemoryCell $pointer, int $size) : void
 	{
 		$this->walk($pointer, $size, function() use (&$values) {
@@ -87,7 +94,7 @@ class ArraysProcessor
 	public function inputString(MemoryCell $pointer) : void
 	{
 		$this->gotoIndex($pointer, function() {
-			$this->stream->write('+[>>>>,----------[++++++++++[-<<<+>>>]<<+>>]<<]<<', "input until enter");
+			$this->stream->write('+[>>>>,----------[++++++++++<<<[-]>>>[-<<<+>>>]<<+>>]<<]<<', "input until enter");
 		});
 	}
 

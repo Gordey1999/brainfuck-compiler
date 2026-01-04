@@ -5,6 +5,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Command;
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
+use Gordy\Brainfuck\BigBrain\Term\Expression\Operator\ArrayAccess;
 use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term;
@@ -47,13 +48,17 @@ class Input implements Term\Command
 
 			$resultType = $part->resultType($env);
 
+			if ($part instanceof ArrayAccess && $resultType instanceof Type\Scalar)
+			{
+				$this->inputArrayIndex($env, $part);
+			}
 			if ($part instanceof Expression\ScalarVariable)
 			{
 				$this->inputVariable($env, $part);
 			}
-			else if ($resultType instanceof Type\Pointer)
+			else if ($resultType instanceof Type\Pointer && $resultType->valueType() instanceof Type\Char)
 			{
-				$this->inputString($env, $part, $resultType);
+				$this->inputString($env, $part);
 			}
 			else if ($resultType instanceof Type\Scalar)
 			{
@@ -61,7 +66,7 @@ class Input implements Term\Command
 			}
 			else
 			{
-				throw new CompileError('scalar variable expected', $part->lexeme());
+				throw new CompileError("command in: type '$resultType' not supported", $part->lexeme());
 			}
 		}
 	}
@@ -99,6 +104,13 @@ class Input implements Term\Command
 		}
 	}
 
+	protected function inputArrayIndex(Environment $env, ArrayAccess $expr) : void
+	{
+		$cell = $env->arraysProcessor()->startCell();
+		$expr->calculateIndex($env, $cell);
+		$env->arraysProcessor()->input($cell);
+	}
+
 	public function inputNumber(Environment $env, Expression\ScalarVariable $var) : void
 	{
 		$result = $var->memoryCell($env);
@@ -130,19 +142,14 @@ class Input implements Term\Command
 		$proc->release($in, $a, $b, $c);
 	}
 
-	protected function inputString(Environment $env, Expression $part, Type\Pointer $resultType) : void
+	protected function inputString(Environment $env, Expression $part) : void
 	{
-		if (!$resultType->valueType() instanceof Type\Char)
-		{
-			$type = $resultType->valueType();
-			throw new CompileError("expected char array. '$type' array provided", $part->lexeme());
-		}
 		if ($part instanceof Expression\ArrayVariable)
 		{
 			$startCell = $part->memoryCell($env);
 			$env->arraysProcessor()->inputString($startCell);
 		}
-		else if ($part instanceof Expression\Operator\ArrayAccess)
+		else if ($part instanceof ArrayAccess)
 		{
 			$indexCell = $env->arraysProcessor()->startCell();
 			$part->calculateIndex($env, $indexCell);

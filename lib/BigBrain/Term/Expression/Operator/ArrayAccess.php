@@ -159,10 +159,18 @@ class ArrayAccess implements Expression, Expression\Assignable
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
-		$startCell = $env->arraysProcessor()->startCell();
-		$this->calculateIndex($env, $startCell);
-		$carry = $env->arraysProcessor()->get($startCell);
-		$env->processor()->moveNumber($carry, $result);
+		$type = $this->resultType($env);
+		if ($type instanceof Type\Scalar)
+		{
+			$startCell = $env->arraysProcessor()->startCell();
+			$this->calculateIndex($env, $startCell);
+			$carry = $env->arraysProcessor()->get($startCell);
+			$env->processor()->moveNumber($carry, $result);
+		}
+		else
+		{
+			throw new CompileError('not expected', $this->variable()->lexeme());
+		}
 	}
 
 	public function assign(Environment $env, Expression $value, string $modifier) : void

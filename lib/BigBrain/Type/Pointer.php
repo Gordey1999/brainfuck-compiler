@@ -32,11 +32,6 @@ class Pointer implements BaseType
 		return $this->valueType;
 	}
 
-	public function scalarType() : BaseType
-	{
-
-	}
-
 	public function plainSize() : int
 	{
 		return array_product($this->sizes());
@@ -44,6 +39,7 @@ class Pointer implements BaseType
 
 	public function __toString() : string
 	{
-		return 'array';
+		$subType = $this->valueType();
+		return "array<$subType>";
 	}
 }

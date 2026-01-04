@@ -8,6 +8,6 @@ class CompileError extends Exception
 {
 	public function __construct(string $message, Lexeme $lexeme)
 	{
-		parent::__construct("COMPILE ERROR: $message", $lexeme);
+		parent::__construct("COMPILE ERROR:\n$message", $lexeme);
 	}
 }

@@ -5,6 +5,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Command;
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
+use Gordy\Brainfuck\BigBrain\Term\Expression\Operator\ArrayAccess;
 use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term;
@@ -49,7 +50,7 @@ class Output implements Term\Command
 			{
 				$this->printComputable($env, $resultType);
 			}
-			else if ($resultType instanceof Type\Pointer)
+			else if ($resultType instanceof Type\Pointer && $resultType->valueType() instanceof Type\Char)
 			{
 				$this->printString($env, $part, $resultType);
 			}
@@ -57,9 +58,17 @@ class Output implements Term\Command
 			{
 				$env->processor()->print($part->memoryCell($env));
 			}
-			else
+			else if ($part instanceof ArrayAccess && $resultType instanceof Type\Char)
+			{
+				$this->printArrayIndex($env, $part);
+			}
+			else if ($resultType instanceof Type\Scalar)
 			{
 				$this->printExpression($env, $part, $resultType);
+			}
+			else
+			{
+				throw new CompileError("command out: type '$resultType' not supported", $part->lexeme());
 			}
 		}
 	}
@@ -84,17 +93,12 @@ class Output implements Term\Command
 
 	protected function printString(Environment $env, Expression $part, Type\Pointer $resultType) : void
 	{
-		if (!$resultType->valueType() instanceof Type\Char)
-		{
-			$type = $resultType->valueType();
-			throw new CompileError("expected char array. '$type' array provided", $part->lexeme());
-		}
 		if ($part instanceof Expression\ArrayVariable)
 		{
 			$startCell = $part->memoryCell($env);
 			$env->arraysProcessor()->printString($startCell, $resultType->size());
 		}
-		else if ($part instanceof Expression\Operator\ArrayAccess)
+		else if ($part instanceof ArrayAccess)
 		{
 			$indexCell = $env->arraysProcessor()->startCell();
 			$part->calculateIndex($env, $indexCell);
@@ -102,11 +106,18 @@ class Output implements Term\Command
 		}
 		else
 		{
-			throw new CompileError('something went wrong', $part->lexeme());
+			throw new CompileError("command out: type '$resultType' not supported", $part->lexeme());
 		}
 	}
 
-	protected function printExpression(Environment $env, Expression $expr, Type\Type $resultType) : void
+	protected function printArrayIndex(Environment $env, ArrayAccess $expr) : void
+	{
+		$cell = $env->arraysProcessor()->startCell();
+		$expr->calculateIndex($env, $cell);
+		$env->arraysProcessor()->print($cell);
+	}
+
+	protected function printExpression(Environment $env, Expression $expr, Type\Scalar $resultType) : void
 	{
 		$result = $env->processor()->reserve();
 
@@ -115,6 +126,7 @@ class Output implements Term\Command
 		if ($resultType instanceof Type\Char)
 		{
 			$env->processor()->print($result);
+			$env->processor()->unset($result);
 		}
 		else if ($resultType instanceof Type\Boolean)
 		{

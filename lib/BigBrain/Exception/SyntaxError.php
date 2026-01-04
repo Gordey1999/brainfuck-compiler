@@ -8,6 +8,6 @@ class SyntaxError extends Exception
 {
 	public function __construct(string $message, Lexeme $lexeme)
 	{
-		parent::__construct("SYNTAX ERROR: $message", $lexeme);
+		parent::__construct("SYNTAX ERROR:\n$message", $lexeme);
 	}
 }
