@@ -29,6 +29,11 @@ class ArraysProcessor
 		return new MemoryCell($this->offset + self::CELL_SIZE, 'i0');
 	}
 
+	public function carryCell() : MemoryCell
+	{
+		return new MemoryCell($this->offset + 2 * self::CELL_SIZE, 'i1');
+	}
+
 	public function initIndex(MemoryCell $index) : void
 	{
 		if ($index instanceof MemoryCellArray)
@@ -106,15 +111,17 @@ class ArraysProcessor
 		});
 	}
 
-	public function set(MemoryCell $index, MemoryCell $value) : void
+	public function set(MemoryCell $index) : void
 	{
-		// todo
+		$this->gotoMove($index, function() {
+			$this->stream->write('[-]>[-<+>]<', 'set value');
+		});
 	}
 
 	protected function goto(MemoryCell $index, callable $callback) : void
 	{
 		$this->initIndex($index);
-		$this->stream->write('[[->>+<<]+>>-]+>', 'goto index');
+		$this->stream->write('[[->>+<<]+>>-]+>', 'goto target index');
 
 		$callback();
 
@@ -125,11 +132,22 @@ class ArraysProcessor
 	protected function gotoIndex(MemoryCell $index, callable $callback) : void
 	{
 		$this->initIndex($index);
-		$this->stream->write('[[->>+<<]+>>-]', 'goto index');
+		$this->stream->write('[[->>+<<]+>>-]', 'goto target index');
 
 		$callback();
 
 		$this->stream->write('[-<<]', 'return to start');
+		$this->processor->setPointer($this->initCell());
+	}
+
+	protected function gotoMove(MemoryCell $index, callable $callback) : void
+	{
+		$this->initIndex($index);
+		$this->stream->write('[>>[->>+<<]<<[->>+<<]+>>-]+>', 'move value to target index');
+
+		$callback();
+
+		$this->stream->write('<[-<<]', 'return to start');
 		$this->processor->setPointer($this->initCell());
 	}
 

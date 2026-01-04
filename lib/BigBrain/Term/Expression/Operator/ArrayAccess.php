@@ -190,8 +190,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 		else if ($selfType instanceof Type\Scalar)
 		{
-			// todo
-			//$this->assignVariable($env, $resultType, $value, $modifier);
+			$this->assignScalar($env, $selfType, $value, $modifier);
 		}
 		else
 		{
@@ -199,9 +198,93 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 	}
 
-	protected function assignVariable(Environment $env, Type\Scalar $result, Expression $value, string $modifier) : void
+	protected function assignScalar(Environment $env, Type\Scalar $targetType, Expression $value, string $modifier) : void
 	{
+		$result = $value->resultType($env);
 
+		if ($result instanceof Type\Computable)
+		{
+			$this->assignComputed($env, $targetType, $result, $value, $modifier);
+		}
+		else if ($result instanceof Type\Scalar)
+		{
+			$this->assignVariable($env, $targetType, $result, $value, $modifier); // todo
+		}
+		else
+		{
+			throw new CompileError('scalar value expected', $value->lexeme());
+		}
+	}
+
+	protected function assignComputed(
+		Environment $env,
+		Type\Scalar $targetType,
+		Type\Computable $result,
+		Expression $value,
+		string $modifier
+	) : void
+	{
+		if (!$result->numericCompatible())
+		{
+			throw new CompileError('numeric type expected', $value->lexeme());
+		}
+
+		if ($targetType instanceof Type\Boolean)
+		{
+			$resultValue = $result->getNumeric() === 1;
+		}
+		else
+		{
+			$resultValue = $result->getNumeric();
+		}
+
+		$startCell = $env->arraysProcessor()->startCell();
+		$this->calculateIndex($env, $startCell);
+
+		if ($modifier === self::ASSIGN_SET)
+		{
+			$env->arraysProcessor()->setConstant($startCell, $resultValue);
+		}
+		else
+		{
+			throw new CompileError('not supported yet', $value->lexeme());
+		}
+	}
+
+	protected function assignVariable(
+		Environment $env,
+		Type\Scalar $targetType,
+		Type\Scalar $result,
+		Expression $value,
+		string $modifier
+	) : void
+	{
+		$indexCell = $env->arraysProcessor()->startCell();
+		$valueCell = $env->arraysProcessor()->carryCell();
+		$this->calculateIndex($env, $indexCell);
+
+		$boolCastingNeed = $targetType instanceof Type\Boolean
+			&& !$result instanceof Type\Boolean;
+
+		if ($modifier === self::ASSIGN_SET)
+		{
+			if ($boolCastingNeed)
+			{
+				$temp = $env->processor()->reserve($valueCell);
+				$value->compileCalculation($env, $temp);
+				$env->processor()->moveBoolean($temp, $valueCell);
+				$env->arraysProcessor()->set($indexCell);
+			}
+			else
+			{
+				$value->compileCalculation($env, $valueCell);
+				$env->arraysProcessor()->set($indexCell);
+			}
+		}
+		else
+		{
+			throw new CompileError('not supported yet', $value->lexeme());
+		}
 	}
 
 	public function hasVariable(string $name) : bool
