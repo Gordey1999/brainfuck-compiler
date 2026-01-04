@@ -14,7 +14,7 @@ use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Utils;
 
-class ArrayAccess implements Expression
+class ArrayAccess implements Expression, Expression\Assignable
 {
 	use HasLexeme;
 
@@ -65,7 +65,7 @@ class ArrayAccess implements Expression
 		return [$resultType->getNumericNullable()];
 	}
 
-	public function resultType(Environment $env) : Type\Type
+	public function resultType(Environment $env) : Type\BaseType
 	{
 		$result = $this->to->resultType($env);
 
@@ -77,7 +77,6 @@ class ArrayAccess implements Expression
 		{
 			throw new CompileError('array operand expected, scalar passed', $this->to->lexeme());
 		}
-		// todo check with char a; a[i]; and char[] a; a[i][j]
 	}
 
 	public function compile(BigBrain\Environment $env) : void
@@ -164,6 +163,37 @@ class ArrayAccess implements Expression
 		$this->calculateIndex($env, $startCell);
 		$carry = $env->arraysProcessor()->get($startCell);
 		$env->processor()->moveNumber($carry, $result);
+	}
+
+	public function assign(Environment $env, Expression $value, string $modifier) : void
+	{
+		$selfType = $this->resultType($env);
+
+		if ($selfType instanceof Type\Pointer)
+		{
+			if ($modifier !== self::ASSIGN_SET)
+			{
+				throw new CompileError('only "=" operator supported to fill array', $value->lexeme());
+			}
+			$indexCell = $env->arraysProcessor()->startCell();
+			$this->calculateIndex($env, $indexCell);
+			$plainArray = $this->variable()->prepareArrayValues($env, $selfType, $value);
+			$env->arraysProcessor()->fill($indexCell, $plainArray);
+		}
+		else if ($selfType instanceof Type\Scalar)
+		{
+			// todo
+			//$this->assignVariable($env, $resultType, $value, $modifier);
+		}
+		else
+		{
+			throw new CompileError('not expected', $this->lexeme);
+		}
+	}
+
+	protected function assignVariable(Environment $env, Type\Scalar $result, Expression $value, string $modifier) : void
+	{
+
 	}
 
 	public function hasVariable(string $name) : bool

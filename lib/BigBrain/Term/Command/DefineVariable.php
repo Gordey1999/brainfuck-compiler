@@ -114,7 +114,9 @@ class DefineVariable implements Term\Command
 			}
 
 			$pointer = $env->arraysMemory()->allocate($this->type, $name, $dimensions);
-			$assignment->fillArray($env, $pointer);
+
+			$env->stream()->blockComment($assignment);
+			$array->variable()->fillArray($env, $pointer, $assignment->right());
 		}
 		else if ($assignment->left() instanceof ScalarVariable)
 		{
