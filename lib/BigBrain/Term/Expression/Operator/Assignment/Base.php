@@ -15,11 +15,16 @@ class Base implements Expression
 {
 	use HasLexeme;
 
-	protected Expression $to;
+	protected Expression\Assignable $to;
 	protected Expression $value;
 
 	public function __construct(Expression $to, Expression $expr, Lexeme $lexeme)
 	{
+		if (!$to instanceof Expression\Assignable)
+		{
+			throw new CompileError('assignable value expected', $to->lexeme());
+		}
+
 		$this->to = $to;
 		$this->value = $expr;
 		$this->lexeme = $lexeme;
@@ -33,11 +38,6 @@ class Base implements Expression
 	public function compile(BigBrain\Environment $env) : void
 	{
 		$env->stream()->blockComment($this);
-
-		if (!$this->to instanceof Expression\Assignable)
-		{
-			throw new CompileError('assignable value expected', $this->to->lexeme());
-		}
 		$this->to->assign($env, $this->value, Expression\Assignable::ASSIGN_SET);
 	}
 
@@ -65,6 +65,7 @@ class Base implements Expression
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
+		$this->compile($env);
 		$this->to->compileCalculation($env, $result);
 	}
 

@@ -56,14 +56,9 @@ class LexemeScope extends Lexeme
 		return new LexemeScope($this->value, $parts, $this->index, $this->position);
 	}
 
-	public function isCommand() : bool
+	public function isBlock() : bool
 	{
 		return $this->value === ';';
-	}
-
-	public function isStructure() : bool
-	{
-		return $this->value === 'structure';
 	}
 
 	public function dump() : array

@@ -64,7 +64,7 @@ class OutputStream
 		$last = $this->getLastComment();
 		if (mb_strpos($last, "# @memory") === false)
 		{
-			$this->newBlock('', "\n# @memory" . $part, true);
+			$this->newBlock('', "# @memory" . $part, true);
 			return;
 		}
 
@@ -80,7 +80,7 @@ class OutputStream
 
 	public function blockComment(string $comment) : void
 	{
-		$this->newBlock('', "\n### $comment", true);
+		$this->newBlock('', "### $comment", true);
 	}
 
 	public function build() : string
@@ -92,10 +92,12 @@ class OutputStream
 		{
 			if ($block['commentOnly'])
 			{
-				$result[] = $block['comment'];
+				$indent = str_repeat(' ', $indentCount);
+				$result[] = sprintf("%s%s", $indent, $block['comment']);
 				continue;
 			}
-			if (!$block['commentOnly'] && empty($block['code'])) { continue; }
+
+			if (empty($block['code'])) { continue; }
 
 			$firstLine = $block['code'][0];
 
@@ -103,10 +105,9 @@ class OutputStream
 			{
 				$indent = str_repeat(' ', $indentCount);
 
-				$comment = sprintf('%s# %s', $indent, $block['comment']);
-				$code = $indent . $firstLine;
+				$code = sprintf('%s%-30s # %s', $indent, '[', $block['comment']);
 
-				array_push($result, '', $comment, $code);
+				array_push($result, $code);
 
 				$indentCount += self::INDENT_WIDTH;
 			}
@@ -125,7 +126,7 @@ class OutputStream
 
 				$lines = $this->combineLines($block['code'], $indent);
 
-				$lines[0] = sprintf('%-30s # %s', $lines[0], $block['comment']);
+				$lines[0] = sprintf('%s%-30s # %s', $indent, $lines[0], $block['comment']);
 
 				array_push($result, ...$lines);
 			}
@@ -205,9 +206,9 @@ class OutputStream
 	protected function combineLines(array $lines, string $indent) : array
 	{
 		$result = [];
-		$indentLength = mb_strlen($indent);
+		$indentLength = 0;
 
-		$currentLine = [ $indent ];
+		$currentLine = [];
 		$currentLength = $indentLength;
 
 		foreach ($lines as $line)

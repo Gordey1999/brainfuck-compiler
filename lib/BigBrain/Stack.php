@@ -8,7 +8,7 @@ use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 class Stack
 {
 	/** @var array<int, <string, object>> */
-	private array $stack = [];
+	private array $stack = [[]];
 
 	protected OutputStream $stream;
 
@@ -20,7 +20,7 @@ class Stack
 	 */
 	public function push(Lexeme $name, mixed $value) : mixed
 	{
-		if ($this->search($name->value()) !== null)
+		if ($this->stack[0][$name->value()] !== null)
 		{
 			throw new CompileError("variable '{$name->value()}' is already defined", $name);
 		}

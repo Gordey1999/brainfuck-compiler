@@ -48,7 +48,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 
 		if (!$resultType instanceof Type\Computable)
 		{
-			throw new CompileError('dynamic expressions not allowed here', $this->index->lexeme());
+			throw new CompileError('array size must be constant', $this->index->lexeme());
 		}
 		if (!$resultType->numericNullableCompatible())
 		{

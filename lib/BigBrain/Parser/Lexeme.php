@@ -4,7 +4,7 @@ namespace Gordy\Brainfuck\BigBrain\Parser;
 
 class Lexeme
 {
-	protected mixed $value;
+	protected string $value;
 	protected array $position;
 	protected int $index;
 
@@ -15,7 +15,7 @@ class Lexeme
 		$this->position = $position;
 	}
 
-	public function value() : mixed
+	public function value() : string
 	{
 		return $this->value;
 	}

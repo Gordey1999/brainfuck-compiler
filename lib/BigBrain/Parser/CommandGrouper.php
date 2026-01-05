@@ -104,25 +104,19 @@ class CommandGrouper
 			if ($word instanceof LexemeScope && $word->value() === '{')
 			{
 				$group[] = new LexemeScope(
-					'{',
+					$word->value(),
 					self::groupCommandsRecursive($word->children()),
 					$word->index(),
 					$word->position(),
 				);
-				if (empty($group))
-				{
-					$result[] = $group[0];
-				}
-				else
-				{
-					$result[] = new LexemeScope(
-						'structure',
-						$group,
-						$groupStart->index(),
-						$groupStart->position()
-					);
-				}
+				$result[] = new LexemeScope(
+					';',
+					$group,
+					$groupStart->index(),
+					$groupStart->position()
+				);
 				$group = [];
+				$groupStart = null;
 			}
 			else if ($word->value() === ';')
 			{
@@ -133,6 +127,7 @@ class CommandGrouper
 					$groupStart->position()
 				);
 				$group = [];
+				$groupStart = null;
 			}
 			else
 			{

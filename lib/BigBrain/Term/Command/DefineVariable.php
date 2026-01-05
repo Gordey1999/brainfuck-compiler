@@ -63,11 +63,6 @@ class DefineVariable implements Term\Command
 		{
 			if ($expression instanceof Assignment\Base)
 			{
-				if (count($expression->variables()) > 1)
-				{
-					throw new CompileError('array multiple assignation not supported', $expression->right()->lexeme());
-				}
-
 				$this->allocateAndInitialize($env, $expression);
 			}
 			else

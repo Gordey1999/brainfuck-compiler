@@ -12,7 +12,7 @@ class Scope implements Term
 	/** @var Term[] */
 	protected array $terms;
 
-	public function __construct(array $terms, Lexeme $lexeme)
+	public function __construct(array $terms, Lexeme $lexeme = null)
 	{
 		$this->terms = $terms;
 		$this->lexeme = $lexeme;
@@ -20,10 +20,12 @@ class Scope implements Term
 
 	public function compile(BigBrain\Environment $env) : void
 	{
+		$env->stack()->newScope();
 		foreach ($this->terms as $term)
 		{
 			$term->compile($env);
 		}
+		$env->stack()->dropScope();
 	}
 
 	public function __toString() : string

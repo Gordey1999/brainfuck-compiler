@@ -26,6 +26,13 @@ class Processor
 
 	public function reserve(MemoryCell ...$near) : MemoryCell
 	{
+		if (empty($near))
+		{
+			$near = [
+				new MemoryCell($this->pointer, 'dummy'),
+			];
+		}
+
 		$nearest = null;
 		$minDistance = 1000;
 		foreach (array_reverse($this->registry, true) as $address => $isReserved)
