@@ -2,6 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain\Builder;
 
+use Gordy\Brainfuck\BigBrain\Exception\ParseError;
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Parser\LexemeScope;
@@ -10,10 +11,11 @@ use Gordy\Brainfuck\BigBrain\Term;
 class ExpressionBuilder
 {
 	public const array PRIORITY = [
+		[ '[', '(', '.' ],
 		[ '++', '--' ],
 		[ '!' ],
 		[ '*', '/', '%' ],
-		[ '+', '-', '.' ],
+		[ '+', '-' ],
 		[ '<', '<=', '>', '>=' ],
 		[ '==', '!=', '===', '!==', '<>' ],
 		[ '&&', '||' ],
@@ -22,12 +24,12 @@ class ExpressionBuilder
 		[ ',' ],
 	];
 
-	public const array ASSIGNMENT_OPERATORS = [
-		'=', '+=', '-=', '*=', '/=', '%=', '.=', '&=', '|=',
+	public const array SINGLE_OPERATORS = [
+		'++', '--', '!', '[', '(', '.'
 	];
 
-	public const array SINGLE_OPERATORS = [
-		'++', '--', '!',
+	public const array REVERSE_PRIORITY = [
+		'=', '+=', '-=', '*=', '/=', '%=', '.=', '&=', '|=',
 	];
 
 	protected Names $names;
@@ -50,39 +52,38 @@ class ExpressionBuilder
 			// todo появляется, если в массиве поставить лишнюю переменную
 		}
 
-		if ($scope->isSingle() && !$scope->first() instanceof LexemeScope)
+		if ($scope->isSingle()) // a, 5, [1,2,3], (a + b)
 		{
-			if ($scope->first()->isLiteral())
-			{
-				return new Term\Expression\Literal($scope->first());
-			}
-			else if ($scope->first()->isName())
-			{
-				if ($this->names->isVariable($scope->first()->value()))
-				{
-					return new Term\Expression\ScalarVariable($scope->first());
-				}
-				else if ($this->names->isArray($scope->first()->value()))
-				{
-					return new Term\Expression\ArrayVariable($scope->first());
-				}
-			}
+			return $this->parseSingeExpression($scope->first());
 		}
 
 		$minPriorityIndex = $this->getMinPriorityIndex($scope);
-
 		if ($minPriorityIndex === null)
 		{
-			return $this->parseSpecialExpression($scope);
+			throw new ParseError("can't parse expression", $scope);
 		}
 
 		$operator = $scope->get($minPriorityIndex);
 
 		if (in_array($operator->value(), self::SINGLE_OPERATORS, true))
 		{
-			if ($minPriorityIndex === 0)
+			if ($operator->value() === '[' || $operator->value() === '(') // a[b], a(b)
 			{
-				// todo
+				return $this->parseAccess($scope);
+			}
+			else if ($minPriorityIndex === 0) // ++a, --a, !a
+			{
+				$operand = $this->parseExpression($scope->slice(1));
+				return $this->parseSingleOperatorBefore($operand, $operator);
+			}
+			else if ($minPriorityIndex === $scope->count() - 1) // a++, a--,
+			{
+				$operand = $this->parseExpression($scope->slice(0, -1));
+				return $this->parseSingleOperatorAfter($operand, $operator);
+			}
+			else
+			{
+				throw new ParseError("can't parse expression", $scope);
 			}
 		}
 		else
@@ -92,51 +93,57 @@ class ExpressionBuilder
 
 			return $this->parseBinaryOperator($left, $right, $operator);
 		}
-
-		throw new SyntaxError('cant parse expression', $scope);
 	}
 
-	protected function parseSpecialExpression(LexemeScope $scope) : Term\Expression
+	protected function parseSingeExpression(Lexeme $lexeme) : Term\Expression
 	{
-		// todo fn(a + b)[i]
-		// todo (int)
-		// todo a[i]
-		if ($scope->count() === 1)
+		if ($lexeme->isLiteral()) // 5
 		{
-			$first = $scope->first();
-			if ($first instanceof LexemeScope)
+			return new Term\Expression\Literal($lexeme);
+		}
+		else if ($lexeme->isName()) // a
+		{
+			if ($this->names->isVariable($lexeme->value()))
 			{
-				$scopeType = $first->value();
-
-				if ($scopeType === '(')
-				{
-					return $this->parseExpression($first);
-				}
-				else if ($scopeType === '[')
-				{
-					return new Term\Expression\ArrayScope(
-						$this->parseExpression($first),
-						$first,
-					);
-				}
-				else
-				{
-					throw new SyntaxError('not supported yet', $scope->first());
-				}
+				return new Term\Expression\ScalarVariable($lexeme);
+			}
+			else if ($this->names->isArray($lexeme->value()))
+			{
+				return new Term\Expression\ArrayVariable($lexeme);
 			}
 			else
 			{
-				return new Term\Expression\ScalarVariable($scope->first());
+				throw new ParseError("can't parse expression", $lexeme);
 			}
 		}
-		else if ($scope->first()->isName()) // fn(), a[][]
+		else if ($lexeme instanceof LexemeScope && $lexeme->value() === '(') // (a + b)
 		{
-			return $this->parseAccess($scope);
+			return $this->parseExpression($lexeme);
+		}
+		else if ($lexeme instanceof LexemeScope && $lexeme->value() === '[') // [1, 2, 3]
+		{
+			return new Term\Expression\ArrayScope(
+				$this->parseExpression($lexeme),
+				$lexeme,
+			);
 		}
 		else
 		{
-			throw new SyntaxError('not supported yet', $scope->first());
+			throw new ParseError("can't parse expression", $lexeme);
 		}
+	}
+
+	protected function parseSingleOperatorBefore(Term\Expression $operand, Lexeme $operator) : Term\Expression
+	{
+		return match ($operator->value()) {
+			'++' => new Term\Expression\Operator\Arithmetic\Increment($operand, $operator),
+			default => throw new ParseError("can't parse expression", $operator),
+		};
+	}
+
+	protected function parseSingleOperatorAfter(Term\Expression $operand, Lexeme $operator) : Term\Expression
+	{
+		throw new ParseError("notReady", $operator);
 	}
 
 	protected function parseAccess(LexemeScope $scope) : Term\Expression
@@ -187,14 +194,17 @@ class ExpressionBuilder
 		$minPriorityIndex = null;
 		foreach ($parts->children() as $key => $part)
 		{
-			if ($part instanceof LexemeScope) { continue; }
+			//if ($part instanceof LexemeScope) { continue; }
 			$value = $part->value();
 
 			foreach (self::PRIORITY as $priority => $operators)
 			{
 				if (in_array($value, $operators, true) && $priority >= $minPriority)
 				{
-					if ($value === '=' && $priority === $minPriority) { continue; }
+					if (in_array($value, self::REVERSE_PRIORITY) && $priority === $minPriority)
+					{
+						continue;
+					}
 					$minPriority = $priority;
 					$minPriorityIndex = $key;
 				}
