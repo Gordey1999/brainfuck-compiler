@@ -137,13 +137,18 @@ class ExpressionBuilder
 	{
 		return match ($operator->value()) {
 			'++' => new Term\Expression\Operator\Arithmetic\Increment($operand, $operator),
+			'--' => new Term\Expression\Operator\Arithmetic\Decrement($operand, $operator),
 			default => throw new ParseError("can't parse expression", $operator),
 		};
 	}
 
 	protected function parseSingleOperatorAfter(Term\Expression $operand, Lexeme $operator) : Term\Expression
 	{
-		throw new ParseError("notReady", $operator);
+		return match ($operator->value()) {
+			'++' => new Term\Expression\Operator\Arithmetic\Increment($operand, $operator, true),
+			'--' => new Term\Expression\Operator\Arithmetic\Decrement($operand, $operator, true),
+			default => throw new ParseError("can't parse expression", $operator),
+		};
 	}
 
 	protected function parseAccess(LexemeScope $scope) : Term\Expression

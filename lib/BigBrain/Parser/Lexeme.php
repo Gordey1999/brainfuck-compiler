@@ -32,7 +32,7 @@ class Lexeme
 
 	public function isLiteral() : bool
 	{
-		$keywords = [ 'true', 'false' ];
+		$keywords = [ 'true', 'false', 'eol' ];
 
 		return in_array($this->value, $keywords)
 			|| ctype_digit($this->value)

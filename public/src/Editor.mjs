@@ -225,8 +225,12 @@ export class Editor {
 					return "string"
 				}
 
-				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|true|false|in|out|eol/)) {
+				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|in|out/)) {
 					return "keyword"
+				}
+
+				if (stream.match(/true|false|eol/)) {
+					return "number"
 				}
 
 				if (stream.match(/^\d+/)) {

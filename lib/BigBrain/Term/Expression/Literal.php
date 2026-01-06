@@ -33,6 +33,7 @@ class Literal implements Expression
 				substr($value, 1, -1)
 			),
 			$value === 'true' || $value === 'false' => $value === 'true',
+			$value === 'eol' => "\n",
 			ctype_digit($value) => (int)$value,
 			default => throw new CompileError('not supported type', $value),
 		};
