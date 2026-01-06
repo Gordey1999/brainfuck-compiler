@@ -6,7 +6,7 @@ use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 
-class Division extends Skeleton
+class Division extends Binary
 {
 	protected function computeValue(int $left, int $right) : int
 	{

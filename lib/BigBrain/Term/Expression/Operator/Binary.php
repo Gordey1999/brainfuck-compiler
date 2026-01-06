@@ -1,6 +1,6 @@
 <?php
 
-namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Arithmetic;
+namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator;
 
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\Term;
@@ -10,7 +10,7 @@ use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 
-abstract class Skeleton implements Expression
+abstract class Binary implements Expression
 {
 	use Term\HasLexeme;
 
@@ -32,6 +32,8 @@ abstract class Skeleton implements Expression
 
 	protected abstract function compileWithRightConstant(Environment $env, int $constant, MemoryCell $result) : void;
 
+	protected abstract function computeResultType() : Type\BaseType;
+
 	public function compile(Environment $env) : void
 	{
 		// do nothing
@@ -51,7 +53,7 @@ abstract class Skeleton implements Expression
 			return new Type\Computable($result);
 		}
 
-		return new Type\Byte();
+		return $this->computeResultType();
 	}
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void

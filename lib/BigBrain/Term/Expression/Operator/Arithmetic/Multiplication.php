@@ -5,7 +5,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Arithmetic;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 
-class Multiplication extends Skeleton
+class Multiplication extends Binary
 {
 	protected function computeValue(int $left, int $right) : int
 	{
