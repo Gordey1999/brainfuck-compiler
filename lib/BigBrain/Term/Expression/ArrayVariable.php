@@ -100,7 +100,7 @@ class ArrayVariable implements Expression, Assignable
 			throw new CompileError(sprintf("can't assign '%s' value to array", $result->type()), $this->lexeme);
 		}
 
-		if ($pointer->valueType() instanceof Type\Boolean)
+		if ($pointer->baseType() instanceof Type\Boolean)
 		{
 			return Utils\ArraysHelper::toBoolArray($plainArray);
 		}

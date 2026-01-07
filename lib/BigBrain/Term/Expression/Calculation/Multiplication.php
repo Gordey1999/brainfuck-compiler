@@ -3,9 +3,7 @@
 namespace Gordy\Brainfuck\BigBrain\Term\Expression\Calculation;
 
 use Gordy\Brainfuck\BigBrain\Environment;
-use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Term\Expression;
 
 class Multiplication
 {

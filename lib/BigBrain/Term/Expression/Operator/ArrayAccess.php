@@ -190,7 +190,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 		else if ($selfType instanceof Type\Scalar)
 		{
-			$this->assignScalar($env, $selfType, $value, $modifier);
+			$this->assignScalar($env, $value, $modifier);
 		}
 		else
 		{
@@ -198,17 +198,17 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 	}
 
-	protected function assignScalar(Environment $env, Type\Scalar $targetType, Expression $value, string $modifier) : void
+	protected function assignScalar(Environment $env, Expression $value, string $modifier) : void
 	{
 		$result = $value->resultType($env);
 
 		if ($result instanceof Type\Computable)
 		{
-			$this->assignComputed($env, $targetType, $result, $value, $modifier);
+			$this->assignComputed($env, $result, $value, $modifier);
 		}
 		else if ($result instanceof Type\Scalar)
 		{
-			$this->assignVariable($env, $targetType, $result, $value, $modifier); // todo
+			$this->assignVariable($env, $value, $modifier);
 		}
 		else
 		{
@@ -216,74 +216,155 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 	}
 
-	protected function assignComputed(
-		Environment $env,
-		Type\Scalar $targetType,
-		Type\Computable $result,
-		Expression $value,
-		string $modifier
-	) : void
+	protected function assignComputed(Environment $env, Type\Computable $result, Expression $value, string $modifier) : void
 	{
+		$this->checkAssignType($env, $value, $modifier);
+		$isBool = $this->resultType($env) instanceof Type\Boolean;
+
+		$this->calculateAssignIndex($env, $modifier);
+
 		if (!$result->numericCompatible())
 		{
 			throw new CompileError('numeric type expected', $value->lexeme());
 		}
 
-		if ($targetType instanceof Type\Boolean)
-		{
-			$resultValue = $result->getNumeric() === 1;
-		}
-		else
-		{
-			$resultValue = $result->getNumeric();
-		}
+		$numericValue = $result->getNumeric();
 
 		$startCell = $env->arraysProcessor()->startCell();
-		$this->calculateIndex($env, $startCell);
-
 		if ($modifier === self::ASSIGN_SET)
 		{
-			$env->arraysProcessor()->setConstant($startCell, $resultValue);
+			$env->arraysProcessor()->setConstant($startCell, $isBool ? $numericValue !== 0 : $numericValue);
+		}
+		else if ($modifier === self::ASSIGN_ADD)
+		{
+			$env->arraysProcessor()->addConstant($startCell, $numericValue);
+		}
+		else if ($modifier === self::ASSIGN_SUB)
+		{
+			$env->arraysProcessor()->addConstant($startCell, -$numericValue);
 		}
 		else
 		{
-			throw new CompileError('not supported yet', $value->lexeme());
-		}
-	}
+			$dummyCell = $env->arraysProcessor()->dummyCell();
+			$carryCell = $env->arraysProcessor()->carryCell();
+			$valueCell = $env->arraysProcessor()->get($startCell);
 
-	protected function assignVariable(
-		Environment $env,
-		Type\Scalar $targetType,
-		Type\Scalar $result,
-		Expression $value,
-		string $modifier
-	) : void
-	{
-		$indexCell = $env->arraysProcessor()->startCell();
-		$valueCell = $env->arraysProcessor()->carryCell();
-		$this->calculateIndex($env, $indexCell);
-
-		$boolCastingNeed = $targetType instanceof Type\Boolean
-			&& !$result instanceof Type\Boolean;
-
-		if ($modifier === self::ASSIGN_SET)
-		{
-			if ($boolCastingNeed)
+			if ($modifier === self::ASSIGN_MULTIPLY)
 			{
-				$temp = $env->processor()->reserve($valueCell);
-				$value->compileCalculation($env, $temp);
-				$env->processor()->moveBoolean($temp, $valueCell);
-				$env->arraysProcessor()->set($indexCell);
+				$env->processor()->multiplyByConstant($valueCell, $numericValue, $carryCell);
+			}
+			else if ($modifier === self::ASSIGN_DIVIDE)
+			{
+				Expression\Calculation\Division::divideByConstant($env, $valueCell, $numericValue, $carryCell);
+			}
+			else if ($modifier === self::ASSIGN_MODULO)
+			{
+				Expression\Calculation\Modulo::divideByConstant($env, $valueCell, $numericValue, $carryCell);
 			}
 			else
 			{
-				$value->compileCalculation($env, $valueCell);
-				$env->arraysProcessor()->set($indexCell);
+				throw new CompileError('undefined modifier', $this->lexeme);
 			}
+			$env->arraysProcessor()->set($dummyCell);
+		}
+	}
+
+	protected function assignVariable(Environment $env, Expression $value, string $modifier) : void
+	{
+		$this->checkAssignType($env, $value, $modifier);
+		$castBool = $this->resultType($env) instanceof Type\Boolean
+			&& !$value->resultType($env) instanceof Type\Boolean;
+
+		$this->calculateAssignIndex($env, $modifier);
+
+		$startCell = $env->arraysProcessor()->startCell();
+		$carryCell = $env->arraysProcessor()->carryCell();
+
+		if ($modifier === self::ASSIGN_SET)
+		{
+			if ($castBool)
+			{
+				$tempResult = $env->processor()->reserve($startCell);
+				$value->compileCalculation($env, $tempResult);
+				$env->processor()->moveBoolean($tempResult, $carryCell);
+				$env->processor()->release($tempResult);
+				$env->arraysProcessor()->set($startCell);
+			}
+			else
+			{
+				$value->compileCalculation($env, $carryCell);
+				$env->arraysProcessor()->set($startCell);
+			}
+		}
+		else if ($modifier === self::ASSIGN_ADD)
+		{
+			$value->compileCalculation($env, $carryCell);
+			$env->arraysProcessor()->add($startCell);
+		}
+		else if ($modifier === self::ASSIGN_SUB)
+		{
+			$value->compileCalculation($env, $carryCell);
+			$env->arraysProcessor()->sub($startCell);
 		}
 		else
 		{
-			throw new CompileError('not supported yet', $value->lexeme());
+			$tempResult = $env->processor()->reserve($startCell);
+			$value->compileCalculation($env, $tempResult);
+			$dummyCell = $env->arraysProcessor()->dummyCell();
+			$valueCell = $env->arraysProcessor()->get($startCell);
+
+			if ($modifier === self::ASSIGN_MULTIPLY)
+			{
+				$env->processor()->multiply($valueCell, $tempResult, $carryCell);
+			}
+			else if ($modifier === self::ASSIGN_DIVIDE)
+			{
+				Expression\Calculation\Division::divide($env, $valueCell, $tempResult, $carryCell);
+			}
+			else if ($modifier === self::ASSIGN_MODULO)
+			{
+				Expression\Calculation\Modulo::divide($env, $valueCell, $tempResult, $carryCell);
+			}
+			else
+			{
+				throw new CompileError('undefined modifier', $this->lexeme);
+			}
+			$env->arraysProcessor()->set($dummyCell);
+			$env->processor()->release($tempResult);
+		}
+	}
+
+	protected function calculateAssignIndex(Environment $env, string $modifier) : void
+	{
+		$startCell = $env->arraysProcessor()->startCell();
+		$dummyCell = $env->arraysProcessor()->dummyCell();
+
+		if ($this->isSimpleModifier($modifier))
+		{
+			$this->calculateIndex($env, $startCell);
+		}
+		else
+		{
+			$temp = $env->processor()->reserve($startCell);
+			$this->calculateIndex($env, $temp);
+			$env->processor()->moveNumber($temp, $startCell, $dummyCell);
+			$env->processor()->release($temp);
+		}
+	}
+
+	protected function isSimpleModifier(string $modifier) : bool
+	{
+		return in_array($modifier, [self::ASSIGN_SET, self::ASSIGN_ADD, self::ASSIGN_SUB], true);
+	}
+
+	protected function checkAssignType(Environment $env, Expression $value, string $modifier) : void
+	{
+		$isBool = $this->resultType($env) instanceof Type\Boolean;
+		$isArithmetic = in_array($modifier, self::ASSIGN_ARITHMETIC);
+
+		if ($isBool && $isArithmetic)
+		{
+			throw new CompileError("Why? It's bool variable. It's stupid. I won't do it.", $value->lexeme());
 		}
 	}
 

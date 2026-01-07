@@ -59,7 +59,7 @@ class ArraysMemory
 	protected function commentIndexes() : void
 	{
 		$this->stream->memoryComment($this->offset, "adr_s");
-		$this->stream->memoryComment($this->offset + 1, "dummy");
+		$this->stream->memoryComment($this->offset + 1, "adr_d");
 		for ($i = 0; $i < $this->size; $i++)
 		{
 			$this->stream->memoryComment(

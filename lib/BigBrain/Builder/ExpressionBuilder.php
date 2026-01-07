@@ -20,7 +20,7 @@ class ExpressionBuilder
 		[ '==', '!=', '===', '!==', '<>' ],
 		[ '&&', '||' ],
 		[ '?' ], // todo ? :
-		[ '=', '+=', '-=', '*=', '/=', '%=', '.=', '&=', '|=' ],
+		[ '=', '+=', '-=', '*=', '/=', '%=' ],
 		[ ',' ],
 	];
 
@@ -29,7 +29,7 @@ class ExpressionBuilder
 	];
 
 	public const array REVERSE_PRIORITY = [
-		'=', '+=', '-=', '*=', '/=', '%=', '.=', '&=', '|=',
+		'=', '+=', '-=', '*=', '/=', '%=',
 	];
 
 	protected Names $names;
@@ -175,7 +175,7 @@ class ExpressionBuilder
 			{
 				$this->names->remember($scope->first()->value(), $this->names::ARRAY);
 			}
-			return $this->parseExpression($scope);
+			return $this->parseExpression($scope); // todo int a = 5 - everlasting cycle
 		}
 	}
 

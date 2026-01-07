@@ -24,6 +24,11 @@ class ArraysProcessor
 		return new MemoryCell($this->offset, 'adr_s');
 	}
 
+	public function dummyCell() : MemoryCell
+	{
+		return new MemoryCell($this->offset + 1, 'adr_d');
+	}
+
 	public function startCell() : MemoryCell
 	{
 		return new MemoryCell($this->offset + self::CELL_SIZE, 'i0');
@@ -75,6 +80,13 @@ class ArraysProcessor
 		});
 	}
 
+	public function addConstant(MemoryCell $index, int $value) : void
+	{
+		$this->goto($index, function() use ($value) {
+			$this->addConstantToCurrent($value);
+		});
+	}
+
 	public function print(MemoryCell $index) : void
 	{
 		$this->goto($index, function() {
@@ -115,6 +127,20 @@ class ArraysProcessor
 	{
 		$this->gotoMove($index, function() {
 			$this->stream->write('[-]>[-<+>]<', 'set value');
+		});
+	}
+
+	public function add(MemoryCell $index) : void
+	{
+		$this->gotoMove($index, function() {
+			$this->stream->write('>[-<+>]<', 'add to value');
+		});
+	}
+
+	public function sub(MemoryCell $index) : void
+	{
+		$this->gotoMove($index, function() {
+			$this->stream->write('>[-<->]<', 'sub from value');
 		});
 	}
 
@@ -175,9 +201,23 @@ class ArraysProcessor
 
 	protected function setCurrentByConstant(int $value) : void
 	{
+		$this->stream->write('[-]', 'unset value');
+		$this->addConstantToCurrent($value);
+	}
+
+	protected function addConstantToCurrent(int $value) : void
+	{
 		$shortValue = Utils\ModuloHelper::normalizeConstant($value);
 		$valueStr = $shortValue > 0 ? Encoder::plus($shortValue) : Encoder::minus(-$shortValue);
 
-		$this->stream->write("[-]$valueStr", "set value `$value`");
+		if ($value > 0)
+		{
+			$this->stream->write("$valueStr", "add `$value` to current");
+		}
+		else
+		{
+			$value = -$value;
+			$this->stream->write("$valueStr", "sub `$value` from current");
+		}
 	}
 }

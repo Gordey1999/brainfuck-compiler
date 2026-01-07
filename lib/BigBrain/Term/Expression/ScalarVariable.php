@@ -107,7 +107,8 @@ class ScalarVariable implements Expression, Assignable
 		$this->checkAssignType($env, $value, $modifier);
 		$memoryCell = $this->memoryCell($env);
 
-		$isBool = $this->resultType($env) instanceof Type\Boolean;
+		$castBool = $this->resultType($env) instanceof Type\Boolean
+			&& !$value->resultType($env) instanceof Type\Boolean;
 		// todo optimize a = b = 10
 
 		$tempResult = $env->processor()->reserve($memoryCell);
@@ -116,7 +117,7 @@ class ScalarVariable implements Expression, Assignable
 		if ($modifier === self::ASSIGN_SET)
 		{
 			$env->processor()->unset($memoryCell);
-			if ($isBool)
+			if ($castBool)
 			{
 				$env->processor()->moveBoolean($tempResult, $memoryCell);
 			}

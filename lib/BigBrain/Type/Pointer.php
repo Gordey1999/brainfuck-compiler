@@ -32,6 +32,15 @@ class Pointer implements BaseType
 		return $this->valueType;
 	}
 
+	public function baseType() : BaseType
+	{
+		if ($this->valueType instanceof self)
+		{
+			return $this->valueType->baseType();
+		}
+		return $this->valueType;
+	}
+
 	public function plainSize() : int
 	{
 		return array_product($this->sizes());

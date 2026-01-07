@@ -34,7 +34,7 @@ class Processor
 		}
 
 		$nearest = null;
-		$minDistance = 1000;
+		$minDistance = 100000;
 		foreach (array_reverse($this->registry, true) as $address => $isReserved)
 		{
 			if ($isReserved) { continue; }
