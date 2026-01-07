@@ -14,24 +14,21 @@ class Subtraction extends Binary
 
 	protected function compileForVariables(Environment $env, MemoryCell $result) : void
 	{
-		$rightResultAddress = $env->processor()->reserve($result);
-
 		$this->left->compileCalculation($env, $result);
-		$this->right->compileCalculation($env, $rightResultAddress);
+		$right = $env->processor()->reserve($result);
+		$this->right->compileCalculation($env, $right);
 
-		$env->processor()->sub($result, $rightResultAddress);
-
-		$env->processor()->release($rightResultAddress);
+		$env->processor()->sub($result, $right);
+		$env->processor()->release($right);
 	}
 
 	protected function compileWithLeftConstant(Environment $env, int $constant, MemoryCell $result) : void
 	{
 		$temp = $env->processor()->reserve($result);
 		$this->right->compileCalculation($env, $temp);
-
 		$env->processor()->addConstant($result, $constant);
-		$env->processor()->sub($result, $temp);
 
+		$env->processor()->sub($result, $temp);
 		$env->processor()->release($temp);
 	}
 

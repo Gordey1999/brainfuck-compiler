@@ -14,14 +14,25 @@ class Addition extends Binary
 
 	protected function compileForVariables(Environment $env, MemoryCell $result) : void
 	{
-		$rightResultAddress = $env->processor()->reserve($result);
+		if ($this->left instanceof self)
+		{
+			$this->right->compileCalculation($env, $result);
+			$this->left->compileCalculation($env, $result);
+		}
+		else if ($this->right instanceof self)
+		{
+			$this->left->compileCalculation($env, $result);
+			$this->right->compileCalculation($env, $result);
+		}
+		else
+		{
+			$this->left->compileCalculation($env, $result);
+			$right = $env->processor()->reserve($result);
+			$this->right->compileCalculation($env, $right);
 
-		$this->left->compileCalculation($env, $result);
-		$this->right->compileCalculation($env, $rightResultAddress);
-
-		$env->processor()->add($rightResultAddress, $result);
-
-		$env->processor()->release($rightResultAddress);
+			$env->processor()->add($right, $result);
+			$env->processor()->release($right);
+		}
 	}
 
 	protected function compileWithLeftConstant(Environment $env, int $constant, MemoryCell $result) : void

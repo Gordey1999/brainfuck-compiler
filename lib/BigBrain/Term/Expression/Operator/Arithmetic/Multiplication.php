@@ -14,13 +14,12 @@ class Multiplication extends Binary
 
 	protected function compileForVariables(Environment $env, MemoryCell $result) : void
 	{
-		[$left, $right] = $env->processor()->reserveSeveral(2, $result);
-
+		$left = $env->processor()->reserve($result);
 		$this->left->compileCalculation($env, $left);
+		$right = $env->processor()->reserve($left, $result);
 		$this->right->compileCalculation($env, $right);
 
 		$env->processor()->multiply($left, $right, $result);
-
 		$env->processor()->release($left, $right);
 	}
 
@@ -30,7 +29,6 @@ class Multiplication extends Binary
 		$this->right->compileCalculation($env, $right);
 
 		$env->processor()->multiplyByConstant($right, $constant, $result);
-
 		$env->processor()->release($right);
 	}
 
@@ -40,7 +38,6 @@ class Multiplication extends Binary
 		$this->left->compileCalculation($env, $left);
 
 		$env->processor()->multiplyByConstant($left, $constant, $result);
-
 		$env->processor()->release($left);
 	}
 }

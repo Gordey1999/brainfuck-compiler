@@ -35,6 +35,11 @@ class Increment implements Expression
 	public function compile(Environment $env) : void
 	{
 		$env->stream()->blockComment($this);
+		$this->calculate($env);
+	}
+
+	protected function calculate(Environment $env) : void
+	{
 		$this->to->assign($env, $this->value, Expression\Assignable::ASSIGN_ADD);
 	}
 
@@ -48,11 +53,11 @@ class Increment implements Expression
 		if ($this->isPost)
 		{
 			$this->to->compileCalculation($env, $result);
-			$this->compile($env);
+			$this->calculate($env);
 		}
 		else
 		{
-			$this->compile($env);
+			$this->calculate($env);
 			$this->to->compileCalculation($env, $result);
 		}
 	}
@@ -64,6 +69,13 @@ class Increment implements Expression
 
 	public function __toString() : string
 	{
-		return sprintf('++%s', $this->to);
+		if ($this->isPost)
+		{
+			return sprintf('%s++', $this->to);
+		}
+		else
+		{
+			return sprintf('++%s', $this->to);
+		}
 	}
 }

@@ -15,13 +15,12 @@ class Division extends Binary
 
 	protected function compileForVariables(Environment $env, MemoryCell $result) : void
 	{
-		[$left, $right] = $env->processor()->reserveSeveral(2, $result);
-
+		$left = $env->processor()->reserve($result);
 		$this->left->compileCalculation($env, $left);
+		$right = $env->processor()->reserve($left, $result);
 		$this->right->compileCalculation($env, $right);
 
 		$this->divide($env, $left, $right, $result);
-
 		$env->processor()->release($left, $right);
 	}
 
@@ -29,13 +28,12 @@ class Division extends Binary
 	{
 		if ($constant === 0) { return; }
 
-		[$left, $right] = $env->processor()->reserveSeveral(2, $result);
-
+		$left = $env->processor()->reserve($result);
 		$env->processor()->addConstant($left, $constant);
+		$right = $env->processor()->reserve($left, $result);
 		$this->right->compileCalculation($env, $right);
 
 		$this->divide($env, $left, $right, $result);
-
 		$env->processor()->release($left, $right);
 	}
 
@@ -49,25 +47,26 @@ class Division extends Binary
 		}
 
 		$left = $env->processor()->reserve($result);
-
 		$this->left->compileCalculation($env, $left);
-		$this->divideByConstant($env, $left, $constant, $result);
 
+		$this->divideByConstant($env, $left, $constant, $result);
 		$env->processor()->release($left);
 	}
 
 	protected function divide(Environment $env, MemoryCell $a, MemoryCell $b, MemoryCell $result) : void
 	{
 		$proc = $env->processor();
-		[$temp, $remainder] = $proc->reserveSeveral(2, $a, $b, $result);
+		$remainder = $proc->reserve($a, $b, $result);
 
-		$proc->while($a, static function() use ($a, $b, $result, $remainder, $temp, $proc) {
-			$proc->while($a, static function() use ($a, $b, $result, $remainder, $temp, $proc) {
+		$proc->while($a, static function() use ($a, $b, $result, $remainder, $proc) {
+			$proc->while($a, static function() use ($a, $b, $result, $remainder, $proc) {
+				$temp = $proc->reserve($a, $b, $result);
 				$proc->unset($remainder);
 				$proc->copyNumber($a, $remainder);
 				$proc->copyNumber($b, $temp);
 				$proc->subUntilZero($a, $temp);
 				$proc->increment($result);
+				$proc->release($temp);
 			}, "division cycle");
 
 			$proc->sub($remainder, $b);
@@ -76,21 +75,23 @@ class Division extends Binary
 			}, "if remainder > `0`, sub `1` from result");
 		}, "$result = $a / $b (remainder: $remainder)");
 
-		$proc->release($temp, $remainder);
+		$proc->release($remainder);
 	}
 
 	protected function divideByConstant(Environment $env, MemoryCell $a, int $constant, MemoryCell $result) : void
 	{
 		$proc = $env->processor();
-		[$temp, $remainder] = $proc->reserveSeveral(2, $a, $result);
+		$remainder = $proc->reserve($a, $result);
 
-		$proc->while($a, static function() use ($a, $constant, $result, $remainder, $temp, $proc) {
-			$proc->while($a, static function() use ($a, $constant, $result, $remainder, $temp, $proc) {
+		$proc->while($a, static function() use ($a, $constant, $result, $remainder, $proc) {
+			$proc->while($a, static function() use ($a, $constant, $result, $remainder, $proc) {
+				$temp = $proc->reserve($a, $remainder, $result);
 				$proc->unset($remainder);
 				$proc->copyNumber($a, $remainder);
 				$proc->addConstant($temp, $constant);
 				$proc->subUntilZero($a, $temp);
 				$proc->increment($result);
+				$proc->release($temp);
 			}, "division cycle");
 
 			$proc->subConstant($remainder, $constant);
@@ -99,6 +100,6 @@ class Division extends Binary
 			}, "if remainder > `0`, sub `1` from quotient");
 		}, "$result = $a / `$constant` (remainder: $remainder)");
 
-		$proc->release($temp, $remainder);
+		$proc->release($remainder);
 	}
 }

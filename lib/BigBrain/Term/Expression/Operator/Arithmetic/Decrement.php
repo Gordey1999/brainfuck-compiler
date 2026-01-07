@@ -7,9 +7,20 @@ use Gordy\Brainfuck\BigBrain\Environment;
 
 class Decrement extends Increment
 {
-	public function compile(Environment $env) : void
+	public function calculate(Environment $env) : void
 	{
-		$env->stream()->blockComment($this);
 		$this->to->assign($env, $this->value, Expression\Assignable::ASSIGN_SUB);
+	}
+
+	public function __toString() : string
+	{
+		if ($this->isPost)
+		{
+			return sprintf('%s--', $this->to);
+		}
+		else
+		{
+			return sprintf('--%s', $this->to);
+		}
 	}
 }
