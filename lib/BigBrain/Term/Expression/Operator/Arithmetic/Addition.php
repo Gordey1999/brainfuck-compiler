@@ -4,6 +4,8 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Arithmetic;
 
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
+use Gordy\Brainfuck\BigBrain\Term\Expression\Assignable;
+use Gordy\Brainfuck\BigBrain\Term\Expression\ScalarVariable;
 
 class Addition extends Binary
 {
@@ -14,12 +16,12 @@ class Addition extends Binary
 
 	protected function compileForVariables(Environment $env, MemoryCell $result) : void
 	{
-		if ($this->left instanceof self)
+		if ($this->left instanceof self || $this->left instanceof Assignable)
 		{
 			$this->right->compileCalculation($env, $result);
 			$this->left->compileCalculation($env, $result);
 		}
-		else if ($this->right instanceof self)
+		else if ($this->right instanceof self || $this->right instanceof Assignable)
 		{
 			$this->left->compileCalculation($env, $result);
 			$this->right->compileCalculation($env, $result);

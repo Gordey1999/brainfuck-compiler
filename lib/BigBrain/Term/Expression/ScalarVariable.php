@@ -71,6 +71,9 @@ class ScalarVariable implements Expression, Assignable
 
 	protected function assignComputed(Environment $env, Type\Computable $result, Expression $value, string $modifier) : void
 	{
+		$this->checkAssignType($env, $value, $modifier);
+		$isBool = $this->resultType($env) instanceof Type\Boolean;
+
 		$memoryCell = $this->memoryCell($env);
 
 		if (!$result->numericCompatible())
@@ -78,77 +81,74 @@ class ScalarVariable implements Expression, Assignable
 			throw new CompileError('numeric type expected', $value->lexeme());
 		}
 
+		$numericValue = $result->getNumeric();
+
 		if ($modifier === self::ASSIGN_SET)
 		{
 			$env->processor()->unset($memoryCell);
+			$env->processor()->addConstant($memoryCell, $isBool ? $numericValue !== 0 : $numericValue);
 		}
-
-		if ($memoryCell->type() instanceof Type\Boolean)
+		else if ($modifier === self::ASSIGN_ADD)
 		{
-			$env->processor()->addConstant($memoryCell, $result->getNumeric() !== 0);
+			$env->processor()->addConstant($memoryCell, $numericValue);
+		}
+		else if ($modifier === self::ASSIGN_SUB)
+		{
+			$env->processor()->subConstant($memoryCell, $numericValue);
 		}
 		else
 		{
-			if ($modifier === self::ASSIGN_SUB)
-			{
-				$env->processor()->subConstant($memoryCell, $result->getNumeric());
-			}
-			else
-			{
-				$env->processor()->addConstant($memoryCell, $result->getNumeric());
-			}
+			Expression\Calculation\Assignation::assignByConstant($env, $memoryCell, $numericValue, $modifier, $value->lexeme());
 		}
 	}
 
 	protected function assignVariable(Environment $env, Type\Scalar $result, Expression $value, string $modifier) : void
 	{
+		$this->checkAssignType($env, $value, $modifier);
 		$memoryCell = $this->memoryCell($env);
 
-		$boolCastingNeed = $this->resultType($env) instanceof Type\Boolean
-			&& !$result instanceof Type\Boolean;
+		$isBool = $this->resultType($env) instanceof Type\Boolean;
+		// todo optimize a = b = 10
 
-		if ($boolCastingNeed || $value->hasVariable($memoryCell->label()) || $modifier === self::ASSIGN_SUB)
+		$tempResult = $env->processor()->reserve($memoryCell);
+		$value->compileCalculation($env, $tempResult);
+
+		if ($modifier === self::ASSIGN_SET)
 		{
-			$tempResult = $env->processor()->reserve($memoryCell);
-			$value->compileCalculation($env, $tempResult);
-
-			if ($modifier === self::ASSIGN_SET)
+			$env->processor()->unset($memoryCell);
+			if ($isBool)
 			{
-				$env->processor()->unset($memoryCell);
-			}
-
-			if ($boolCastingNeed)
-			{
-				if ($modifier === self::ASSIGN_SET)
-				{
-					$env->processor()->moveBoolean($tempResult, $memoryCell);
-				}
-				else if ($modifier === self::ASSIGN_ADD)
-				{
-					// todo
-				}
+				$env->processor()->moveBoolean($tempResult, $memoryCell);
 			}
 			else
 			{
-				if ($modifier === self::ASSIGN_SUB)
-				{
-					$env->processor()->sub($memoryCell, $tempResult);
-				}
-				else
-				{
-					$env->processor()->moveNumber($tempResult, $memoryCell);
-				}
+				$env->processor()->moveNumber($tempResult, $memoryCell);
 			}
-			$env->processor()->release($tempResult);
+		}
+		else if ($modifier === self::ASSIGN_ADD)
+		{
+			$env->processor()->add($tempResult, $memoryCell);
+		}
+		else if ($modifier === self::ASSIGN_SUB)
+		{
+			$env->processor()->sub($tempResult, $memoryCell);
 		}
 		else
 		{
-			if ($modifier === self::ASSIGN_SET)
-			{
-				$env->processor()->unset($memoryCell);
-			}
+			Expression\Calculation\Assignation::assignByVariable($env, $memoryCell, $tempResult, $modifier, $value->lexeme());
+		}
 
-			$value->compileCalculation($env, $memoryCell);
+		$env->processor()->release($tempResult);
+	}
+
+	protected function checkAssignType(Environment $env, Expression $value, string $modifier) : void
+	{
+		$isBool = $this->resultType($env) instanceof Type\Boolean;
+		$isArithmetic = in_array($modifier, self::ASSIGN_ARITHMETIC);
+
+		if ($isBool && $isArithmetic)
+		{
+			throw new CompileError("Why? It's bool variable. It's stupid. I won't do it.", $value->lexeme());
 		}
 	}
 

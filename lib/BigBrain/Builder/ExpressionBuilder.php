@@ -182,13 +182,20 @@ class ExpressionBuilder
 	protected function parseBinaryOperator(Term\Expression $left, Term\Expression $right, Lexeme $operator) : Term\Expression
 	{
 		return match($operator->value()) {
-			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),
 			'+' => new Term\Expression\Operator\Arithmetic\Addition($left, $right, $operator),
 			'-' => new Term\Expression\Operator\Arithmetic\Subtraction($left, $right, $operator),
 			'*' => new Term\Expression\Operator\Arithmetic\Multiplication($left, $right, $operator),
 			'/' => new Term\Expression\Operator\Arithmetic\Division($left, $right, $operator),
-			'%' => new Term\Expression\Operator\Arithmetic\DivisionByModulo($left, $right, $operator),
+			'%' => new Term\Expression\Operator\Arithmetic\Modulo($left, $right, $operator),
+			'==', '===' => new Term\Expression\Operator\Logical\Equals($left, $right, $operator),
+			'!=', '!==', '<>' => new Term\Expression\Operator\Logical\NotEquals($left, $right, $operator),
 			',' => new Term\Expression\Operator\Comma($left, $right, $operator),
+			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),
+			'+=' => new Term\Expression\Operator\Assignment\Addition($left, $right, $operator),
+			'-=' => new Term\Expression\Operator\Assignment\Substraction($left, $right, $operator),
+			'*=' => new Term\Expression\Operator\Assignment\Multiplication($left, $right, $operator),
+			'/=' => new Term\Expression\Operator\Assignment\Division($left, $right, $operator),
+			'%=' => new Term\Expression\Operator\Assignment\Modulo($left, $right, $operator),
 			default => throw new SyntaxError('unknown operator', $operator),
 		};
 	}

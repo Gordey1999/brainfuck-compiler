@@ -7,11 +7,11 @@ use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\Term\Expression\Calculation;
 
-class Division extends Binary
+class Modulo extends Binary
 {
 	protected function computeValue(int $left, int $right) : int
 	{
-		return $left / $right;
+		return $left % $right;
 	}
 
 	protected function compileForVariables(Environment $env, MemoryCell $result) : void
@@ -21,7 +21,7 @@ class Division extends Binary
 		$right = $env->processor()->reserve($left, $result);
 		$this->right->compileCalculation($env, $right);
 
-		Calculation\Division::divide($env, $left, $right, $result);
+		Calculation\Modulo::divide($env, $left, $right, $result);
 		$env->processor()->release($left, $right);
 	}
 
@@ -34,23 +34,19 @@ class Division extends Binary
 		$right = $env->processor()->reserve($left, $result);
 		$this->right->compileCalculation($env, $right);
 
-		Calculation\Division::divide($env, $left, $right, $result);
+		Calculation\Modulo::divide($env, $left, $right, $result);
 		$env->processor()->release($left, $right);
 	}
 
 	protected function compileWithRightConstant(Environment $env, int $constant, MemoryCell $result) : void
 	{
 		if ($constant === 0) { throw new CompileError('division by zero', $this->lexeme()); }
-		if ($constant === 1)
-		{
-			$this->left->compileCalculation($env, $result);
-			return;
-		}
+		if ($constant === 1) { return; }
 
 		$left = $env->processor()->reserve($result);
 		$this->left->compileCalculation($env, $left);
 
-		Calculation\Division::divideByConstant($env, $left, $constant, $result);
+		Calculation\Modulo::divideByConstant($env, $left, $constant, $result);
 		$env->processor()->release($left);
 	}
 }
