@@ -94,7 +94,7 @@ class Processor
 	{
 		$this->while($a, function() use ($a, $b, $result) {
 			$this->decrement($a);
-			$this->copyNumber($b, $result);
+			$this->copy($b, $result);
 		}, "$result = $a * $b");
 		$this->unset($b);
 	}
@@ -113,7 +113,7 @@ class Processor
 
 		$this->while($sub, function() use ($from, $sub, $temp) {
 			$this->decrement($sub);
-			$this->copyNumber($from, $temp);
+			$this->copy($from, $temp);
 			$this->if($temp, function() use ($from, $sub, $temp) {
 				$this->decrement($from);
 			}, "if $temp not empty, decrement $from");
@@ -129,13 +129,13 @@ class Processor
 		$this->while($a, function() use ($a, $b, $quotient, $remainder, $temp) { // проверяем, что $a не ноль
 			$this->while($a, function() use ($a, $b, $quotient, $remainder, $temp) {
 				$this->unset($remainder);
-				$this->copyNumber($a, $remainder);
-				$this->copyNumber($b, $temp);
+				$this->copy($a, $remainder);
+				$this->copy($b, $temp);
 				$this->subUntilZero($a, $temp);
 				$this->increment($quotient);
 			}, "division cycle");
 
-			$this->copyNumber($remainder, $temp);
+			$this->copy($remainder, $temp);
 			$this->sub($temp, $b);
 			$this->moveBoolean($temp, $a, $b);
 			$this->if($a, function () use ($quotient) {
@@ -158,13 +158,13 @@ class Processor
 		$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp) { // проверяем, что $a не ноль
 			$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp) {
 				$this->unset($remainder);
-				$this->copyNumber($a, $remainder);
+				$this->copy($a, $remainder);
 				$this->addConstant($temp, $constant);
 				$this->subUntilZero($a, $temp);
 				$this->increment($quotient);
 			}, "division cycle");
 
-			$this->copyNumber($remainder, $a);
+			$this->copy($remainder, $a);
 			$this->subConstant($a, $constant);
 			$temp2 = $this->reserve($a, $quotient, $remainder, $temp);
 			$this->moveBoolean($a, $temp, $temp2);
@@ -187,7 +187,7 @@ class Processor
 
 		$this->divideByConstant($number, 10, $a, $b); // $b - последняя цифра
 		[ $c, $d ] = $this->reserveSeveral(2, $number, $a, $b);
-		$this->copyNumber($a, $c);
+		$this->copy($a, $c);
 		$this->ifMoreThenConstant($c, 9, function() use ($a, $c, $d) {
 			$this->divideByConstant($a, 10, $c, $d); // $c - 1 цифра, $d - вторая
 			$this->addConstant($c, 48);
@@ -274,11 +274,11 @@ class Processor
 	public function add(MemoryCell $from, MemoryCell ...$to) : void
 	{
 		$this->stream->startGroup("add $from to " . implode(", ", $to));
-		$this->moveNumber($from, ...$to);
+		$this->move($from, ...$to);
 		$this->stream->endGroup();
 	}
 
-	public function copyNumber(MemoryCell $from, MemoryCell ...$to) : void
+	public function copy(MemoryCell $from, MemoryCell ...$to) : void
 	{
 		if (empty($to)) { return; }
 
@@ -286,14 +286,14 @@ class Processor
 
 		$this->stream->startGroup("copy $from to " . implode(", ", $to));
 		$to[] = $temp;
-		$this->moveNumber($from, ...$to);
-		$this->moveNumber($temp, $from);
+		$this->move($from, ...$to);
+		$this->move($temp, $from);
 		$this->stream->endGroup();
 
 		$this->release($temp);
 	}
 
-	public function moveNumber(MemoryCell $from, MemoryCell ...$to) : void
+	public function move(MemoryCell $from, MemoryCell ...$to) : void
 	{
 		if (empty($to)) { return; }
 

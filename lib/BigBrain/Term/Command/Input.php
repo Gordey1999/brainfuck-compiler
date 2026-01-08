@@ -123,13 +123,13 @@ class Input implements Term\Command
 		$proc->add($in, $result);
 		$proc->input($in);
 		$proc->while($in, static function () use ($proc, $in, $result, $a, $b, $c) {
-			$proc->copyNumber($in, $a, $b);
+			$proc->copy($in, $a, $b);
 			$proc->notEqualsToConstant($a, Utils\CharHelper::charToNumber(" "), $c); // не пробел
 			$proc->notEqualsToConstant($b, Utils\CharHelper::charToNumber("\n"), $c); // не интер
 			$proc->equalsToConstant($c, 2, $b); // пробел или интер не нажаты
-			$proc->moveNumber($in, $a); // переносим инпут, чтобы прекратить цикл
+			$proc->move($in, $a); // переносим инпут, чтобы прекратить цикл
 			$proc->if($b, static function () use ($proc, $in, $result, $a, $b) {
-				$proc->moveNumber($result, $b);
+				$proc->move($result, $b);
 				$proc->multiplyByConstant($b, 10, $result);
 				$proc->subConstant($a, 48);
 				$proc->add($a, $result);

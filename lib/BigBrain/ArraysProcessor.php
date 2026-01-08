@@ -56,7 +56,7 @@ class ArraysProcessor
 		else
 		{
 			$this->stream->startGroup("init pointer with $index");
-			$this->processor->moveNumber($index, $this->startCell());
+			$this->processor->move($index, $this->startCell());
 			$this->processor->goto($this->startCell());
 			$this->stream->endGroup();
 		}

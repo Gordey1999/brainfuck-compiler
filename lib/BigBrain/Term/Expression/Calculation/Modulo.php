@@ -17,7 +17,7 @@ class Modulo
 		}
 
 		$temp = $env->processor()->reserve($cell);
-		$env->processor()->moveNumber($cell, $temp);
+		$env->processor()->move($cell, $temp);
 		self::divideByConstant($env, $temp, $constant, $cell);
 		$env->processor()->release($temp);
 	}
@@ -27,7 +27,7 @@ class Modulo
 
 		// todo $env->memory()->index($cell) > 10 с массивами не сработает
 		$temp = $env->processor()->reserve($cell, $value);
-		$env->processor()->moveNumber($cell, $temp);
+		$env->processor()->move($cell, $temp);
 		self::divide($env, $temp, $value, $cell);
 		$env->processor()->release($temp);
 	}
@@ -40,12 +40,12 @@ class Modulo
 		$proc->while($a, static function() use ($a, $b, $result, $temp, $proc) {
 			$proc->while($a, static function() use ($a, $b, $result, $temp, $proc) {
 				$proc->unset($result);
-				$proc->copyNumber($a, $result);
-				$proc->copyNumber($b, $temp);
+				$proc->copy($a, $result);
+				$proc->copy($b, $temp);
 				$proc->subUntilZero($a, $temp);
 			}, "division cycle");
 
-			$proc->copyNumber($result, $a);
+			$proc->copy($result, $a);
 			$proc->equals($a, $b, $temp);
 			$proc->if($temp, static function () use ($result, $proc) {
 				$proc->unset($result);
@@ -63,12 +63,12 @@ class Modulo
 		$proc->while($a, static function() use ($a, $constant, $result, $temp, $proc) {
 			$proc->while($a, static function() use ($a, $constant, $result, $temp, $proc) {
 				$proc->unset($result);
-				$proc->copyNumber($a, $result);
+				$proc->copy($a, $result);
 				$proc->addConstant($temp, $constant);
 				$proc->subUntilZero($a, $temp);
 			}, "division cycle");
 
-			$proc->copyNumber($result, $a);
+			$proc->copy($result, $a);
 			$proc->equalsToConstant($a, $constant, $temp);
 			$proc->if($temp, static function () use ($result, $proc) {
 				$proc->unset($result);

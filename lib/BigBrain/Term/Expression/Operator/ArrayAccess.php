@@ -165,7 +165,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 			$startCell = $env->arraysProcessor()->startCell();
 			$this->calculateIndex($env, $startCell);
 			$carry = $env->arraysProcessor()->get($startCell);
-			$env->processor()->moveNumber($carry, $result);
+			$env->processor()->move($carry, $result);
 		}
 		else
 		{
@@ -347,7 +347,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		{
 			$temp = $env->processor()->reserve($startCell);
 			$this->calculateIndex($env, $temp);
-			$env->processor()->moveNumber($temp, $startCell, $dummyCell);
+			$env->processor()->move($temp, $startCell, $dummyCell);
 			$env->processor()->release($temp);
 		}
 	}

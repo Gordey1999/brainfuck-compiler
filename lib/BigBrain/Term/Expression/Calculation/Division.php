@@ -15,7 +15,7 @@ class Division
 		if ($constant === 1) { return; }
 
 		$temp = $env->processor()->reserve($cell);
-		$env->processor()->moveNumber($cell, $temp);
+		$env->processor()->move($cell, $temp);
 		self::divideByConstant($env, $temp, $constant, $cell);
 		$env->processor()->release($temp);
 	}
@@ -23,7 +23,7 @@ class Division
 	public static function assignByVariable(Environment $env, MemoryCell $cell, MemoryCell $value) : void
 	{
 		$temp = $env->processor()->reserve($cell, $value);
-		$env->processor()->moveNumber($cell, $temp);
+		$env->processor()->move($cell, $temp);
 		self::divide($env, $temp, $value, $cell);
 		$env->processor()->release($temp);
 	}
@@ -37,8 +37,8 @@ class Division
 			$proc->while($a, static function() use ($a, $b, $result, $remainder, $proc) {
 				$temp = $proc->reserve($a, $b, $result);
 				$proc->unset($remainder);
-				$proc->copyNumber($a, $remainder);
-				$proc->copyNumber($b, $temp);
+				$proc->copy($a, $remainder);
+				$proc->copy($b, $temp);
 				$proc->subUntilZero($a, $temp);
 				$proc->increment($result);
 				$proc->release($temp);
@@ -62,7 +62,7 @@ class Division
 			$proc->while($a, static function() use ($a, $constant, $result, $remainder, $proc) {
 				$temp = $proc->reserve($a, $remainder, $result);
 				$proc->unset($remainder);
-				$proc->copyNumber($a, $remainder);
+				$proc->copy($a, $remainder);
 				$proc->addConstant($temp, $constant);
 				$proc->subUntilZero($a, $temp);
 				$proc->increment($result);

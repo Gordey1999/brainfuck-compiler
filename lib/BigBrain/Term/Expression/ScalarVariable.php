@@ -43,7 +43,7 @@ class ScalarVariable implements Expression, Assignable
 	public function compileCalculation(Environment $env, MemoryCell $result) : void
 	{
 		$cell = $this->memoryCell($env);
-		$env->processor()->copyNumber($cell, $result);
+		$env->processor()->copy($cell, $result);
 	}
 
 	public function hasVariable(string $name) : bool
@@ -123,7 +123,7 @@ class ScalarVariable implements Expression, Assignable
 			}
 			else
 			{
-				$env->processor()->moveNumber($tempResult, $memoryCell);
+				$env->processor()->move($tempResult, $memoryCell);
 			}
 		}
 		else if ($modifier === self::ASSIGN_ADD)
