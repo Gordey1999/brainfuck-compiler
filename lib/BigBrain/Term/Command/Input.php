@@ -94,6 +94,7 @@ class Input implements Term\Command
 			$temp = $env->processor()->reserve($cell);
 
 			$env->processor()->input($temp);
+			$env->processor()->unset($cell);
 			$env->processor()->notEqualsToConstant($temp, Utils\CharHelper::charToNumber('0'), $cell);
 
 			$env->processor()->release($temp);
@@ -122,11 +123,9 @@ class Input implements Term\Command
 		$proc->add($in, $result);
 		$proc->input($in);
 		$proc->while($in, static function () use ($proc, $in, $result, $a, $b, $c) {
-			$proc->copyNumber($in, $a);
-			$proc->notEqualsToConstant($a, Utils\CharHelper::charToNumber(" "), $b); // не пробел
-			$proc->copyNumber($in, $a);
-			$proc->notEqualsToConstant($a, Utils\CharHelper::charToNumber("\n"), $c); // не интер
-			$proc->add($b, $c); // если 2, то ни то, ни другое
+			$proc->copyNumber($in, $a, $b);
+			$proc->notEqualsToConstant($a, Utils\CharHelper::charToNumber(" "), $c); // не пробел
+			$proc->notEqualsToConstant($b, Utils\CharHelper::charToNumber("\n"), $c); // не интер
 			$proc->equalsToConstant($c, 2, $b); // пробел или интер не нажаты
 			$proc->moveNumber($in, $a); // переносим инпут, чтобы прекратить цикл
 			$proc->if($b, static function () use ($proc, $in, $result, $a, $b) {

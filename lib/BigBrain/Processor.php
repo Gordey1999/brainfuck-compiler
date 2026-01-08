@@ -5,9 +5,6 @@ use Gordy\Brainfuck\BigBrain\Utils\Encoder;
 
 class Processor
 {
-	public const string NUMBER = 'number';
-	public const string BOOLEAN = 'boolean';
-
 	protected int $pointer = 0;
 	protected array $registry;
 
@@ -156,9 +153,9 @@ class Processor
 
 	public function divideByConstant(MemoryCell $a, int $constant, MemoryCell $quotient, MemoryCell $remainder) : void
 	{
-		[ $temp, $temp2 ] = $this->reserveSeveral(2, $a, $quotient, $remainder);
+		$temp = $this->reserve($a, $quotient, $remainder);
 
-		$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp, $temp2) { // проверяем, что $a не ноль
+		$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp) { // проверяем, что $a не ноль
 			$this->while($a, function() use ($a, $constant, $quotient, $remainder, $temp) {
 				$this->unset($remainder);
 				$this->copyNumber($a, $remainder);
@@ -169,6 +166,7 @@ class Processor
 
 			$this->copyNumber($remainder, $a);
 			$this->subConstant($a, $constant);
+			$temp2 = $this->reserve($a, $quotient, $remainder, $temp);
 			$this->moveBoolean($a, $temp, $temp2);
 			$this->if($temp, function () use ($quotient) {
 				$this->decrement($quotient);
@@ -177,9 +175,10 @@ class Processor
 			$this->if($temp2, function () use ($remainder) {
 				$this->unset($remainder);
 			}, "else if remainder = `$constant`, unset remainder");
+			$this->release($temp2);
 		}, "divide $a by `$constant`");
 
-		$this->release($temp, $temp2);
+		$this->release($temp);
 	}
 
 	public function printNumber(MemoryCell $number) : void
@@ -272,24 +271,6 @@ class Processor
 		$this->release($temp);
 	}
 
-	public function copyNumber(MemoryCell $from, MemoryCell ...$to) : void
-	{
-		$to = array_map(static function ($cell) {
-			return [ $cell, self::NUMBER ];
-		}, $to);
-
-		$this->copy($from, $to);
-	}
-
-	public function copyBoolean(MemoryCell $from, MemoryCell ...$to) : void
-	{
-		$to = array_map(static function ($cell) {
-			return [ $cell, self::BOOLEAN ];
-		}, $to);
-
-		$this->copy($from, $to);
-	}
-
 	public function add(MemoryCell $from, MemoryCell ...$to) : void
 	{
 		$this->stream->startGroup("add $from to " . implode(", ", $to));
@@ -297,17 +278,15 @@ class Processor
 		$this->stream->endGroup();
 	}
 
-	/** @param array<int, array{0: MemoryCell, 1: string}> $to */
-	public function copy(MemoryCell $from, array $to) : void
+	public function copyNumber(MemoryCell $from, MemoryCell ...$to) : void
 	{
 		if (empty($to)) { return; }
 
-		$cells = array_column($to, 0);
-		$temp = $this->reserve(...$cells);
+		$temp = $this->reserve(...$to);
 
-		$this->stream->startGroup("copy $from to " . implode(", ", $cells));
-		$to[] = [ $temp, self::NUMBER ];
-		$this->move($from, $to);
+		$this->stream->startGroup("copy $from to " . implode(", ", $to));
+		$to[] = $temp;
+		$this->moveNumber($from, ...$to);
 		$this->moveNumber($temp, $from);
 		$this->stream->endGroup();
 
@@ -316,54 +295,56 @@ class Processor
 
 	public function moveNumber(MemoryCell $from, MemoryCell ...$to) : void
 	{
-		$to = array_map(static function ($cell) {
-			return [ $cell, self::NUMBER ];
-		}, $to);
-
-		$this->move($from, $to);
-	}
-
-	public function moveBoolean(MemoryCell $from, MemoryCell ...$to) : void
-	{
-		$this->stream->startGroup("make bool from $from to " . implode(", ", $to));
-
-		$to = array_map(static function ($cell) {
-			return [ $cell, self::BOOLEAN ];
-		}, $to);
-
-		$this->move($from, $to);
-
-		$this->stream->endGroup();
-	}
-
-	/** @param array<int, array{0: MemoryCell, 1: string}> $to */
-	public function move(MemoryCell $from, array $to) : void
-	{
 		if (empty($to)) { return; }
 
 		$toParts = [];
 		usort($to, function($a, $b) {
-			return $a[0]->address() <=> $b[0]->address();
+			return $a->address() <=> $b->address();
 		});
 
 		$last = $from;
-		/** @var MemoryCell $cell */
-		/** @var string $type */
-		foreach ($to as [$cell, $type])
+		foreach ($to as $cell)
 		{
-			$operation = $type === self::BOOLEAN ? '[-]+' : '+';
-			$toParts[] = Encoder::goto($last->address(), $cell->address()) . $operation;
+			$toParts[] = Encoder::goto($last->address(), $cell->address()) . '+';
 			$last = $cell;
 		}
 
-		$toCells = array_column($to, 0);
-
+		$this->stream->startGroup("move from $from to " . implode(', ', $to));
 		$this->goto($from);
 		$this->stream->write(sprintf(
 			"[-%s%s]\n",
 			implode($toParts),
 			Encoder::goto($last->address(), $from->address())
-		), "move value from $from to " . implode(', ', $toCells));
+		));
+		$this->stream->endGroup();
+
+		$this->setPointer($from);
+	}
+
+	public function moveBoolean(MemoryCell $from, MemoryCell ...$to) : void
+	{
+		if (empty($to)) { return; }
+
+		$toParts = [];
+		usort($to, function($a, $b) {
+			return $a->address() <=> $b->address();
+		});
+
+		$last = $from;
+		foreach ($to as $cell)
+		{
+			$toParts[] = Encoder::goto($last->address(), $cell->address()) . '+';
+			$last = $cell;
+		}
+
+		$this->stream->startGroup("make bool from $from to " . implode(", ", $to));
+		$this->goto($from);
+		$this->stream->write(sprintf(
+			"[[-]%s%s]\n",
+			implode($toParts),
+			Encoder::goto($last->address(), $from->address())
+		));
+		$this->stream->endGroup();
 
 		$this->setPointer($from);
 	}
