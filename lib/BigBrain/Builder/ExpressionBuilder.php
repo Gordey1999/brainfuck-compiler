@@ -195,6 +195,8 @@ class ExpressionBuilder
 			'>=' =>              new Operator\Logical\MoreOrEquals($left, $right, $operator),
 			'<' =>               new Operator\Logical\Less($left, $right, $operator),
 			'<=' =>              new Operator\Logical\LessOrEquals($left, $right, $operator),
+			'||' =>              new Operator\Logical\One($left, $right, $operator),
+			'&&' =>              new Operator\Logical\Both($left, $right, $operator),
 
 			'=' =>               new Operator\Assignment\Base($left, $right, $operator),
 			'+=' =>              new Operator\Assignment\Addition($left, $right, $operator),
