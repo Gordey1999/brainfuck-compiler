@@ -2,14 +2,8 @@
 
 namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Assignment;
 
-use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
-use Gordy\Brainfuck\BigBrain\Exception\CompileError;
-use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
-use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
-use Gordy\Brainfuck\BigBrain\Type;
 
 class Base extends Skeleton
 {

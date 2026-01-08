@@ -5,7 +5,6 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Arithmetic;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\Term\Expression\Assignable;
-use Gordy\Brainfuck\BigBrain\Term\Expression\ScalarVariable;
 
 class Addition extends Binary
 {
@@ -49,5 +48,10 @@ class Addition extends Binary
 		$this->left->compileCalculation($env, $result);
 
 		$env->processor()->addConstant($result, $constant);
+	}
+
+	public function __toString() : string
+	{
+		return sprintf('(%s + %s)', $this->left, $this->right);
 	}
 }

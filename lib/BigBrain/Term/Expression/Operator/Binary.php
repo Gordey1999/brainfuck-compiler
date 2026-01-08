@@ -24,7 +24,7 @@ abstract class Binary implements Expression
 		$this->lexeme = $lexeme;
 	}
 
-	protected abstract function computeValue(int $left, int $right) : int;
+	protected abstract function computeValue(int $left, int $right) : mixed;
 
 	protected abstract function compileForVariables(Environment $env, MemoryCell $result) : void;
 
@@ -89,11 +89,6 @@ abstract class Binary implements Expression
 	public function hasVariable(string $name) : bool
 	{
 		return $this->left->hasVariable($name) || $this->right->hasVariable($name);
-	}
-
-	public function __toString() : string
-	{
-		return sprintf('(%s %s %s)', $this->left, $this->lexeme()->value(), $this->right);
 	}
 
 	protected function checkComputedType(Type\Computable $value) : void

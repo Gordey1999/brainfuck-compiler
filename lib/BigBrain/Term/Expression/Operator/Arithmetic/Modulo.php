@@ -49,4 +49,9 @@ class Modulo extends Binary
 		Calculation\Modulo::divideByConstant($env, $left, $constant, $result);
 		$env->processor()->release($left);
 	}
+
+	public function __toString() : string
+	{
+		return sprintf('(%s %% %s)', $this->left, $this->right);
+	}
 }

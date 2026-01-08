@@ -38,4 +38,9 @@ class Subtraction extends Binary
 
 		$env->processor()->subConstant($result, $constant);
 	}
+
+	public function __toString() : string
+	{
+		return sprintf('(%s - %s)', $this->left, $this->right);
+	}
 }

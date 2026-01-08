@@ -6,7 +6,8 @@ use Gordy\Brainfuck\BigBrain\Exception\ParseError;
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
 use Gordy\Brainfuck\BigBrain\Parser\LexemeScope;
-use Gordy\Brainfuck\BigBrain\Term;
+use Gordy\Brainfuck\BigBrain\Term\Expression;
+use Gordy\Brainfuck\BigBrain\Term\Expression\Operator;
 
 class ExpressionBuilder
 {
@@ -39,12 +40,12 @@ class ExpressionBuilder
 		$this->names = $names;
 	}
 
-	public function build(LexemeScope $scope) : Term\Expression
+	public function build(LexemeScope $scope) : Expression
 	{
 		return $this->parseExpression($scope);
 	}
 
-	protected function parseExpression(LexemeScope $scope) : Term\Expression
+	protected function parseExpression(LexemeScope $scope) : Expression
 	{
 		if ($scope->empty())
 		{
@@ -95,21 +96,21 @@ class ExpressionBuilder
 		}
 	}
 
-	protected function parseSingeExpression(Lexeme $lexeme) : Term\Expression
+	protected function parseSingeExpression(Lexeme $lexeme) : Expression
 	{
 		if ($lexeme->isLiteral()) // 5
 		{
-			return new Term\Expression\Literal($lexeme);
+			return new Expression\Literal($lexeme);
 		}
 		else if ($lexeme->isName()) // a
 		{
 			if ($this->names->isVariable($lexeme->value()))
 			{
-				return new Term\Expression\ScalarVariable($lexeme);
+				return new Expression\ScalarVariable($lexeme);
 			}
 			else if ($this->names->isArray($lexeme->value()))
 			{
-				return new Term\Expression\ArrayVariable($lexeme);
+				return new Expression\ArrayVariable($lexeme);
 			}
 			else
 			{
@@ -122,7 +123,7 @@ class ExpressionBuilder
 		}
 		else if ($lexeme instanceof LexemeScope && $lexeme->value() === '[') // [1, 2, 3]
 		{
-			return new Term\Expression\ArrayScope(
+			return new Expression\ArrayScope(
 				$this->parseExpression($lexeme),
 				$lexeme,
 			);
@@ -133,34 +134,16 @@ class ExpressionBuilder
 		}
 	}
 
-	protected function parseSingleOperatorBefore(Term\Expression $operand, Lexeme $operator) : Term\Expression
-	{
-		return match ($operator->value()) {
-			'++' => new Term\Expression\Operator\Arithmetic\Increment($operand, $operator),
-			'--' => new Term\Expression\Operator\Arithmetic\Decrement($operand, $operator),
-			default => throw new ParseError("can't parse expression", $operator),
-		};
-	}
-
-	protected function parseSingleOperatorAfter(Term\Expression $operand, Lexeme $operator) : Term\Expression
-	{
-		return match ($operator->value()) {
-			'++' => new Term\Expression\Operator\Arithmetic\Increment($operand, $operator, true),
-			'--' => new Term\Expression\Operator\Arithmetic\Decrement($operand, $operator, true),
-			default => throw new ParseError("can't parse expression", $operator),
-		};
-	}
-
-	protected function parseAccess(LexemeScope $scope) : Term\Expression
+	protected function parseAccess(LexemeScope $scope) : Expression
 	{
 		$last = $scope->last();
 		if ($last instanceof LexemeScope)
 		{
 			if ($last->value() === '[')
 			{
-				return new Term\Expression\Operator\ArrayAccess(
+				return new Operator\ArrayAccess(
 					$this->parseAccess($scope->slice(0, -1)),
-					$last->empty() ? new Term\Expression\None() : $this->parseExpression($last),
+					$last->empty() ? new Expression\None() : $this->parseExpression($last),
 					$last
 				);
 			}
@@ -179,24 +162,50 @@ class ExpressionBuilder
 		}
 	}
 
-	protected function parseBinaryOperator(Term\Expression $left, Term\Expression $right, Lexeme $operator) : Term\Expression
+	protected function parseSingleOperatorBefore(Expression $operand, Lexeme $operator) : Expression
+	{
+		return match ($operator->value()) {
+			'++' => new Operator\Arithmetic\Increment($operand, $operator),
+			'--' => new Operator\Arithmetic\Decrement($operand, $operator),
+			default => throw new ParseError("can't parse expression", $operator),
+		};
+	}
+
+	protected function parseSingleOperatorAfter(Expression $operand, Lexeme $operator) : Expression
+	{
+		return match ($operator->value()) {
+			'++' => new Operator\Arithmetic\Increment($operand, $operator, true),
+			'--' => new Operator\Arithmetic\Decrement($operand, $operator, true),
+			default => throw new ParseError("can't parse expression", $operator),
+		};
+	}
+
+	protected function parseBinaryOperator(Expression $left, Expression $right, Lexeme $operator) : Expression
 	{
 		return match($operator->value()) {
-			'+' => new Term\Expression\Operator\Arithmetic\Addition($left, $right, $operator),
-			'-' => new Term\Expression\Operator\Arithmetic\Subtraction($left, $right, $operator),
-			'*' => new Term\Expression\Operator\Arithmetic\Multiplication($left, $right, $operator),
-			'/' => new Term\Expression\Operator\Arithmetic\Division($left, $right, $operator),
-			'%' => new Term\Expression\Operator\Arithmetic\Modulo($left, $right, $operator),
-			'==', '===' => new Term\Expression\Operator\Logical\Equals($left, $right, $operator),
-			'!=', '!==', '<>' => new Term\Expression\Operator\Logical\NotEquals($left, $right, $operator),
-			',' => new Term\Expression\Operator\Comma($left, $right, $operator),
-			'=' => new Term\Expression\Operator\Assignment\Base($left, $right, $operator),
-			'+=' => new Term\Expression\Operator\Assignment\Addition($left, $right, $operator),
-			'-=' => new Term\Expression\Operator\Assignment\Substraction($left, $right, $operator),
-			'*=' => new Term\Expression\Operator\Assignment\Multiplication($left, $right, $operator),
-			'/=' => new Term\Expression\Operator\Assignment\Division($left, $right, $operator),
-			'%=' => new Term\Expression\Operator\Assignment\Modulo($left, $right, $operator),
-			default => throw new SyntaxError('unknown operator', $operator),
+			'+' =>               new Operator\Arithmetic\Addition($left, $right, $operator),
+			'-' =>               new Operator\Arithmetic\Subtraction($left, $right, $operator),
+			'*' =>               new Operator\Arithmetic\Multiplication($left, $right, $operator),
+			'/' =>               new Operator\Arithmetic\Division($left, $right, $operator),
+			'%' =>               new Operator\Arithmetic\Modulo($left, $right, $operator),
+
+			'==', '===' =>       new Operator\Logical\Equals($left, $right, $operator),
+			'!=', '!==', '<>' => new Operator\Logical\NotEquals($left, $right, $operator),
+			'>' =>               new Operator\Logical\More($left, $right, $operator),
+			'>=' =>              new Operator\Logical\MoreOrEquals($left, $right, $operator),
+			'<' =>               new Operator\Logical\Less($left, $right, $operator),
+			'<=' =>              new Operator\Logical\LessOrEquals($left, $right, $operator),
+
+			'=' =>               new Operator\Assignment\Base($left, $right, $operator),
+			'+=' =>              new Operator\Assignment\Addition($left, $right, $operator),
+			'-=' =>              new Operator\Assignment\Substraction($left, $right, $operator),
+			'*=' =>              new Operator\Assignment\Multiplication($left, $right, $operator),
+			'/=' =>              new Operator\Assignment\Division($left, $right, $operator),
+			'%=' =>              new Operator\Assignment\Modulo($left, $right, $operator),
+
+			',' =>               new Operator\Comma($left, $right, $operator),
+
+			default =>           throw new SyntaxError('unknown operator', $operator),
 		};
 	}
 
@@ -206,7 +215,6 @@ class ExpressionBuilder
 		$minPriorityIndex = null;
 		foreach ($parts->children() as $key => $part)
 		{
-			//if ($part instanceof LexemeScope) { continue; }
 			$value = $part->value();
 
 			foreach (self::PRIORITY as $priority => $operators)

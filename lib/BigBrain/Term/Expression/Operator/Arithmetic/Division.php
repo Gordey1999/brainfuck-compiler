@@ -53,4 +53,9 @@ class Division extends Binary
 		Calculation\Division::divideByConstant($env, $left, $constant, $result);
 		$env->processor()->release($left);
 	}
+
+	public function __toString() : string
+	{
+		return sprintf('(%s / %s)', $this->left, $this->right);
+	}
 }
