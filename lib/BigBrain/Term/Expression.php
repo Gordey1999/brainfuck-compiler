@@ -12,5 +12,5 @@ interface Expression extends Term
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void;
 
-	public function hasVariable(string $name) : bool;
+	public function hasVariable(string $name) : bool; // todo remove
 }

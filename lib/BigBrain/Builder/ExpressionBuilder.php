@@ -14,6 +14,7 @@ class ExpressionBuilder
 	public const array PRIORITY = [
 		[ '[', '(', '.' ],
 		[ '++', '--' ],
+		[ 'sizeof' ],
 		[ '!' ],
 		[ '*', '/', '%' ],
 		[ '+', '-' ],
@@ -26,7 +27,7 @@ class ExpressionBuilder
 	];
 
 	public const array SINGLE_OPERATORS = [
-		'++', '--', '!', '[', '(', '.'
+		'++', '--', '!', '[', '(', 'sizeof',
 	];
 
 	public const array REVERSE_PRIORITY = [
@@ -165,17 +166,19 @@ class ExpressionBuilder
 	protected function parseSingleOperatorBefore(Expression $operand, Lexeme $operator) : Expression
 	{
 		return match ($operator->value()) {
-			'++' => new Operator\Arithmetic\Increment($operand, $operator),
-			'--' => new Operator\Arithmetic\Decrement($operand, $operator),
-			default => throw new ParseError("can't parse expression", $operator),
+			'++'     => new Operator\Arithmetic\Increment($operand, $operator),
+			'--'     => new Operator\Arithmetic\Decrement($operand, $operator),
+			'!'      => new Operator\Logical\Not($operand, $operator),
+			'sizeof' => new Operator\Sizeof($operand, $operator),
+			default  => throw new ParseError("can't parse expression", $operator),
 		};
 	}
 
 	protected function parseSingleOperatorAfter(Expression $operand, Lexeme $operator) : Expression
 	{
 		return match ($operator->value()) {
-			'++' => new Operator\Arithmetic\Increment($operand, $operator, true),
-			'--' => new Operator\Arithmetic\Decrement($operand, $operator, true),
+			'++'    => new Operator\Arithmetic\Increment($operand, $operator, true),
+			'--'    => new Operator\Arithmetic\Decrement($operand, $operator, true),
 			default => throw new ParseError("can't parse expression", $operator),
 		};
 	}
