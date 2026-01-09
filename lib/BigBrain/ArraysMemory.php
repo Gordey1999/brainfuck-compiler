@@ -10,7 +10,6 @@ class ArraysMemory
 	private Stack $stack;
 	protected int $offset;
 	protected const int CELL_SIZE = 2;
-	protected const int MAX_SIZE = 256;
 
 	protected OutputStream $stream;
 	protected int $size;
@@ -34,6 +33,15 @@ class ArraysMemory
 		$startIndex = $this->lastIndex();
 
 		$type = $this->buildType($type, $sizes);
+		if ($type->plainSize() === 0)
+		{
+			throw new CompileError('empty array size', $name);
+		}
+		if ($startIndex + $type->plainSize() > $this->size)
+		{
+			throw new CompileError('total size of all arrays must not be greater than ' . $this->size, $name);
+		}
+
 		$cell = new MemoryCellArray($address, $name->value(), $type, $startIndex);
 
 		$this->commentArray($address, $name->value(), $cell->type());

@@ -410,7 +410,7 @@ class Processor
 
 		$value = Utils\ModuloHelper::normalizeConstant($value);
 
-		if ($this->uglify && abs($value) > 14)
+		if ($this->uglify && abs($value) > 15)
 		{
 			[$a, $b, $c] = Utils\NumbersHelper::factorize(abs($value));
 			$temp = $this->reserve($to);
