@@ -1,3 +1,4 @@
+import {SampleStorage} from "./SampleStorage.mjs";
 
 export class TabManager {
 
@@ -28,8 +29,11 @@ export class TabManager {
 		this._addTab(true, parent, code);
 	}
 
-	_init() {
-		this._addTab();
+	async _init() {
+		const samples = await SampleStorage.load();
+		for (const sample of samples) {
+			this._addTab(sample.lang === 'bf', null, sample.code, sample.input);
+		}
 		this._setActiveTab(this._el.firstElementChild);
 	}
 
