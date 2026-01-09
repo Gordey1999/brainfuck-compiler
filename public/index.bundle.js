@@ -25579,7 +25579,7 @@
   					return "string"
   				}
 
-  				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|in|out/)) {
+  				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|in|out|sizeof/)) {
   					return "keyword"
   				}
 
