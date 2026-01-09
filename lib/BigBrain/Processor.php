@@ -7,13 +7,15 @@ class Processor
 {
 	protected int $pointer = 0;
 	protected array $registry;
+	protected bool $uglify;
 
 	protected OutputStream $stream;
 
-	public function __construct(OutputStream $stream, int $registrySize)
+	public function __construct(OutputStream $stream, int $registrySize, bool $uglify)
 	{
 		$this->stream = $stream;
 		$this->registry = array_fill(0, $registrySize, false);
+		$this->uglify = $uglify;
 
 		foreach ($this->registry as $address => $isReserved)
 		{
@@ -396,35 +398,59 @@ class Processor
 
 	public function addConstant(MemoryCell $to, int $value) : void
 	{
-		if ($value < 0)
+		if ($value > 0)
 		{
-			$this->subConstant($to, -$value);
-			return;
+			$this->stream->startGroup("add `$value` to $to");
 		}
-		$this->stream->startGroup("add `$value` to $to");
-		$this->goto($to);
+		else
+		{
+			$printValue = -$value;
+			$this->stream->startGroup("sub `$printValue` from $to");
+		}
+
 		$value = Utils\ModuloHelper::normalizeConstant($value);
+
+		if ($this->uglify && abs($value) > 14)
+		{
+			[$a, $b, $c] = Utils\NumbersHelper::factorize(abs($value));
+			$temp = $this->reserve($to);
+			$this->addConstantSimple($temp, $a);
+			$this->multiplyByConstantSimple($temp, $value > 0 ? $b : -$b, $to);
+			if ($c !== 0)
+			{
+				$this->addConstantSimple($to, $value > 0 ? $c : -$c);
+			}
+			$this->release($temp);
+		}
+		else
+		{
+			$this->addConstantSimple($to, $value);
+		}
+
+		$this->stream->endGroup();
+	}
+
+	protected function addConstantSimple(MemoryCell $to, int $value) : void
+	{
+		$this->goto($to);
 		$this->stream->write(
 			$value > 0 ? Encoder::plus($value) : Encoder::minus(-$value)
 		);
-		$this->stream->endGroup();
+	}
+
+	public function multiplyByConstantSimple(MemoryCell $a, int $constant, MemoryCell $result) : void
+	{
+		$this->goto($a);
+		$this->stream->write(sprintf('[-%s%s%s]',
+			Encoder::goto($a->address(), $result->address()),
+			$constant > 0 ? Encoder::plus($constant) : Encoder::minus(-$constant),
+			Encoder::goto($result->address(), $a->address()),
+		));
 	}
 
 	public function subConstant(MemoryCell $from, int $value) : void
 	{
-		if ($value < 0)
-		{
-			$this->addConstant($from, -$value);
-			return;
-		}
-		$this->stream->startGroup("sub `$value` from $from");
-		$value = $value % 256;
-		$this->goto($from);
-		$value = Utils\ModuloHelper::normalizeConstant($value);
-		$this->stream->write(
-			$value > 0 ? Encoder::minus($value) : Encoder::plus(-$value)
-		);
-		$this->stream->endGroup();
+		$this->addConstant($from, -$value);
 	}
 
 	public function sub(MemoryCell $a, MemoryCell $b) : void

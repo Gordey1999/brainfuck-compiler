@@ -45,33 +45,33 @@ class Environment
 		return $this->stack;
 	}
 
-	public static function makeForPrecompile(int $registrySize, int $memorySize, int $arraysMemorySize) : self
+	public static function makeForPrecompile(bool $uglify, int $registrySize, int $memorySize, int $arraysMemorySize) : self
 	{
 		$mOffset = $registrySize;
 		$amOffset = $registrySize + $memorySize;
 		$stream = new OutputStream();
 		$stack = new Stack();
 
-		$processor = new Precompile\Processor($stream, $registrySize);
+		$processor = new Precompile\Processor($stream, $registrySize, $uglify);
 		$memory = new Precompile\Memory($stack, $stream, $mOffset);
 		$arraysMemory = new Precompile\ArraysMemory($stack, $stream, $amOffset, $arraysMemorySize);
 
-		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset);
+		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset); // todo uglify
 		return new self($processor, $stream, $stack, $memory, $arraysMemory, $arraysProcessor);
 	}
 
-	public static function makeForRelease(int $registrySize, int $memorySize, int $arraysMemorySize) : self
+	public static function makeForRelease(bool $uglify, int $registrySize, int $memorySize, int $arraysMemorySize) : self
 	{
 		$mOffset = $registrySize;
 		$amOffset = $registrySize + $memorySize;
 		$stream = new OutputStream();
 		$stack = new Stack();
 
-		$processor = new Processor($stream, $registrySize);
+		$processor = new Processor($stream, $registrySize, $uglify);
 		$memory = new Memory($stack, $stream, $mOffset);
 		$arraysMemory = new ArraysMemory($stack, $stream, $amOffset, $arraysMemorySize);
 
-		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset);
+		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset); // todo uglify
 		return new self($processor, $stream, $stack, $memory, $arraysMemory, $arraysProcessor);
 	}
 }

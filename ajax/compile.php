@@ -17,8 +17,9 @@ try
 {
 	$parser = new BigBrain\Parser();
 	$program = $parser->parse($request['code']);
+	$uglify = $request['uglify'];
 
-	$precompileEnv = BigBrain\Environment::makeForPrecompile(100, 500, 256);
+	$precompileEnv = BigBrain\Environment::makeForPrecompile($uglify, 100, 500, 256);
 	$program->compile($precompileEnv);
 
 	$registrySize = $precompileEnv->processor()->computedRegistrySize();
@@ -26,10 +27,10 @@ try
 	$arraysMemorySize = $precompileEnv->arraysMemory()->computedMemorySize();
 
 	$log .= "registry size computed: $registrySize\n";
-	$log .= "memory size computed: $memorySize\n";
-	$log .= "arrays memory size computed: $arraysMemorySize\n";
+	$log .= "stack size computed: $memorySize\n";
+	$log .= "arrays stack size computed: $arraysMemorySize\n";
 
-	$env = BigBrain\Environment::makeForRelease($registrySize, $memorySize, $arraysMemorySize);
+	$env = BigBrain\Environment::makeForRelease($uglify, $registrySize, $memorySize, $arraysMemorySize);
 	$program->compile($env);
 
 	$min = $env->stream()->buildMin();

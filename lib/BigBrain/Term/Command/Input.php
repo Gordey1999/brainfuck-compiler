@@ -48,21 +48,21 @@ class Input implements Term\Command
 
 			$resultType = $part->resultType($env);
 
-			if ($part instanceof ArrayAccess && $resultType instanceof Type\Scalar)
+			if ($resultType instanceof Type\Computable)
+			{
+				$this->inputDummy($env);
+			}
+			else if ($part instanceof ArrayAccess && $resultType instanceof Type\Scalar)
 			{
 				$this->inputArrayIndex($env, $part);
 			}
-			if ($part instanceof Expression\ScalarVariable)
+			else if ($part instanceof Expression\ScalarVariable)
 			{
 				$this->inputVariable($env, $part);
 			}
 			else if ($resultType instanceof Type\Pointer && $resultType->valueType() instanceof Type\Char)
 			{
 				$this->inputString($env, $part);
-			}
-			else if ($resultType instanceof Type\Scalar)
-			{
-				$this->inputDummy($env);
 			}
 			else
 			{
