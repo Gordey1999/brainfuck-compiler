@@ -25579,11 +25579,11 @@
   					return "string"
   				}
 
-  				if (stream.match(/const|char|int|byte|bool|if|while|for|echo|in|out|sizeof/)) {
+  				if (stream.match(/^(?:const|char|int|byte|bool|if|while|for|echo|in|out|sizeof)\b/)) {
   					return "keyword"
   				}
 
-  				if (stream.match(/true|false|eol/)) {
+  				if (stream.match(/^(?:true|false|eol)\b/)) {
   					return "number"
   				}
 
