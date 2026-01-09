@@ -81,9 +81,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 
 	public function compile(BigBrain\Environment $env) : void
 	{
-		// do nothing
-		// todo expression may have $i++
-		// todo compile children until mutation expression
+		$this->to->compile($env);
 	}
 
 	protected function startCell($env) : MemoryCellArray

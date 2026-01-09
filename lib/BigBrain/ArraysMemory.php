@@ -29,7 +29,7 @@ class ArraysMemory
 
 	public function allocate(Type\BaseType $type, Lexeme $name, array $sizes) : MemoryCellArray
 	{
-		$address = $this->startPosition() + $this->lastIndex() * self::CELL_SIZE; // todo check size
+		$address = $this->startPosition() + $this->lastIndex() * self::CELL_SIZE;
 		$startIndex = $this->lastIndex();
 
 		$type = $this->buildType($type, $sizes);

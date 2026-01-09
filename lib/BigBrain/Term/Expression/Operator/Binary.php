@@ -36,7 +36,8 @@ abstract class Binary implements Expression
 
 	public function compile(Environment $env) : void
 	{
-		// do nothing
+		$this->left->compile($env);
+		$this->right->compile($env);
 	}
 
 	public function resultType(Environment $env) : Type\Type

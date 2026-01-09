@@ -26,7 +26,8 @@ class Comma implements Expression
 
 	public function compile(BigBrain\Environment $env) : void
 	{
-		throw new CompileError('unexpected operator ","', $this->lexeme);
+		$this->left->compile($env);
+		$this->right->compile($env);
 	}
 
 	/** @return Expression[] */
