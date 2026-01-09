@@ -1,6 +1,7 @@
 
 export class Builder {
 	_ajaxUrl = 'ajax/compile.php';
+	_uglify = false;
 
 	constructor(editor, console) {
 		this._editor = editor;
@@ -24,12 +25,19 @@ export class Builder {
 		this._build(true);
 	}
 
+	onUglify = (e) => {
+		const toggle = e.currentTarget.querySelector('.btn-toggle');
+		const isActive = toggle.classList.contains('--active');
+		this._uglify = !isActive;
+		toggle.classList.toggle('--active', !isActive);
+	}
+
 	async _build(min = false) {
 		const code = this._editor.getCode();
 		const title = this._tabManager.getTitle(code);
 
 		try {
-			const response = await this._query(code, title, min);
+			const response = await this._query(code, title, min, this._uglify);
 
 			if (!response.ok) {
 				this._console.showError('ajax error');
@@ -55,7 +63,7 @@ export class Builder {
 		}
 	}
 
-	_query(code, title, min = false) {
+	_query(code, title, min = false, uglify = false) {
 		return fetch(this._ajaxUrl, {
 			method: 'POST',
 			headers: {
@@ -65,6 +73,7 @@ export class Builder {
 				title: title,
 				code: code,
 				min: min,
+				uglify: uglify,
 			})
 		})
 	}

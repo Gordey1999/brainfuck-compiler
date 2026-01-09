@@ -26463,6 +26463,7 @@
 
   class Builder {
   	_ajaxUrl = 'ajax/compile.php';
+  	_uglify = false;
 
   	constructor(editor, console) {
   		this._editor = editor;
@@ -26486,12 +26487,19 @@
   		this._build(true);
   	}
 
+  	onUglify = (e) => {
+  		const toggle = e.currentTarget.querySelector('.btn-toggle');
+  		const isActive = toggle.classList.contains('--active');
+  		this._uglify = !isActive;
+  		toggle.classList.toggle('--active', !isActive);
+  	}
+
   	async _build(min = false) {
   		const code = this._editor.getCode();
   		const title = this._tabManager.getTitle(code);
 
   		try {
-  			const response = await this._query(code, title, min);
+  			const response = await this._query(code, title, min, this._uglify);
 
   			if (!response.ok) {
   				this._console.showError('ajax error');
@@ -26517,7 +26525,7 @@
   		}
   	}
 
-  	_query(code, title, min = false) {
+  	_query(code, title, min = false, uglify = false) {
   		return fetch(this._ajaxUrl, {
   			method: 'POST',
   			headers: {
@@ -26527,6 +26535,7 @@
   				title: title,
   				code: code,
   				min: min,
+  				uglify: uglify,
   			})
   		})
   	}
@@ -26540,6 +26549,57 @@
   	_showError(message, position) {
   		this._console.showError(message);
   		this._editor.highlightError(position.start, position.length);
+  	}
+  }
+
+  const files = [
+  	{
+  		url: 'sample/ivan/greetings.txt',
+  		input: '',
+  		lang: 'bb',
+  	},
+  	{
+  		url: 'sample/ivan/types.txt',
+  		input: '',
+  		lang: 'bb',
+  	},
+  	{
+  		url: 'sample/ivan/operators.txt',
+  		input: '',
+  		lang: 'bb',
+  	},
+  ];
+
+
+  class SampleStorage {
+
+  	static async load() {
+  		const result = [];
+  		for (const file of files) {
+  			result.push({
+  				code: await this.loadFile(file.url),
+  				input: file.input,
+  				lang: file.lang,
+  			});
+  		}
+
+  		return result;
+  	}
+
+  	static async loadFile(url) {
+  		try {
+  			const response = await fetch(url);
+
+  			if (!response.ok) {
+  				throw new Error(`download error: ${response.statusText}`);
+  			}
+
+  			return await response.text();
+
+  		} catch (error) {
+  			console.error("cant download file:", error);
+  			alert("cant read file");
+  		}
   	}
   }
 
@@ -26572,8 +26632,11 @@
   		this._addTab(true, parent, code);
   	}
 
-  	_init() {
-  		this._addTab();
+  	async _init() {
+  		const samples = await SampleStorage.load();
+  		for (const sample of samples) {
+  			this._addTab(sample.lang === 'bf', null, sample.code, sample.input);
+  		}
   		this._setActiveTab(this._el.firstElementChild);
   	}
 
@@ -26796,6 +26859,8 @@
   	.addEventListener('click', builder.onBuild);
   buttonsBb.querySelector('.btn-build-min')
   	.addEventListener('click', builder.onBuildMin);
+  buttonsBb.querySelector('.btn-uglify')
+  	.addEventListener('click', builder.onUglify);
 
   window.MyEditor = editor;
 

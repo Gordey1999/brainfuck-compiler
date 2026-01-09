@@ -25,6 +25,7 @@
 			<div class="buttons-block">
 				<button class="btn btn-build">build</button>
 				<button class="btn btn-build-min">min</button>
+				<button class="btn btn-uglify"><span class="btn-toggle">•</span>ugly</button>
 			</div>
 			<div class="buttons-block">
 				<button class="btn">help</button>
@@ -64,3 +65,5 @@
 </div>
 
 <script src="public/index.bundle.js"></script>
+
+<link

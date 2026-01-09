@@ -68,6 +68,27 @@ pre {
 	transform: scale(93%);
 }
 
+.btn-toggle {
+	position: relative;
+	display: inline-block;
+	margin-right: 3px;
+}
+
+.btn-toggle.--active {
+	color: green;
+}
+
+.btn-toggle.--active:after {
+	content: "";
+	display: block;
+	position: absolute;
+	width: 12px;
+	height: 12px;
+	background: radial-gradient(circle, #1cff0099, #ee097900);
+	left: -2px;
+	top: 1.5px;
+}
+
 
 .nav-end {
 	text-transform: uppercase;
