@@ -74,6 +74,13 @@ export class Console {
 
 	readInput() {
 		this.setStatus('need input');
+
+		if (this._streamIn.length > 0) {
+			const stream = this._streamIn;
+			this._streamIn = [];
+			return Promise.resolve(stream);
+		}
+
 		return new Promise((resolve) => {
 			this._inputResolve = resolve;
 		});
