@@ -25359,8 +25359,6 @@
       ])
   ])();
 
-  const languageCompartment = new Compartment();
-
   const setActivePosition = StateEffect.define();
   const activeLineDeco = Decoration.line({
   	class: "cm-active-debug-line"
@@ -25445,26 +25443,70 @@
   	provide: f => EditorView.decorations.from(f)
   });
 
+  const scrollExt = EditorView.scrollMargins.of(() => ({ top: 50, bottom: 50 }));
+
   class Editor {
+  	_states = {};
+  	_currentState = null;
+  	_editor = null;
+
   	constructor(parent, code = '') {
   		this._defineBf();
   		this._defineBb();
 
-  		const scrollExt = EditorView.scrollMargins.of(() => ({ top: 50, bottom: 50 }));
+  		this._defaultExt = [
+  			basicSetup,
+  			keymap.of(indentWithTab),
+  			bracketMatching(),
+  			activeLineField,
+  			compileErrorField,
+  			scrollExt,
+  		];
 
   		this._editor = new EditorView({
-  			extensions: [
-  				basicSetup,
-  				languageCompartment.of(this._bbExt),
-  				keymap.of(indentWithTab),
-  				bracketMatching(),
-  				activeLineField,
-  				compileErrorField,
-  				scrollExt,
-  			],
-  			doc: code,
   			parent: parent,
   		});
+  	}
+
+  	addState(name, code, language) {
+  		const languageExt = language === 'bf' ? this._bfExt : this._bbExt;
+
+  		this._states[name] = {
+  			state: EditorState.create({
+  				doc: code,
+  				extensions: [...this._defaultExt, ...languageExt],
+  				selection: { anchor: code.length }
+  			}),
+  			scrollTop: 0,
+  			scrollLeft: 0,
+  		};
+  	}
+
+  	switchState(name) {
+  		if (this._currentState !== null) {
+  			this._states[this._currentState] = {
+  				state: this._editor.state,
+  				scrollTop: this._editor.scrollDOM.scrollTop,
+  				scrollLeft: this._editor.scrollDOM.scrollLeft
+  			};
+  		}
+
+  		if (!this._states[name]) {
+  			throw new Error(`State ${name} not found`);
+  		}
+  		const state = this._states[name];
+  		this._editor.setState(state.state);
+  		window.requestAnimationFrame(() => {
+  			this._editor.scrollDOM.scrollTop = state.scrollTop;
+  			this._editor.scrollDOM.scrollLeft = state.scrollLeft;
+  		});
+  		this._editor.focus();
+
+  		this._currentState = name;
+  	}
+
+  	removeState(name) {
+  		this._states[name] = null;
   	}
 
   	_defineBf() {
@@ -25633,28 +25675,6 @@
 
   	getCode() {
   		return this._editor.state.doc.toString();
-  	}
-
-  	setCode(code) {
-  		this._editor.dispatch({
-  			changes: {
-  				from: 0,
-  				to: this._editor.state.doc.length,
-  				insert: code
-  			}
-  		});
-  	}
-
-  	setLanguage(language) {
-  		if (language === 'bb') {
-  			this._editor.dispatch({
-  				effects: languageCompartment.reconfigure(this._bbExt),
-  			});
-  		} else {
-  			this._editor.dispatch({
-  				effects: languageCompartment.reconfigure(this._bfExt),
-  			});
-  		}
   	}
   }
 
@@ -26532,6 +26552,7 @@
   		this._editor = editor;
   		this._input = input;
   		this._tabData = [];
+  		this._tabIdCounter = 0;
 
   		this._bind();
   		this._init();
@@ -26621,9 +26642,12 @@
   			this._el.querySelector('.tab-plus').before(el);
   		}
 
+  		const tabId = this._tabIdCounter++;
+  		this._editor.addState(tabId, code, bf ? 'bf' : 'bb');
+
   		this._tabData.push({
   			el: el,
-  			code: code,
+  			tabId: tabId,
   			input: input,
   			inputActive: input.length > 0,
   			language: bf ? 'bf' : 'bb',
@@ -26653,8 +26677,7 @@
 
   		const tabData = this._getTabData(el);
   		this._setButtons(tabData.language);
-  		this._editor.setLanguage(tabData.language);
-  		this._editor.setCode(tabData.code);
+  		this._editor.switchState(tabData.tabId);
   		this._input.set(tabData.input);
   		this._input.setActive(tabData.inputActive);
 
@@ -26725,6 +26748,7 @@
   	_removeTabData(el) {
   		for (const i in this._tabData) {
   			if (this._tabData[i].el === el) {
+  				this._editor.removeState(this._tabData[i].tabId);
   				this._tabData.splice(i, 1);
   			}
   		}

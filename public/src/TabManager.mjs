@@ -8,6 +8,7 @@ export class TabManager {
 		this._editor = editor;
 		this._input = input;
 		this._tabData = [];
+		this._tabIdCounter = 0;
 
 		this._bind();
 		this._init();
@@ -97,9 +98,12 @@ export class TabManager {
 			this._el.querySelector('.tab-plus').before(el);
 		}
 
+		const tabId = this._tabIdCounter++;
+		this._editor.addState(tabId, code, bf ? 'bf' : 'bb');
+
 		this._tabData.push({
 			el: el,
-			code: code,
+			tabId: tabId,
 			input: input,
 			inputActive: input.length > 0,
 			language: bf ? 'bf' : 'bb',
@@ -129,8 +133,7 @@ export class TabManager {
 
 		const tabData = this._getTabData(el);
 		this._setButtons(tabData.language);
-		this._editor.setLanguage(tabData.language);
-		this._editor.setCode(tabData.code);
+		this._editor.switchState(tabData.tabId);
 		this._input.set(tabData.input);
 		this._input.setActive(tabData.inputActive);
 
@@ -201,6 +204,7 @@ export class TabManager {
 	_removeTabData(el) {
 		for (const i in this._tabData) {
 			if (this._tabData[i].el === el) {
+				this._editor.removeState(this._tabData[i].tabId);
 				this._tabData.splice(i, 1);
 			}
 		}

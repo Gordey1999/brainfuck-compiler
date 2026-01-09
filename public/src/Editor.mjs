@@ -3,9 +3,7 @@ import {EditorView, keymap, Decoration} from "@codemirror/view"
 import {StreamLanguage, HighlightStyle, syntaxHighlighting, bracketMatching} from "@codemirror/language"
 import {tags} from "@lezer/highlight"
 import {indentWithTab} from "@codemirror/commands"
-import { StateField, StateEffect, Compartment } from "@codemirror/state"
-
-const languageCompartment = new Compartment()
+import { StateField, StateEffect, EditorState } from "@codemirror/state"
 
 const setActivePosition = StateEffect.define()
 const activeLineDeco = Decoration.line({
@@ -91,26 +89,70 @@ const compileErrorField = StateField.define({
 	provide: f => EditorView.decorations.from(f)
 })
 
+const scrollExt = EditorView.scrollMargins.of(() => ({ top: 50, bottom: 50 }));
+
 export class Editor {
+	_states = {};
+	_currentState = null;
+	_editor = null;
+
 	constructor(parent, code = '') {
 		this._defineBf();
 		this._defineBb();
 
-		const scrollExt = EditorView.scrollMargins.of(() => ({ top: 50, bottom: 50 }));
+		this._defaultExt = [
+			basicSetup,
+			keymap.of(indentWithTab),
+			bracketMatching(),
+			activeLineField,
+			compileErrorField,
+			scrollExt,
+		];
 
 		this._editor = new EditorView({
-			extensions: [
-				basicSetup,
-				languageCompartment.of(this._bbExt),
-				keymap.of(indentWithTab),
-				bracketMatching(),
-				activeLineField,
-				compileErrorField,
-				scrollExt,
-			],
-			doc: code,
 			parent: parent,
 		})
+	}
+
+	addState(name, code, language) {
+		const languageExt = language === 'bf' ? this._bfExt : this._bbExt;
+
+		this._states[name] = {
+			state: EditorState.create({
+				doc: code,
+				extensions: [...this._defaultExt, ...languageExt],
+				selection: { anchor: code.length }
+			}),
+			scrollTop: 0,
+			scrollLeft: 0,
+		}
+	}
+
+	switchState(name) {
+		if (this._currentState !== null) {
+			this._states[this._currentState] = {
+				state: this._editor.state,
+				scrollTop: this._editor.scrollDOM.scrollTop,
+				scrollLeft: this._editor.scrollDOM.scrollLeft
+			};
+		}
+
+		if (!this._states[name]) {
+			throw new Error(`State ${name} not found`);
+		}
+		const state = this._states[name];
+		this._editor.setState(state.state);
+		window.requestAnimationFrame(() => {
+			this._editor.scrollDOM.scrollTop = state.scrollTop;
+			this._editor.scrollDOM.scrollLeft = state.scrollLeft;
+		});
+		this._editor.focus();
+
+		this._currentState = name;
+	}
+
+	removeState(name) {
+		this._states[name] = null;
 	}
 
 	_defineBf() {
@@ -279,27 +321,5 @@ export class Editor {
 
 	getCode() {
 		return this._editor.state.doc.toString();
-	}
-
-	setCode(code) {
-		this._editor.dispatch({
-			changes: {
-				from: 0,
-				to: this._editor.state.doc.length,
-				insert: code
-			}
-		});
-	}
-
-	setLanguage(language) {
-		if (language === 'bb') {
-			this._editor.dispatch({
-				effects: languageCompartment.reconfigure(this._bbExt),
-			});
-		} else {
-			this._editor.dispatch({
-				effects: languageCompartment.reconfigure(this._bfExt),
-			});
-		}
 	}
 }
