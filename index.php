@@ -28,6 +28,9 @@
 				<button class="btn btn-uglify"><span class="btn-toggle">•</span>ugly</button>
 			</div>
 			<div class="buttons-block">
+				<button class="btn btn-input">input</button>
+			</div>
+			<div class="buttons-block">
 				<button class="btn">help</button>
 			</div>
 		</div>
@@ -65,5 +68,3 @@
 </div>
 
 <script src="public/index.bundle.js"></script>
-
-<link

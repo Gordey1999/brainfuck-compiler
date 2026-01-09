@@ -49,6 +49,8 @@ buttonsBb.querySelector('.btn-build-min')
 	.addEventListener('click', builder.onBuildMin);
 buttonsBb.querySelector('.btn-uglify')
 	.addEventListener('click', builder.onUglify)
+buttonsBb.querySelector('.btn-input')
+	.addEventListener('click', fileInput.onToggle);
 
 window.MyEditor = editor;
 

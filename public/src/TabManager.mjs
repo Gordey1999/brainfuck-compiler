@@ -18,15 +18,16 @@ export class TabManager {
 	showCompiled(code) {
 		const parent = this._getActiveTab();
 
+		this._updateActiveTabData();
+		const tabData = this._getTabData(parent);
+
 		const children = this._getChildTabs(parent);
-		//const title = this.getTitle(code);
 
 		if (children.length > 0) {
 			this._closeTab(children[0]);
 		}
-		// todo add min
 
-		this._addTab(true, parent, code);
+		this._addTab(true, parent, code, tabData.input);
 	}
 
 	async _init() {
@@ -124,15 +125,7 @@ export class TabManager {
 		const activeTab = this._getActiveTab();
 		if (activeTab === el) { return; }
 
-		if (activeTab) {
-			activeTab.classList.remove('--active');
-
-			const tabData = this._getTabData(activeTab);
-			tabData.code = this._editor.getCode();
-			tabData.input = this._input.getRaw();
-			tabData.inputActive = this._input.isActive();
-		}
-
+		this._updateActiveTabData();
 		this._controller.onStop();
 
 		const tabData = this._getTabData(el);
@@ -142,6 +135,19 @@ export class TabManager {
 		this._input.setActive(tabData.inputActive);
 
 		el.classList.add('--active');
+	}
+
+	_updateActiveTabData() {
+		const activeTab = this._getActiveTab();
+
+		if (activeTab) {
+			activeTab.classList.remove('--active');
+
+			const tabData = this._getTabData(activeTab);
+			tabData.code = this._editor.getCode();
+			tabData.input = this._input.getRaw();
+			tabData.inputActive = this._input.isActive();
+		}
 	}
 
 	_getChildTabs(el) {
