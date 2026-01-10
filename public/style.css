@@ -72,21 +72,22 @@ pre {
 	position: relative;
 	display: inline-block;
 	margin-right: 3px;
+	color: #00000052;
 }
 
 .btn-toggle.--active {
-	color: green;
+	color: #00a700;
 }
 
 .btn-toggle.--active:after {
 	content: "";
 	display: block;
 	position: absolute;
-	width: 12px;
-	height: 12px;
-	background: radial-gradient(circle, #1cff0099, #ee097900);
+	width: 13px;
+	height: 13px;
+	background: radial-gradient(circle, #1cff004a, #ee097900);
 	left: -2px;
-	top: 1.5px;
+	top: 1px;
 }
 
 
@@ -182,6 +183,8 @@ pre {
 }
 
 .tab-close {
+	display: inline-block;
+	margin-left: 7px;
 	color: rgba(153, 51, 51, 0.89);
 }
 

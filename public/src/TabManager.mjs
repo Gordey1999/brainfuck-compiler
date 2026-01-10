@@ -85,7 +85,7 @@ export class TabManager {
 		}
 
 		name.textContent = title;
-		close.textContent = ' x';
+		close.textContent = 'x';
 
 		if (bf) {
 			el.classList.add('tab-bf');
