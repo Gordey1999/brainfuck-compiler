@@ -4,22 +4,22 @@ namespace Gordy\Brainfuck\BigBrain\Term\Structure;
 
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Type;
 
 class WhileLoop implements Term\Structure
 {
-	use Term\HasLexeme;
+	use Term\HasToken;
 
 	protected Term\Expression $expression;
 	protected Term\Scope $scope;
 
-	public function __construct(Term\Expression $expression, Term\Scope $scope, Lexeme $lexeme)
+	public function __construct(Term\Expression $expression, Term\Scope $scope, Token $token)
 	{
 		$this->expression = $expression;
 		$this->scope = $scope;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 	public function compile(Environment $env) : void
 	{
@@ -40,11 +40,11 @@ class WhileLoop implements Term\Structure
 		{
 			if ($exprType->getNumeric() === 0)
 			{
-				throw new CompileError('condition result is always false', $this->expression->lexeme());
+				throw new CompileError('condition result is always false', $this->expression->token());
 			}
 			else
 			{
-				throw new CompileError('infinite loop detected', $this->expression->lexeme());
+				throw new CompileError('infinite loop detected', $this->expression->token());
 			}
 		}
 		else if ($exprType instanceof Type\Scalar)
@@ -62,7 +62,7 @@ class WhileLoop implements Term\Structure
 		}
 		else
 		{
-			throw new CompileError('scalar condition expected', $this->expression->lexeme());
+			throw new CompileError('scalar condition expected', $this->expression->token());
 		}
 	}
 

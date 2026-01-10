@@ -4,8 +4,8 @@ namespace Gordy\Brainfuck\BigBrain\Builder;
 
 use Gordy\Brainfuck\BigBrain\Exception\ParseError;
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
-use Gordy\Brainfuck\BigBrain\Parser\LexemeScope;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
+use Gordy\Brainfuck\BigBrain\Parser\TokenScope;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\Expression\Operator;
 
@@ -41,12 +41,12 @@ class ExpressionBuilder
 		$this->names = $names;
 	}
 
-	public function build(LexemeScope $scope) : Expression
+	public function build(TokenScope $scope) : Expression
 	{
 		return $this->parseExpression($scope);
 	}
 
-	protected function parseExpression(LexemeScope $scope) : Expression
+	protected function parseExpression(TokenScope $scope) : Expression
 	{
 		if ($scope->empty())
 		{
@@ -97,48 +97,48 @@ class ExpressionBuilder
 		}
 	}
 
-	protected function parseSingeExpression(Lexeme $lexeme) : Expression
+	protected function parseSingeExpression(Token $token) : Expression
 	{
-		if ($lexeme->isLiteral()) // 5
+		if ($token->isLiteral()) // 5
 		{
-			return new Expression\Literal($lexeme);
+			return new Expression\Literal($token);
 		}
-		else if ($lexeme->isName()) // a
+		else if ($token->isName()) // a
 		{
-			if ($this->names->isVariable($lexeme->value()))
+			if ($this->names->isVariable($token->value()))
 			{
-				return new Expression\ScalarVariable($lexeme);
+				return new Expression\ScalarVariable($token);
 			}
-			else if ($this->names->isArray($lexeme->value()))
+			else if ($this->names->isArray($token->value()))
 			{
-				return new Expression\ArrayVariable($lexeme);
+				return new Expression\ArrayVariable($token);
 			}
 			else
 			{
-				throw new ParseError("can't parse expression", $lexeme);
+				throw new ParseError("can't parse expression", $token);
 			}
 		}
-		else if ($lexeme instanceof LexemeScope && $lexeme->value() === '(') // (a + b)
+		else if ($token instanceof TokenScope && $token->value() === '(') // (a + b)
 		{
-			return $this->parseExpression($lexeme);
+			return $this->parseExpression($token);
 		}
-		else if ($lexeme instanceof LexemeScope && $lexeme->value() === '[') // [1, 2, 3]
+		else if ($token instanceof TokenScope && $token->value() === '[') // [1, 2, 3]
 		{
 			return new Expression\ArrayScope(
-				$this->parseExpression($lexeme),
-				$lexeme,
+				$this->parseExpression($token),
+				$token,
 			);
 		}
 		else
 		{
-			throw new ParseError("can't parse expression", $lexeme);
+			throw new ParseError("can't parse expression", $token);
 		}
 	}
 
-	protected function parseAccess(LexemeScope $scope) : Expression
+	protected function parseAccess(TokenScope $scope) : Expression
 	{
 		$last = $scope->last();
-		if ($last instanceof LexemeScope)
+		if ($last instanceof TokenScope)
 		{
 			if ($last->value() === '[')
 			{
@@ -163,7 +163,7 @@ class ExpressionBuilder
 		}
 	}
 
-	protected function parseSingleOperatorBefore(Expression $operand, Lexeme $operator) : Expression
+	protected function parseSingleOperatorBefore(Expression $operand, Token $operator) : Expression
 	{
 		return match ($operator->value()) {
 			'++'     => new Operator\Arithmetic\Increment($operand, $operator),
@@ -174,7 +174,7 @@ class ExpressionBuilder
 		};
 	}
 
-	protected function parseSingleOperatorAfter(Expression $operand, Lexeme $operator) : Expression
+	protected function parseSingleOperatorAfter(Expression $operand, Token $operator) : Expression
 	{
 		return match ($operator->value()) {
 			'++'    => new Operator\Arithmetic\Increment($operand, $operator, true),
@@ -183,7 +183,7 @@ class ExpressionBuilder
 		};
 	}
 
-	protected function parseBinaryOperator(Expression $left, Expression $right, Lexeme $operator) : Expression
+	protected function parseBinaryOperator(Expression $left, Expression $right, Token $operator) : Expression
 	{
 		return match($operator->value()) {
 			'+' =>               new Operator\Arithmetic\Addition($left, $right, $operator),
@@ -214,7 +214,7 @@ class ExpressionBuilder
 		};
 	}
 
-	protected function getMinPriorityIndex(LexemeScope $parts) : ?int
+	protected function getMinPriorityIndex(TokenScope $parts) : ?int
 	{
 		$minPriority = 0;
 		$minPriorityIndex = null;

@@ -59,7 +59,7 @@ try
 }
 catch (BigBrain\Exception\Exception $e)
 {
-	$lexeme = $e->getLexeme();
+	$token = $e->getToken();
 
 	$message = $debug ?
 		sprintf(
@@ -75,8 +75,8 @@ catch (BigBrain\Exception\Exception $e)
 		'status' => 'error',
 		'message' => $message,
 		'position' => [
-			'start' => $lexeme->index(),
-			'length'  => mb_strlen($lexeme->value()),
+			'start' => $token->index(),
+			'length'  => mb_strlen($token->value()),
 		],
 	];
 }

@@ -6,21 +6,21 @@ use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
-use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
+use Gordy\Brainfuck\BigBrain\Term\HasToken;
 use Gordy\Brainfuck\BigBrain\Type;
 
 class ArrayScope implements Expression
 {
-	use HasLexeme;
+	use HasToken;
 
 	protected Expression $expression;
 
-	public function __construct(Expression $expr, Lexeme $lexeme)
+	public function __construct(Expression $expr, Token $token)
 	{
 		$this->expression = $expr;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	public function resultType(Environment $env) : Type\Type
@@ -40,7 +40,7 @@ class ArrayScope implements Expression
 			$itemResult = $item->resultType($env);
 			if (!$itemResult instanceof Type\Computable)
 			{
-				throw new CompileError('only constant values allowed', $item->lexeme());
+				throw new CompileError('only constant values allowed', $item->token());
 			}
 			if ($itemResult->arrayCompatible())
 			{
@@ -61,7 +61,7 @@ class ArrayScope implements Expression
 
 	public function compile(BigBrain\Environment $env) : void
 	{
-		throw new CompileError('array scope not allowed here', $this->lexeme);
+		throw new CompileError('array scope not allowed here', $this->token);
 	}
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void

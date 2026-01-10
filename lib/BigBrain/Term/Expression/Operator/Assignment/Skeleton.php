@@ -6,28 +6,28 @@ use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
-use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
+use Gordy\Brainfuck\BigBrain\Term\HasToken;
 use Gordy\Brainfuck\BigBrain\Type;
 
 abstract class Skeleton implements Expression
 {
-	use HasLexeme;
+	use HasToken;
 
 	protected Expression\Assignable $to;
 	protected Expression $value;
 
-	public function __construct(Expression $to, Expression $expr, Lexeme $lexeme)
+	public function __construct(Expression $to, Expression $expr, Token $token)
 	{
 		if (!$to instanceof Expression\Assignable)
 		{
-			throw new CompileError('assignable value expected', $to->lexeme());
+			throw new CompileError('assignable value expected', $to->token());
 		}
 
 		$this->to = $to;
 		$this->value = $expr;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	public function resultType(Environment $env) : Type\Type

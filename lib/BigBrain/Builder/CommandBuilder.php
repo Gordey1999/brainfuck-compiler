@@ -3,7 +3,7 @@
 namespace Gordy\Brainfuck\BigBrain\Builder;
 
 use Gordy\Brainfuck\BigBrain\Type;
-use Gordy\Brainfuck\BigBrain\Parser\LexemeScope;
+use Gordy\Brainfuck\BigBrain\Parser\TokenScope;
 use Gordy\Brainfuck\BigBrain\Term;
 
 class CommandBuilder
@@ -29,7 +29,7 @@ class CommandBuilder
 		$this->expression = new ExpressionBuilder($names);
 	}
 
-	public function build(LexemeScope $scope) : Term\Command | Term\Expression
+	public function build(TokenScope $scope) : Term\Command | Term\Expression
 	{
 		$first = $scope->first();
 
@@ -53,7 +53,7 @@ class CommandBuilder
 		}
 	}
 
-	public function buildVariable(LexemeScope $scope) : Term\Command
+	public function buildVariable(TokenScope $scope) : Term\Command
 	{
 		$type = $scope->first();
 		$expr = $scope->slice(1);

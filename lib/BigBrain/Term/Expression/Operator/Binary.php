@@ -7,21 +7,21 @@ use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 
 abstract class Binary implements Expression
 {
-	use Term\HasLexeme;
+	use Term\HasToken;
 
 	protected Expression $left;
 	protected Expression $right;
 
-	public function __construct(Expression $left, Expression $right, Lexeme $lexeme)
+	public function __construct(Expression $left, Expression $right, Token $token)
 	{
 		$this->left = $left;
 		$this->right = $right;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	protected abstract function computeValue(int $left, int $right) : mixed;
@@ -98,8 +98,8 @@ abstract class Binary implements Expression
 		{
 			throw new CompileError(sprintf('unsupported operand type "%s" for operator "%s"',
 				$value->type(),
-				$this->lexeme->value(),
-			), $this->lexeme);
+				$this->token->value(),
+			), $this->token);
 		}
 	}
 
@@ -109,8 +109,8 @@ abstract class Binary implements Expression
 		{
 			throw new CompileError(sprintf('unsupported operand type "%s" for operator "%s"',
 				$value,
-				$this->lexeme->value(),
-			), $this->lexeme);
+				$this->token->value(),
+			), $this->token);
 		}
 	}
 }

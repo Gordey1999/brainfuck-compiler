@@ -3,7 +3,7 @@
 namespace Gordy\Brainfuck\BigBrain;
 
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 
 class Stack
 {
@@ -14,11 +14,12 @@ class Stack
 
 	/**
 	 * @template T
-	 * @param Lexeme $name
-	 * @param T $value
+	 * @param Token $name
+	 * @param T     $value
+	 *
 	 * @return T
 	 */
-	public function push(Lexeme $name, mixed $value) : mixed
+	public function push(Token $name, mixed $value) : mixed
 	{
 		if ($this->stack[0][$name->value()] !== null)
 		{
@@ -30,11 +31,12 @@ class Stack
 
 	/**
 	 * @template T
-	 * @param Lexeme $name
+	 * @param Token            $name
 	 * @param ?class-string<T> $type
+	 *
 	 * @return T
 	 */
-	public function get(Lexeme $name, string $type = null) : object
+	public function get(Token $name, string $type = null) : object
 	{
 		$item = $this->search($name->value())
 			?? throw new CompileError("variable '{$name->value()}' not defined", $name);

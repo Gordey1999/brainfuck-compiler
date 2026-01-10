@@ -8,24 +8,24 @@ use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\MemoryCellArray;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use \Gordy\Brainfuck\BigBrain\Term\Expression;
-use Gordy\Brainfuck\BigBrain\Term\HasLexeme;
+use Gordy\Brainfuck\BigBrain\Term\HasToken;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Utils;
 
 class ArrayAccess implements Expression, Expression\Assignable
 {
-	use HasLexeme;
+	use HasToken;
 
 	protected Expression $to;
 	protected Expression $index;
 
-	public function __construct(Expression $to, Expression $index, Lexeme $lexeme)
+	public function __construct(Expression $to, Expression $index, Token $token)
 	{
 		$this->to = $to;
 		$this->index = $index;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	public function variable() : Expression\ArrayVariable
@@ -39,7 +39,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 			return $this->to->variable();
 		}
 
-		throw new SyntaxError('array name expected', $this->to->lexeme());
+		throw new SyntaxError('array name expected', $this->to->token());
 	}
 
 	public function dimensions(Environment $env) : array
@@ -48,11 +48,11 @@ class ArrayAccess implements Expression, Expression\Assignable
 
 		if (!$resultType instanceof Type\Computable)
 		{
-			throw new CompileError('array size must be constant', $this->index->lexeme());
+			throw new CompileError('array size must be constant', $this->index->token());
 		}
 		if (!$resultType->numericNullableCompatible())
 		{
-			throw new CompileError('numeric expected', $this->index->lexeme());
+			throw new CompileError('numeric expected', $this->index->token());
 		}
 
 		if ($this->to instanceof self)
@@ -75,7 +75,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 		else
 		{
-			throw new CompileError('array operand expected, scalar passed', $this->to->lexeme());
+			throw new CompileError('array operand expected, scalar passed', $this->to->token());
 		}
 	}
 
@@ -89,7 +89,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		$cell = $this->variable($env)->memoryCell($env);
 		if (!$cell instanceof MemoryCellArray)
 		{
-			throw new SyntaxError('array expected', $this->to->lexeme());
+			throw new SyntaxError('array expected', $this->to->token());
 		}
 		return $cell;
 	}
@@ -109,7 +109,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		{
 			throw new CompileError(
 				sprintf('wrong index count. Array has only %s dimensions', count($sizes)),
-				$this->lexeme()
+				$this->token()
 			);
 		}
 
@@ -130,7 +130,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 			{
 				if (!$indexResult->numericCompatible())
 				{
-					throw new CompileError('numeric index expected', $this->lexeme());
+					throw new CompileError('numeric index expected', $this->token());
 				}
 				$computedIndex += $indexResult->getNumeric() * $multipliers[$key];
 			}
@@ -167,7 +167,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 		else
 		{
-			throw new CompileError('not expected', $this->variable()->lexeme());
+			throw new CompileError('not expected', $this->variable()->token());
 		}
 	}
 
@@ -179,7 +179,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		{
 			if ($modifier !== self::ASSIGN_SET)
 			{
-				throw new CompileError('only "=" operator supported to fill array', $value->lexeme());
+				throw new CompileError('only "=" operator supported to fill array', $value->token());
 			}
 			$indexCell = $env->arraysProcessor()->startCell();
 			$this->calculateIndex($env, $indexCell);
@@ -192,7 +192,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 		else
 		{
-			throw new CompileError('not expected', $this->lexeme);
+			throw new CompileError('not expected', $this->token);
 		}
 	}
 
@@ -210,7 +210,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 		}
 		else
 		{
-			throw new CompileError('scalar value expected', $value->lexeme());
+			throw new CompileError('scalar value expected', $value->token());
 		}
 	}
 
@@ -223,7 +223,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 
 		if (!$result->numericCompatible())
 		{
-			throw new CompileError('numeric type expected', $value->lexeme());
+			throw new CompileError('numeric type expected', $value->token());
 		}
 
 		$numericValue = $result->getNumeric();
@@ -261,7 +261,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 			}
 			else
 			{
-				throw new CompileError('undefined modifier', $this->lexeme);
+				throw new CompileError('undefined modifier', $this->token);
 			}
 			$env->arraysProcessor()->set($dummyCell);
 		}
@@ -325,7 +325,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 			}
 			else
 			{
-				throw new CompileError('undefined modifier', $this->lexeme);
+				throw new CompileError('undefined modifier', $this->token);
 			}
 			$env->arraysProcessor()->set($dummyCell);
 			$env->processor()->release($tempResult);
@@ -362,7 +362,7 @@ class ArrayAccess implements Expression, Expression\Assignable
 
 		if ($isBool && $isArithmetic)
 		{
-			throw new CompileError("Why? It's bool variable. It's stupid. I won't do it.", $value->lexeme());
+			throw new CompileError("Why? It's bool variable. It's stupid. I won't do it.", $value->token());
 		}
 	}
 

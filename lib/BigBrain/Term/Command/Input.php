@@ -7,22 +7,22 @@ use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Term\Expression\Operator\ArrayAccess;
 use Gordy\Brainfuck\BigBrain\Utils;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
 
 class Input implements Term\Command
 {
-	use Term\HasLexeme;
+	use Term\HasToken;
 
 	/** @var Expression[] */
 	private array $parts;
 
-	public function __construct(Expression $expr, Lexeme $lexeme)
+	public function __construct(Expression $expr, Token $token)
 	{
 		$this->parts = $this->getParts($expr);
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	/** @return Expression[] */
@@ -66,7 +66,7 @@ class Input implements Term\Command
 			}
 			else
 			{
-				throw new CompileError("command in: type '$resultType' not supported", $part->lexeme());
+				throw new CompileError("command in: type '$resultType' not supported", $part->token());
 			}
 		}
 	}
@@ -156,7 +156,7 @@ class Input implements Term\Command
 		}
 		else
 		{
-			throw new CompileError('something went wrong', $part->lexeme());
+			throw new CompileError('something went wrong', $part->token());
 		}
 	}
 

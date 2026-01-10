@@ -7,18 +7,18 @@ use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\MemoryCellArray;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Utils;
 
 class ArrayVariable implements Expression, Assignable
 {
-	use BigBrain\Term\HasLexeme;
+	use BigBrain\Term\HasToken;
 
-	public function __construct(Lexeme $name)
+	public function __construct(Token $name)
 	{
-		$this->lexeme = $name;
+		$this->token = $name;
 	}
 
 	public function compile(BigBrain\Environment $env) : void
@@ -26,9 +26,9 @@ class ArrayVariable implements Expression, Assignable
 		// do nothing
 	}
 
-	public function name() : Lexeme
+	public function name() : Token
 	{
-		return $this->lexeme;
+		return $this->token;
 	}
 
 	public function memoryCell(Environment $env) : MemoryCellArray
@@ -50,7 +50,7 @@ class ArrayVariable implements Expression, Assignable
 	{
 		if ($modifier !== self::ASSIGN_SET)
 		{
-			throw new CompileError('only "=" operator supported to fill array', $value->lexeme());
+			throw new CompileError('only "=" operator supported to fill array', $value->token());
 		}
 		$startCell = $this->memoryCell($env);
 		$this->fillArray($env, $startCell, $value);
@@ -67,7 +67,7 @@ class ArrayVariable implements Expression, Assignable
 		$result = $value->resultType($env);
 		if (!$result instanceof Type\Computable)
 		{
-			throw new CompileError("can't assign dynamic value to array. only literals supported", $this->lexeme());
+			throw new CompileError("can't assign dynamic value to array. only literals supported", $this->token());
 		}
 		if ($result->arrayCompatible())
 		{
@@ -84,7 +84,7 @@ class ArrayVariable implements Expression, Assignable
 						implode(', ', $pointerSizes),
 						implode(', ', $valueSizes)
 					),
-					$this->lexeme
+					$this->token
 				);
 			}
 
@@ -97,7 +97,7 @@ class ArrayVariable implements Expression, Assignable
 		}
 		else
 		{
-			throw new CompileError(sprintf("can't assign '%s' value to array", $result->type()), $this->lexeme);
+			throw new CompileError(sprintf("can't assign '%s' value to array", $result->type()), $this->token);
 		}
 
 		if ($pointer->baseType() instanceof Type\Boolean)
@@ -117,6 +117,6 @@ class ArrayVariable implements Expression, Assignable
 
 	public function __toString() : string
 	{
-		return $this->lexeme()->value();
+		return $this->token()->value();
 	}
 }

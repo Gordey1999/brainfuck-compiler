@@ -4,7 +4,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression;
 
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
 
@@ -30,7 +30,7 @@ class None implements Expression
 		throw new \Exception('Not implemented');
 	}
 
-	public function lexeme() : Lexeme
+	public function token() : Token
 	{
 		throw new \Exception('Not implemented');
 	}

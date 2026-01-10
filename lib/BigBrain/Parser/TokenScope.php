@@ -2,7 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain\Parser;
 
-class LexemeScope extends Lexeme
+class TokenScope extends Token
 {
 	protected array $children;
 
@@ -33,27 +33,27 @@ class LexemeScope extends Lexeme
 		return count($this->children) === 1;
 	}
 
-	public function first() : Lexeme
+	public function first() : Token
 	{
 		return $this->children[0] ?? throw new \Exception("empty children");
 	}
 
-	public function last() : Lexeme
+	public function last() : Token
 	{
 		$length = count($this->children);
 		if ($length === 0) { throw new \Exception("empty children"); }
 		return $this->children[$length - 1];
 	}
 
-	public function get(int $index) : Lexeme
+	public function get(int $index) : Token
 	{
 		return $this->children[$index] ?? throw new \Exception("no child");
 	}
 
-	public function slice(int $start, int $length = null) : LexemeScope
+	public function slice(int $start, int $length = null) : TokenScope
 	{
 		$parts = array_slice($this->children, $start, $length);
-		return new LexemeScope($this->value, $parts, $this->index, $this->position);
+		return new TokenScope($this->value, $parts, $this->index, $this->position);
 	}
 
 	public function isBlock() : bool

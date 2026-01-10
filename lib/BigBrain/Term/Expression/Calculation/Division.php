@@ -5,11 +5,11 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Calculation;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 
 class Division
 {
-	public static function assignByConstant(Environment $env, MemoryCell $cell, int $constant, Lexeme $expr) : void
+	public static function assignByConstant(Environment $env, MemoryCell $cell, int $constant, Token $expr) : void
 	{
 		if ($constant === 0) { throw new CompileError('division by zero', $expr); }
 		if ($constant === 1) { return; }

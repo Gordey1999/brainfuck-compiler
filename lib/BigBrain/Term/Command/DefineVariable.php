@@ -6,7 +6,7 @@ use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\Expression\ArrayVariable;
@@ -18,18 +18,18 @@ use Gordy\Brainfuck\BigBrain\Type;
 
 class DefineVariable implements Term\Command
 {
-	use Term\HasLexeme;
+	use Term\HasToken;
 
 	private BigBrain\Type\BaseType $type;
 
 	/** @var Expression[] $variables */
 	private array $variables;
 
-	public function __construct(BigBrain\Type\BaseType $type, Expression $expr, Lexeme $lexeme)
+	public function __construct(BigBrain\Type\BaseType $type, Expression $expr, Token $token)
 	{
 		$this->type = $type;
 		$this->variables = $this->getVariableList($expr);
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	protected function getVariableList(Expression $expr) : array
@@ -50,7 +50,7 @@ class DefineVariable implements Term\Command
 				&& !$var instanceof Assignment\Base
 				&& !$var instanceof ArrayAccess)
 			{
-				throw new SyntaxError('variable name expected', $var->lexeme());
+				throw new SyntaxError('variable name expected', $var->token());
 			}
 		}
 
@@ -80,7 +80,7 @@ class DefineVariable implements Term\Command
 			$dimensions = $variable->dimensions($env);
 			if (Utils\ArraysHelper::hasNull($dimensions))
 			{
-				throw new CompileError('array size expected', $variable->lexeme());
+				throw new CompileError('array size expected', $variable->token());
 			}
 
 			$env->arraysMemory()->allocate($this->type, $name, $dimensions);
@@ -91,7 +91,7 @@ class DefineVariable implements Term\Command
 		}
 		else
 		{
-			throw new CompileError('variable name expected', $variable->lexeme());
+			throw new CompileError('variable name expected', $variable->token());
 		}
 	}
 
@@ -124,7 +124,7 @@ class DefineVariable implements Term\Command
 		}
 		else
 		{
-			throw new CompileError('variable name expected', $assignment->left()->lexeme());
+			throw new CompileError('variable name expected', $assignment->left()->token());
 		}
 	}
 
@@ -137,7 +137,7 @@ class DefineVariable implements Term\Command
 
 		if (!$result instanceof Type\Computable)
 		{
-			throw new CompileError('wrong assignment value', $assignment->lexeme());
+			throw new CompileError('wrong assignment value', $assignment->token());
 		}
 		if ($result->arrayCompatible())
 		{
@@ -157,7 +157,7 @@ class DefineVariable implements Term\Command
 							}, $targetSizes)),
 						implode(', ', $valueSizes)
 					),
-					$assignment->lexeme()
+					$assignment->token()
 				);
 			}
 			return Utils\ArraysHelper::dimensionsUnion($valueSizes, $targetSizes);
@@ -166,7 +166,7 @@ class DefineVariable implements Term\Command
 		{
 			return [ 1 ];
 		}
-		throw new CompileError('wrong assignment value', $assignment->lexeme());
+		throw new CompileError('wrong assignment value', $assignment->token());
 	}
 
 	public function __toString() : string

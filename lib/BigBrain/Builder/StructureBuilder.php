@@ -4,7 +4,7 @@ namespace Gordy\Brainfuck\BigBrain\Builder;
 
 use Gordy\Brainfuck\BigBrain\Exception\SyntaxError;
 use Gordy\Brainfuck\BigBrain\Term;
-use Gordy\Brainfuck\BigBrain\Parser\LexemeScope;
+use Gordy\Brainfuck\BigBrain\Parser\TokenScope;
 
 class StructureBuilder
 {
@@ -21,14 +21,14 @@ class StructureBuilder
 		$this->command = new CommandBuilder($names);
 	}
 
-	public function buildScope(LexemeScope $scope) : Term\Scope
+	public function buildScope(TokenScope $scope) : Term\Scope
 	{
 		$result = [];
 		// $this->rebuildIf()
 
 		foreach ($scope->children() as $block)
 		{
-			if (!$block instanceof LexemeScope || !$block->isBlock())
+			if (!$block instanceof TokenScope || !$block->isBlock())
 			{
 				throw new \Exception('unexpected error');
 			}
@@ -40,7 +40,7 @@ class StructureBuilder
 		return new Term\Scope($result, $scope);
 	}
 
-	public function buildBlock(LexemeScope $block) : Term\Term
+	public function buildBlock(TokenScope $block) : Term\Term
 	{
 		$first = $block->first();
 		$other = $block->slice(1);
@@ -55,12 +55,12 @@ class StructureBuilder
 		}
 	}
 
-	protected function buildWhile(LexemeScope $block) : Term\Structure\WhileLoop
+	protected function buildWhile(TokenScope $block) : Term\Structure\WhileLoop
 	{
 		if ($block->count() < 2) { throw new SyntaxError("unexpected structure", $block); }
 		$expr = $block->first();
 		$scope = $block->slice(1);
-		if (!$expr instanceof LexemeScope || $expr->value() !== '(')
+		if (!$expr instanceof TokenScope || $expr->value() !== '(')
 		{
 			throw new SyntaxError("structure scopes expected", $expr);
 		}
@@ -70,7 +70,7 @@ class StructureBuilder
 		}
 		else
 		{
-			$scope = new LexemeScope('{', [$scope], $scope->first()->index(), $scope->first()->position());
+			$scope = new TokenScope('{', [$scope], $scope->first()->index(), $scope->first()->position());
 		}
 
 		return new Term\Structure\WhileLoop(

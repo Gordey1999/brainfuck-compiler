@@ -7,17 +7,17 @@ use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
 use Gordy\Brainfuck\BigBrain\MemoryCellTyped;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
 
 class ScalarVariable implements Expression, Assignable
 {
-	use BigBrain\Term\HasLexeme;
+	use BigBrain\Term\HasToken;
 
-	public function __construct(Lexeme $name)
+	public function __construct(Token $name)
 	{
-		$this->lexeme = $name;
+		$this->token = $name;
 	}
 
 	public function compile(BigBrain\Environment $env) : void
@@ -25,9 +25,9 @@ class ScalarVariable implements Expression, Assignable
 		// do nothing
 	}
 
-	public function name() : Lexeme
+	public function name() : Token
 	{
-		return $this->lexeme;
+		return $this->token;
 	}
 
 	public function memoryCell(Environment $env) : MemoryCellTyped
@@ -65,7 +65,7 @@ class ScalarVariable implements Expression, Assignable
 		}
 		else
 		{
-			throw new CompileError('scalar value expected', $value->lexeme());
+			throw new CompileError('scalar value expected', $value->token());
 		}
 	}
 
@@ -78,7 +78,7 @@ class ScalarVariable implements Expression, Assignable
 
 		if (!$result->numericCompatible())
 		{
-			throw new CompileError('numeric type expected', $value->lexeme());
+			throw new CompileError('numeric type expected', $value->token());
 		}
 
 		$numericValue = $result->getNumeric();
@@ -98,7 +98,7 @@ class ScalarVariable implements Expression, Assignable
 		}
 		else
 		{
-			Expression\Calculation\Assignation::assignByConstant($env, $memoryCell, $numericValue, $modifier, $value->lexeme());
+			Expression\Calculation\Assignation::assignByConstant($env, $memoryCell, $numericValue, $modifier, $value->token());
 		}
 	}
 
@@ -136,7 +136,7 @@ class ScalarVariable implements Expression, Assignable
 		}
 		else
 		{
-			Expression\Calculation\Assignation::assignByVariable($env, $memoryCell, $tempResult, $modifier, $value->lexeme());
+			Expression\Calculation\Assignation::assignByVariable($env, $memoryCell, $tempResult, $modifier, $value->token());
 		}
 
 		$env->processor()->release($tempResult);
@@ -149,12 +149,12 @@ class ScalarVariable implements Expression, Assignable
 
 		if ($isBool && $isArithmetic)
 		{
-			throw new CompileError("Why? It's bool variable. It's stupid. I won't do it.", $value->lexeme());
+			throw new CompileError("Why? It's bool variable. It's stupid. I won't do it.", $value->token());
 		}
 	}
 
 	public function __toString() : string
 	{
-		return $this->lexeme()->value();
+		return $this->token()->value();
 	}
 }

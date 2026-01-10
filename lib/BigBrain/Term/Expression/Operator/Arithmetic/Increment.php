@@ -8,28 +8,28 @@ use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 
 class Increment implements Expression
 {
-	use Term\HasLexeme;
+	use Term\HasToken;
 
 	protected Expression\Assignable $to;
 	protected Expression $value;
 	protected bool $isPost;
 
-	public function __construct(Expression $to, Lexeme $lexeme, bool $isPost = false)
+	public function __construct(Expression $to, Token $token, bool $isPost = false)
 	{
 		if (!$to instanceof Expression\Assignable)
 		{
-			throw new CompileError('assignable value expected', $to->lexeme());
+			throw new CompileError('assignable value expected', $to->token());
 		}
 		$this->to = $to;
 		$this->value = new Expression\Literal(
-			new Lexeme('1', $lexeme->index(), $lexeme->position())
+			new Token('1', $token->index(), $token->position())
 		);
 		$this->isPost = $isPost;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	public function compile(Environment $env) : void

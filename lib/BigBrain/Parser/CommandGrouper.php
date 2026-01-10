@@ -6,13 +6,13 @@ use Gordy\Brainfuck\BigBrain\Exception\ParseError;
 
 class CommandGrouper
 {
-	/** @param Lexeme[] $words */
-	public static function groupScopes(array $words) : LexemeScope
+	/** @param Token[] $words */
+	public static function groupScopes(array $words) : TokenScope
 	{
-		return new LexemeScope('', self::groupScopesRecursive($words));
+		return new TokenScope('', self::groupScopesRecursive($words));
 	}
 
-	/** @param Lexeme[] $words */
+	/** @param Token[] $words */
 	public static function groupScopesRecursive(array $words) : array
 	{
 		$pairs = [
@@ -55,7 +55,7 @@ class CommandGrouper
 						throw new ParseError('unexpected end of scope', $word);
 					}
 
-					$result[] = new LexemeScope(
+					$result[] = new TokenScope(
 						$scopeStart->value(),
 						self::groupScopesRecursive($scopeWords),
 						$scopeStart->index(),
@@ -82,12 +82,12 @@ class CommandGrouper
 		return $result;
 	}
 
-	public static function groupCommands(LexemeScope $words) : LexemeScope
+	public static function groupCommands(TokenScope $words) : TokenScope
 	{
-		return new LexemeScope('', self::groupCommandsRecursive($words->children()));
+		return new TokenScope('', self::groupCommandsRecursive($words->children()));
 	}
 
-	/** @param Lexeme[] $words */
+	/** @param Token[] $words */
 	public static function groupCommandsRecursive(array $words) : array
 	{
 		$result = [];
@@ -101,15 +101,15 @@ class CommandGrouper
 				$groupStart = $word;
 			}
 
-			if ($word instanceof LexemeScope && $word->value() === '{')
+			if ($word instanceof TokenScope && $word->value() === '{')
 			{
-				$group[] = new LexemeScope(
+				$group[] = new TokenScope(
 					$word->value(),
 					self::groupCommandsRecursive($word->children()),
 					$word->index(),
 					$word->position(),
 				);
-				$result[] = new LexemeScope(
+				$result[] = new TokenScope(
 					';',
 					$group,
 					$groupStart->index(),
@@ -120,7 +120,7 @@ class CommandGrouper
 			}
 			else if ($word->value() === ';')
 			{
-				$result[] = new LexemeScope(
+				$result[] = new TokenScope(
 					';',
 					$group,
 					$groupStart->index(),

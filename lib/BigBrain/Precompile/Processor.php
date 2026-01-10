@@ -4,7 +4,7 @@ namespace Gordy\Brainfuck\BigBrain\Precompile;
 
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Processor as BaseProcessor;
 
 class Processor extends BaseProcessor
@@ -36,7 +36,7 @@ class Processor extends BaseProcessor
 		{
 			throw new CompileError(
 				sprintf("memory leak detected: %s byte(s)", $this->registrySize),
-				new Lexeme('')
+				new Token('')
 			);
 		}
 

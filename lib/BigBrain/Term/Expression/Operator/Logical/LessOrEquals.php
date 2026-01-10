@@ -4,8 +4,6 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Logical;
 
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
-use Gordy\Brainfuck\BigBrain\Term\Expression;
 
 class LessOrEquals extends More
 {

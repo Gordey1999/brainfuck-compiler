@@ -5,23 +5,23 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator;
 use Gordy\Brainfuck\BigBrain;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 
 class Comma implements Expression
 {
-	use BigBrain\Term\HasLexeme;
+	use BigBrain\Term\HasToken;
 
 	protected Expression $left;
 	protected Expression $right;
 
-	public function __construct(Expression $left, Expression $right, Lexeme $lexeme)
+	public function __construct(Expression $left, Expression $right, Token $token)
 	{
 		$this->left = $left;
 		$this->right = $right;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	public function compile(BigBrain\Environment $env) : void
@@ -57,7 +57,7 @@ class Comma implements Expression
 
 	public function resultType(Environment $env) : Type\Type
 	{
-		throw new CompileError('unexpected operator ","', $this->lexeme);
+		throw new CompileError('unexpected operator ","', $this->token);
 	}
 
 	public function compileCalculation(Environment $env, MemoryCell $result) : void

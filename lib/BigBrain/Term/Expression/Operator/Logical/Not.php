@@ -5,21 +5,21 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Operator\Logical;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term;
 use Gordy\Brainfuck\BigBrain\Type;
 
 class Not implements Expression
 {
-	use Term\HasLexeme;
+	use Term\HasToken;
 
 	protected Expression $value;
 
-	public function __construct(Expression $value, Lexeme $lexeme)
+	public function __construct(Expression $value, Token $token)
 	{
 		$this->value = $value;
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	public function compile(Environment $env) : void
@@ -62,7 +62,7 @@ class Not implements Expression
 		}
 		else
 		{
-			throw new CompileError('scalar value expected', $this->value->lexeme());
+			throw new CompileError('scalar value expected', $this->value->token());
 		}
 	}
 

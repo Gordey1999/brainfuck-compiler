@@ -2,8 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain;
 
-use Gordy\Brainfuck\BigBrain\Exception\CompileError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 
 class Memory
 {
@@ -19,7 +18,7 @@ class Memory
 		$this->stream = $stream;
 	}
 
-	public function allocate(Type\BaseType $type, Lexeme $name) : MemoryCellTyped
+	public function allocate(Type\BaseType $type, Token $name) : MemoryCellTyped
 	{
 		$address = $this->offset + $this->count();
 
@@ -35,7 +34,7 @@ class Memory
 		return count($variables);
 	}
 
-	public function get(Lexeme $name) : MemoryCellTyped
+	public function get(Token $name) : MemoryCellTyped
 	{
 		return $this->stack->get($name, MemoryCellTyped::class);
 	}

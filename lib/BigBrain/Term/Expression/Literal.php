@@ -5,7 +5,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Utils;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Type;
 use Gordy\Brainfuck\BigBrain\Term;
@@ -13,11 +13,11 @@ use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 
 class Literal implements Expression
 {
-	use Term\HasLexeme;
+	use Term\HasToken;
 
-	public function __construct(Lexeme $lexeme)
+	public function __construct(Token $token)
 	{
-		$this->lexeme = $lexeme;
+		$this->token = $token;
 	}
 
 	public function compile(Environment $env) : void
@@ -27,7 +27,7 @@ class Literal implements Expression
 
 	public function resultType(Environment $env) : Type\Computable
 	{
-		$value = $this->lexeme->value();
+		$value = $this->token->value();
 		$parsed = match(true) {
 			$value[0] === '"' || $value[0] === "'" => Utils\CharHelper::convertSpecialChars(
 				substr($value, 1, -1)
@@ -53,6 +53,6 @@ class Literal implements Expression
 
 	public function __toString() : string
 	{
-		return $this->lexeme()->value();
+		return $this->token()->value();
 	}
 }

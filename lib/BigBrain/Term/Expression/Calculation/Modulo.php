@@ -8,9 +8,9 @@ use Gordy\Brainfuck\BigBrain\MemoryCell;
 
 class Modulo
 {
-	public static function assignByConstant(Environment $env, MemoryCell $cell, int $constant, $lexeme) : void
+	public static function assignByConstant(Environment $env, MemoryCell $cell, int $constant, $token) : void
 	{
-		if ($constant === 0) { throw new CompileError('division by zero', $lexeme); }
+		if ($constant === 0) { throw new CompileError('division by zero', $token); }
 		if ($constant === 1)
 		{
 			$env->processor()->unset($cell);

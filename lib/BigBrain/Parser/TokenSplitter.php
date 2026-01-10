@@ -5,9 +5,9 @@ namespace Gordy\Brainfuck\BigBrain\Parser;
 use Gordy;
 use Gordy\Brainfuck\BigBrain\Exception\ParseError;
 
-class WordSplitter
+class TokenSplitter
 {
-	/** @return Lexeme[] */
+	/** @return Token[] */
 	public static function parse(string $code) : array
 	{
 		return self::split($code);
@@ -105,7 +105,7 @@ class WordSplitter
 			{
 				throw new ParseError(
 					"unknown token '$char'",
-					new Lexeme(
+					new Token(
 						$char,
 						$index,
 						self::getPosition($code, $index)
@@ -117,7 +117,7 @@ class WordSplitter
 			{
 				if (!empty($word))
 				{
-					$result[] = new Lexeme(
+					$result[] = new Token(
 						implode('', $word),
 						$wordIndex,
 						self::getPosition($code, $wordIndex)
@@ -132,7 +132,7 @@ class WordSplitter
 			$word[] = $char;
 		}
 
-		$result[] = new Lexeme(
+		$result[] = new Token(
 			implode('', $word),
 			$wordIndex,
 			self::getPosition($code, $wordIndex)

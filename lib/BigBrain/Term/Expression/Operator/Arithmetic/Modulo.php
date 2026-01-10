@@ -40,7 +40,7 @@ class Modulo extends Binary
 
 	protected function compileWithRightConstant(Environment $env, int $constant, MemoryCell $result) : void
 	{
-		if ($constant === 0) { throw new CompileError('division by zero', $this->lexeme()); }
+		if ($constant === 0) { throw new CompileError('division by zero', $this->token()); }
 		if ($constant === 1) { return; }
 
 		$left = $env->processor()->reserve($result);

@@ -5,7 +5,7 @@ namespace Gordy\Brainfuck\BigBrain\Term\Expression\Calculation;
 use Gordy\Brainfuck\BigBrain\Environment;
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\MemoryCell;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Term\Expression;
 use Gordy\Brainfuck\BigBrain\Term\Expression\Assignable;
 
@@ -16,14 +16,14 @@ class Assignation
 		MemoryCell $cell,
 		int $constant,
 		string $modifier,
-		Lexeme $lexeme
+		Token $token
 	) : void
 	{
 		match ($modifier) {
 			Assignable::ASSIGN_MULTIPLY => Multiplication::assignByConstant($env, $cell, $constant),
-			Assignable::ASSIGN_DIVIDE => Division::assignByConstant($env, $cell, $constant, $lexeme),
-			Assignable::ASSIGN_MODULO => Modulo::assignByConstant($env, $cell, $constant, $lexeme),
-			default => throw new CompileError('undefined modifier', $lexeme),
+			Assignable::ASSIGN_DIVIDE => Division::assignByConstant($env, $cell, $constant, $token),
+			Assignable::ASSIGN_MODULO => Modulo::assignByConstant($env, $cell, $constant, $token),
+			default => throw new CompileError('undefined modifier', $token),
 		};
 	}
 
@@ -32,14 +32,14 @@ class Assignation
 		MemoryCell $cell,
 		MemoryCell $value,
 		string $modifier,
-		Lexeme $lexeme
+		Token $token
 	) : void
 	{
 		match ($modifier) {
 			Assignable::ASSIGN_MULTIPLY => Multiplication::assignByVariable($env, $cell, $value),
-			Assignable::ASSIGN_DIVIDE => Division::assignByVariable($env, $cell, $value, $lexeme),
-			Assignable::ASSIGN_MODULO => Modulo::assignByVariable($env, $cell, $value, $lexeme),
-			default => throw new CompileError('undefined modifier', $lexeme),
+			Assignable::ASSIGN_DIVIDE => Division::assignByVariable($env, $cell, $value, $token),
+			Assignable::ASSIGN_MODULO => Modulo::assignByVariable($env, $cell, $value, $token),
+			default => throw new CompileError('undefined modifier', $token),
 		};
 	}
 }

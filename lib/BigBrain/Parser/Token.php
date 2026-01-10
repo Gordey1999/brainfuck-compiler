@@ -2,7 +2,7 @@
 
 namespace Gordy\Brainfuck\BigBrain\Parser;
 
-class Lexeme
+class Token
 {
 	protected string $value;
 	protected array $position;

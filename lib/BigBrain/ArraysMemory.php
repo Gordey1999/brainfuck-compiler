@@ -3,7 +3,7 @@
 namespace Gordy\Brainfuck\BigBrain;
 
 use Gordy\Brainfuck\BigBrain\Exception\CompileError;
-use Gordy\Brainfuck\BigBrain\Parser\Lexeme;
+use Gordy\Brainfuck\BigBrain\Parser\Token;
 
 class ArraysMemory
 {
@@ -27,7 +27,7 @@ class ArraysMemory
 		}
 	}
 
-	public function allocate(Type\BaseType $type, Lexeme $name, array $sizes) : MemoryCellArray
+	public function allocate(Type\BaseType $type, Token $name, array $sizes) : MemoryCellArray
 	{
 		$address = $this->startPosition() + $this->lastIndex() * self::CELL_SIZE;
 		$startIndex = $this->lastIndex();
@@ -59,7 +59,7 @@ class ArraysMemory
 		return $lastType;
 	}
 
-	public function get(Lexeme $name) : MemoryCellArray
+	public function get(Token $name) : MemoryCellArray
 	{
 		return $this->stack->get($name, MemoryCellArray::class);
 	}

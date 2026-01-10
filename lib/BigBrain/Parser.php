@@ -2,8 +2,6 @@
 
 namespace Gordy\Brainfuck\BigBrain;
 
-use Gordy\Brainfuck\BigBrain\Builder\CommandBuilder;
-use Gordy\Brainfuck\BigBrain\Parser\LexemeScope;
 
 class Parser
 {
@@ -16,11 +14,11 @@ class Parser
 
 	public function parse(string $code) : Term\Term
 	{
-		$lexemes = Parser\WordSplitter::parse($code);
+		$tokens = Parser\TokenSplitter::parse($code);
 
-		$lexemeTree = Parser\CommandGrouper::groupScopes($lexemes);
-		$lexemeTree = Parser\CommandGrouper::groupCommands($lexemeTree);
+		$tokenTree = Parser\CommandGrouper::groupScopes($tokens);
+		$tokenTree = Parser\CommandGrouper::groupCommands($tokenTree);
 
-		return (new Builder\StructureBuilder($this->names))->buildScope($lexemeTree);
+		return (new Builder\StructureBuilder($this->names))->buildScope($tokenTree);
 	}
 }
