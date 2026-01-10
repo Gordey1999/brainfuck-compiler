@@ -27,7 +27,7 @@ class TokenSplitter
 		$inName = false;
 		$inOperator = false;
 
-		foreach (str_split($code) as $index => $char)
+		foreach (mb_str_split($code) as $index => $char)
 		{
 			if ($char === "\n")
 			{

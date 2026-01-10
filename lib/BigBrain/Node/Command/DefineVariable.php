@@ -171,6 +171,6 @@ class DefineVariable implements Node\Command
 
 	public function __toString() : string
 	{
-		return '';
+		return sprintf("%s %s", $this->type, implode(', ', $this->variables));
 	}
 }

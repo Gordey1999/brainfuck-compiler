@@ -267,7 +267,7 @@ export class Editor {
 					return "string"
 				}
 
-				if (stream.match(/^(?:const|char|int|byte|bool|if|while|for|echo|in|out|sizeof)\b/)) {
+				if (stream.match(/^(?:|char|byte|bool|if|else|do|while|for|in|out|sizeof)\b/)) {
 					return "keyword"
 				}
 

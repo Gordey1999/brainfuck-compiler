@@ -1,6 +1,6 @@
 <?php
 
-namespace Gordy\Brainfuck\BigBrain\Builder;
+namespace Gordy\Brainfuck\BigBrain\Parser;
 
 class Names
 {

@@ -3,19 +3,17 @@
 namespace Gordy\Brainfuck\BigBrain\Node;
 
 use Gordy\Brainfuck\BigBrain;
+use Gordy\Brainfuck\BigBrain\Exception\CompileError;
 use Gordy\Brainfuck\BigBrain\Parser\Token;
 
 class Scope implements Node
 {
-	use HasToken;
-
 	/** @var Node[] */
 	protected array $nodes;
 
-	public function __construct(array $nodes, Token $token = null)
+	public function __construct(array $nodes)
 	{
 		$this->nodes = $nodes;
-		$this->token = $token;
 	}
 
 	public function compile(BigBrain\Environment $env) : void
@@ -31,5 +29,10 @@ class Scope implements Node
 	public function __toString() : string
 	{
 		return '';
+	}
+
+	public function token() : Token
+	{
+		throw new CompileError('something went wrong', new Token(''));
 	}
 }

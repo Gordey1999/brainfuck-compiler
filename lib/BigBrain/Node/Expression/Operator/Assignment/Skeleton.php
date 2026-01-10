@@ -53,9 +53,4 @@ abstract class Skeleton implements Expression
 	{
 		return $this->value->hasVariable($name);
 	}
-
-	public function __toString() : string
-	{
-		return sprintf('%s = %s', $this->to, $this->value);
-	}
 }

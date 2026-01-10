@@ -42,6 +42,15 @@ class Token
 
 	public function isName() : bool
 	{
+		$keywords = [
+			'char', 'byte', 'bool',
+			'if', 'else', 'do', 'while', 'for',
+			'in', 'out', 'sizeof',
+			'true', 'false', 'eol',
+		];
+
+		if (in_array($this->value, $keywords)) { return false; }
+
 		return preg_match('/^[$a-zA-Z_][$a-zA-Z0-9_]*$/', $this->value);
 	}
 

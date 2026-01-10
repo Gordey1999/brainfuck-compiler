@@ -15,9 +15,13 @@ $debug = true;
 
 try
 {
-	$parser = new BigBrain\Parser();
-	$program = $parser->parse($request['code']);
 	$uglify = $request['uglify'];
+	$code = $request['code'];
+
+	$tokens = BigBrain\Parser\TokenSplitter::parse($code);
+	$tokenStream = new BigBrain\Parser\TokenStream($tokens);
+	$parser = new BigBrain\Parser\Parser($tokenStream);
+	$program = $parser->parse();
 
 	$precompileEnv = BigBrain\Environment::makeForPrecompile($uglify, 100, 500, 256);
 	$program->compile($precompileEnv);
