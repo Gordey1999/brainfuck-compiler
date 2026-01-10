@@ -8,7 +8,6 @@ use Gordy\Brainfuck\BigBrain\Type;
 
 class Parser
 {
-
 	protected TokenStream $stream;
 	protected ExpressionParser $expression;
 	protected Names $names;
@@ -22,21 +21,29 @@ class Parser
 
 	public function parse() : Node\Scope
 	{
-		$list = [];
+		$statements = [];
 
 		while ($this->stream->has())
 		{
-			$list[] = $this->parseStatement();
+			$statements[] = $this->parseStatement();
 		}
 
-		return new Node\Scope($list);
+		return new Node\Scope($statements);
 	}
 
 	protected function parseStatement() : Node\Node
 	{
+		if ($this->stream->eat('{'))
+		{
+			return $this->parseBlock();
+		}
 		if ($this->stream->eat('if'))
 		{
 			return $this->parseIf();
+		}
+		if ($this->stream->eat('while'))
+		{
+			return $this->parseWhile();
 		}
 		else
 		{
@@ -48,6 +55,23 @@ class Parser
 			}
 			return $result;
 		}
+	}
+
+	private function parseBlock() : Node\Scope
+	{
+		$statements = [];
+
+		while ($this->stream->peek() !== '}' && $this->stream->peek() !== null)
+		{
+			$statements[] = $this->parseStatement();
+		}
+
+		if (!$this->stream->eat('}'))
+		{
+			throw new ParseError("'}' expected", $this->stream->lastObj());
+		}
+
+		return new Node\Scope($statements);
 	}
 
 	protected function parseCommand() : Node\Node
@@ -84,31 +108,62 @@ class Parser
 
 	protected function parseIf() : Node\Structure\IfCondition
 	{
+		$token = $this->stream->lastObj();
 		$condition = $this->parseCondition();
 
 		$thenBranch = $this->parseStatement();
-		$elseBranch = null;
 
-		if ($this->match('else'))
+		if ($this->stream->eat('else'))
 		{
 			$elseBranch = $this->parseStatement();
 		}
+		else
+		{
+			$elseBranch = new Node\Scope([]);
+		}
 
-		return new Node\Structure\IfCondition($condition, $thenBranch, $elseBranch, $this->stream->lastObj());
+		if (!$thenBranch instanceof Node\Scope)
+		{
+			$thenBranch = new Node\Scope([$thenBranch]);
+		}
+		if (!$elseBranch instanceof Node\Scope)
+		{
+			$elseBranch = new Node\Scope([$elseBranch]);
+		}
+
+		return new Node\Structure\IfCondition($condition, $thenBranch, $elseBranch, $token);
+	}
+
+	protected function parseWhile() : Node\Structure\WhileLoop
+	{
+		$token = $this->stream->lastObj();
+		$condition = $this->parseCondition();
+
+		$body = $this->parseStatement();
+
+		if (!$body instanceof Node\Scope)
+		{
+			$body = new Node\Scope([$body]);
+		}
+
+		return new Node\Structure\WhileLoop($condition, $body, $token);
 	}
 
 	protected function parseCondition() : Node\Expression
 	{
 		if (!$this->stream->eat('('))
 		{
-			throw new ParseError("'(' expected", $this->stream->peekObj());
+			throw new ParseError("'(' expected", $this->stream->nextObj());
 		}
-		$this->parseExpression($this->stream->readUntil(')'));
+
+		$result =  $this->parseExpression();
 
 		if (!$this->stream->eat(')'))
 		{
-			throw new ParseError("')' expected", $this->stream->peekObj());
+			throw new ParseError("')' expected", $this->stream->nextObj());
 		}
+
+		return $result;
 	}
 
 	protected function parseExpression() : Node\Expression

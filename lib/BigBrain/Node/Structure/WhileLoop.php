@@ -23,13 +23,15 @@ class WhileLoop implements Node\Structure
 	}
 	public function compile(Environment $env) : void
 	{
-		$env->stream()->blockComment($this);
+		$env->stack()->newScope();
 
 		$exprType = $this->expression->resultType($env);
 
 
 		if ($this->expression instanceof Node\Expression\ScalarVariable)
 		{
+			$env->stream()->blockComment($this);
+
 			$cell = $this->expression->memoryCell($env);
 
 			$env->processor()->while($cell, function() use ($env) {
@@ -40,7 +42,7 @@ class WhileLoop implements Node\Structure
 		{
 			if ($exprType->getNumeric() === 0)
 			{
-				throw new CompileError('condition result is always false', $this->expression->token());
+				// do nothing
 			}
 			else
 			{
@@ -49,6 +51,8 @@ class WhileLoop implements Node\Structure
 		}
 		else if ($exprType instanceof Type\Scalar)
 		{
+			$env->stream()->blockComment($this);
+
 			$condition = $env->processor()->reserve();
 			$this->expression->compileCalculation($env, $condition);
 			$env->processor()->while($condition, function() use ($env, $condition) {
@@ -56,7 +60,7 @@ class WhileLoop implements Node\Structure
 				$env->stream()->blockComment('recalculate condition');
 				$env->processor()->unset($condition);
 				$this->expression->compileCalculation($env, $condition);
-			}, "while $condition > 0");
+			}, "while $condition");
 
 			$env->processor()->release($condition);
 		}
@@ -64,6 +68,7 @@ class WhileLoop implements Node\Structure
 		{
 			throw new CompileError('scalar condition expected', $this->expression->token());
 		}
+		$env->stack()->dropScope();
 	}
 
 	public function __toString() : string

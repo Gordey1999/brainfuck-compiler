@@ -26,6 +26,11 @@ class Scope implements Node
 		$env->stack()->dropScope();
 	}
 
+	public function empty() : bool
+	{
+		return empty($this->nodes);
+	}
+
 	public function __toString() : string
 	{
 		return '';
