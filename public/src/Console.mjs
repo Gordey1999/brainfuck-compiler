@@ -131,6 +131,14 @@ export class Console {
 
 	echo(text) {
 		this._el.textContent += text;
+
+		if (!this._scrollPending) {
+			this._scrollPending = true;
+			requestAnimationFrame(() => {
+				this._el.scrollTop = this._el.scrollHeight;
+				this._scrollPending = false;
+			});
+		}
 	}
 
 	stop() {
