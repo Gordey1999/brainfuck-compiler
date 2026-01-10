@@ -79,6 +79,7 @@ export class Builder {
 	}
 
 	_render(result, log) {
+		this._editor.highlightError();
 		this._console.echo(log);
 		this._tabManager.showCompiled(result);
 		this._console.setStatus('finished');

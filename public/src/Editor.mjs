@@ -62,7 +62,7 @@ const compileErrorField = StateField.define({
 
 		for (let e of tr.effects) {
 			if (e.is(setErrorPosition)) {
-				if (e.value === null) {
+				if (e.value[0] === null && e.value[1] === null) {
 					return Decoration.none
 				}
 
@@ -267,7 +267,7 @@ export class Editor {
 					return "string"
 				}
 
-				if (stream.match(/^(?:|char|byte|bool|if|else|do|while|for|in|out|sizeof)\b/)) {
+				if (stream.match(/^(?:char|byte|bool|if|else|do|while|for|in|out|sizeof)\b/)) {
 					return "keyword"
 				}
 
@@ -315,7 +315,7 @@ export class Editor {
 		}
 	}
 
-	highlightError(from, length) {
+	highlightError(from = null, length = null) {
 		this._editor.dispatch({effects: setErrorPosition.of([from, length])});
 	}
 
