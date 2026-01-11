@@ -438,7 +438,7 @@ class Processor
 		);
 	}
 
-	public function multiplyByConstantSimple(MemoryCell $a, int $constant, MemoryCell $result) : void
+	protected function multiplyByConstantSimple(MemoryCell $a, int $constant, MemoryCell $result) : void
 	{
 		$this->goto($a);
 		$this->stream->write(sprintf('[-%s%s%s]',

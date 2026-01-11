@@ -56,7 +56,7 @@ class Environment
 		$memory = new Precompile\Memory($stack, $stream, $mOffset);
 		$arraysMemory = new Precompile\ArraysMemory($stack, $stream, $amOffset, $arraysMemorySize);
 
-		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset); // todo uglify
+		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset, $uglify);
 		return new self($processor, $stream, $stack, $memory, $arraysMemory, $arraysProcessor);
 	}
 
@@ -71,7 +71,7 @@ class Environment
 		$memory = new Memory($stack, $stream, $mOffset);
 		$arraysMemory = new ArraysMemory($stack, $stream, $amOffset, $arraysMemorySize);
 
-		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset); // todo uglify
+		$arraysProcessor = new ArraysProcessor($processor, $stream, $amOffset, $uglify);
 		return new self($processor, $stream, $stack, $memory, $arraysMemory, $arraysProcessor);
 	}
 }

@@ -11,12 +11,14 @@ class ArraysProcessor
 	protected Processor $processor;
 	protected OutputStream $stream;
 	protected int $offset;
+	protected bool $uglify;
 
-	public function __construct(Processor $processor, OutputStream $stream, int $offset)
+	public function __construct(Processor $processor, OutputStream $stream, int $offset, bool $uglify)
 	{
 		$this->processor = $processor;
 		$this->stream = $stream;
 		$this->offset = $offset;
+		$this->uglify = $uglify;
 	}
 
 	protected function initCell() : MemoryCell
@@ -208,16 +210,29 @@ class ArraysProcessor
 	protected function addConstantToCurrent(int $value) : void
 	{
 		$shortValue = Utils\ModuloHelper::normalizeConstant($value);
-		$valueStr = $shortValue > 0 ? Encoder::plus($shortValue) : Encoder::minus(-$shortValue);
+
+		if ($this->uglify && abs($value) > 15)
+		{
+			[$a, $b, $c] = Utils\NumbersHelper::factorize(abs($value));
+			$code = sprintf('>%s[-<%s>]<%s',
+				Encoder::plus($a),
+				$value > 0 ? Encoder::plus($b) : Encoder::minus(-$b),
+			    $c > 0 ? Encoder::plus($c) : Encoder::minus(-$c)
+			);
+		}
+		else
+		{
+			$code = $shortValue > 0 ? Encoder::plus($shortValue) : Encoder::minus(-$shortValue);
+		}
 
 		if ($value > 0)
 		{
-			$this->stream->write("$valueStr", "add `$value` to current");
+			$this->stream->write($code, "add `$value` to current");
 		}
 		else
 		{
 			$value = -$value;
-			$this->stream->write("$valueStr", "sub `$value` from current");
+			$this->stream->write($code, "sub `$value` from current");
 		}
 	}
 }
