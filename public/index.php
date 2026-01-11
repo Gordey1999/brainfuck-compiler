@@ -1,6 +1,6 @@
 
 
-<link rel="stylesheet" href="public/style.css"/>
+<link rel="stylesheet" href="style.css"/>
 
 <div class="container">
 	<div class="nav">
@@ -67,4 +67,4 @@
 	</div>
 </div>
 
-<script src="public/index.bundle.js"></script>
+<script src="index.bundle.js"></script>
