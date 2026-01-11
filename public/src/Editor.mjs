@@ -1,6 +1,6 @@
 import {basicSetup} from "codemirror"
 import {EditorView, keymap, Decoration} from "@codemirror/view"
-import {StreamLanguage, HighlightStyle, syntaxHighlighting, bracketMatching} from "@codemirror/language"
+import {StreamLanguage, HighlightStyle, syntaxHighlighting, bracketMatching, indentUnit} from "@codemirror/language"
 import {tags} from "@lezer/highlight"
 import {indentWithTab} from "@codemirror/commands"
 import { StateField, StateEffect, EditorState } from "@codemirror/state"
@@ -295,7 +295,7 @@ export class Editor {
 			{ tag: tags.variableName, color: "#a22222" },
 		])
 
-		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight) ];
+		this._bbExt = [ bbLanguage, syntaxHighlighting(bbHighlight), indentUnit.of('    ') ];
 	}
 
 	highlightPosition(position) {

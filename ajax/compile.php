@@ -11,7 +11,7 @@ $request = json_decode(file_get_contents('php://input'), true);
 
 $log = "compiling...\n";
 
-$debug = true;
+$debug = false;
 
 try
 {
@@ -83,6 +83,17 @@ catch (BigBrain\Exception\Exception $e)
 			'length'  => mb_strlen($token->value()),
 		],
 	];
+}
+catch (\Throwable $e)
+{
+	echo sprintf(
+		"%s\n%s(%s)\ntrace:\n%s",
+		$e->getMessage(),
+		$e->getFile(),
+		$e->getLine(),
+		$e->getTraceAsString()
+	);
+	die;
 }
 
 echo json_encode($result);

@@ -9,7 +9,7 @@ class NumbersHelper
 	public static function factorize(int $number) : array
 	{
 		$map = self::getMap();
-		return $map[$number];
+		return $map[$number] ?? throw new \Exception("unexpected $number");
 	}
 
 	protected static function getMap() : array
@@ -17,7 +17,7 @@ class NumbersHelper
 		if (self::$map === null)
 		{
 			$result = [];
-			for ($search = 16; $search < 128; $search++)
+			for ($search = 16; $search <= 128; $search++)
 			{
 				$min = [];
 				$minCount = 100000;

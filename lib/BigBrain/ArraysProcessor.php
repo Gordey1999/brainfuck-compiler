@@ -211,12 +211,14 @@ class ArraysProcessor
 	{
 		$shortValue = Utils\ModuloHelper::normalizeConstant($value);
 
-		if ($this->uglify && abs($value) > 15)
+		if ($this->uglify && abs($shortValue) > 15)
 		{
-			[$a, $b, $c] = Utils\NumbersHelper::factorize(abs($value));
+			[$a, $b, $c] = Utils\NumbersHelper::factorize(abs($shortValue));
+			$c = $shortValue > 0 ? $c : -$c;
+
 			$code = sprintf('>%s[-<%s>]<%s',
 				Encoder::plus($a),
-				$value > 0 ? Encoder::plus($b) : Encoder::minus(-$b),
+				$shortValue > 0 ? Encoder::plus($b) : Encoder::minus($b),
 			    $c > 0 ? Encoder::plus($c) : Encoder::minus(-$c)
 			);
 		}
