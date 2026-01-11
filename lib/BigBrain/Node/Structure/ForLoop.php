@@ -8,37 +8,40 @@ use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Node;
 use Gordy\Brainfuck\BigBrain\Type;
 
-class WhileLoop implements Node\Structure
+class ForLoop implements Node\Structure
 {
 	use Node\HasToken;
 
-	protected Node\Expression $condition;
-	protected Node\Scope $body;
-
-	public function __construct(Node\Expression $condition, Node\Scope $body, Token $token)
+	public function __construct(
+		protected Node\Node $init,
+		protected Node\Expression $condition,
+		protected Node\Node $increment,
+		protected Node\Scope $body,
+		protected Token $token)
 	{
-		$this->condition = $condition;
-		$this->body = $body;
-		$this->token = $token;
 	}
 
 	public function compile(Environment $env) : void
 	{
-		$exprType = $this->condition->resultType($env);
+		$env->stack()->newScope();
+
+		$env->stream()->blockComment($this);
+		$this->init->compile($env);
+
+		$conditionType = $this->condition->resultType($env);
 
 		if ($this->condition instanceof Node\Expression\ScalarVariable)
 		{
-			$env->stream()->blockComment($this);
-
 			$cell = $this->condition->memoryCell($env);
 
 			$env->processor()->while($cell, function() use ($env) {
 				$this->body->compile($env);
+				$this->increment->compile($env);
 			}, "while $cell");
 		}
-		else if ($exprType instanceof Type\Computable && $exprType->numericCompatible())
+		else if ($conditionType instanceof Type\Computable && $conditionType->numericCompatible())
 		{
-			if ($exprType->getNumeric() === 0)
+			if ($conditionType->getNumeric() === 0)
 			{
 				// do nothing
 			}
@@ -47,14 +50,16 @@ class WhileLoop implements Node\Structure
 				throw new CompileError('infinite loop detected', $this->condition->token());
 			}
 		}
-		else if ($exprType instanceof Type\Scalar)
+		else if ($conditionType instanceof Type\Scalar)
 		{
-			$env->stream()->blockComment($this);
-
 			$condition = $env->processor()->reserve();
 			$this->condition->compileCalculation($env, $condition);
 			$env->processor()->while($condition, function() use ($env, $condition) {
 				$this->body->compile($env);
+
+				$env->stream()->blockComment('increment');
+				$this->increment->compile($env);
+
 				$env->stream()->blockComment('recalculate condition');
 				$env->processor()->unset($condition);
 				$this->condition->compileCalculation($env, $condition);
@@ -66,11 +71,11 @@ class WhileLoop implements Node\Structure
 		{
 			throw new CompileError('scalar condition expected', $this->condition->token());
 		}
+		$env->stack()->dropScope();
 	}
 
 	public function __toString() : string
 	{
-		$expr = $this->condition;
-		return "while ($expr)";
+		return "for ({$this->init}; {$this->condition}; {$this->increment})";
 	}
 }

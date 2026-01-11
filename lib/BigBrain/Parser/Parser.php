@@ -49,6 +49,10 @@ class Parser
 		{
 			return $this->parseDoWhile();
 		}
+		if ($this->stream->eat('for'))
+		{
+			return $this->parseFor();
+		}
 		else
 		{
 			$result = $this->parseCommand();
@@ -76,9 +80,9 @@ class Parser
 
 	private function parseSplitter() : void
 	{
-		if (!$this->stream->eat(';'))
+		while ($this->stream->eat(';'))
 		{
-			throw new ParseError("';' expected", $this->stream->lastObj());
+			// do nothing
 		}
 	}
 
@@ -178,21 +182,59 @@ class Parser
 		return new Node\Structure\DoWhileLoop($condition, $body, $token);
 	}
 
-	protected function parseCondition() : Node\Expression
+	protected function parseFor() : Node\Structure\ForLoop
 	{
-		if (!$this->stream->eat('('))
+		$token = $this->stream->lastObj();
+		[$init, $condition, $increment] = $this->parseForScope();
+
+		$body = $this->parseStatement();
+
+		if (!$body instanceof Node\Scope)
 		{
-			throw new ParseError("'(' expected", $this->stream->nextObj());
+			$body = new Node\Scope([$body]);
 		}
 
-		$result =  $this->parseExpression();
+		return new Node\Structure\ForLoop($init, $condition, $increment, $body, $token);
+	}
 
-		if (!$this->stream->eat(')'))
+	protected function parseCondition() : Node\Expression
+	{
+		$needEndingScope = false;
+		if ($this->stream->eat('('))
+		{
+			$needEndingScope = true;
+		}
+
+		$result = $this->parseExpression();
+
+		if ($needEndingScope && !$this->stream->eat(')'))
 		{
 			throw new ParseError("')' expected", $this->stream->nextObj());
 		}
 
 		return $result;
+	}
+
+	protected function parseForScope() : array
+	{
+		$needEndingScope = false;
+		if ($this->stream->eat('('))
+		{
+			$needEndingScope = true;
+		}
+
+		$init = $this->parseCommand();
+		$this->parseSplitter();
+		$condition = $this->parseExpression();
+		$this->parseSplitter();
+		$increment = $this->parseCommand();
+
+		if ($needEndingScope && !$this->stream->eat(')'))
+		{
+			throw new ParseError("')' expected", $this->stream->nextObj());
+		}
+
+		return [$init, $condition, $increment];
 	}
 
 	protected function parseExpression() : Node\Expression

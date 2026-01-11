@@ -12,18 +12,19 @@ class DoWhileLoop implements Node\Structure
 {
 	use Node\HasToken;
 
-	protected Node\Expression $expression;
-	protected Node\Scope $scope;
+	protected Node\Expression $condition;
+	protected Node\Scope $body;
 
-	public function __construct(Node\Expression $expression, Node\Scope $scope, Token $token)
+	public function __construct(Node\Expression $condition, Node\Scope $body, Token $token)
 	{
-		$this->expression = $expression;
-		$this->scope = $scope;
+		$this->condition = $condition;
+		$this->body = $body;
 		$this->token = $token;
 	}
+
 	public function compile(Environment $env) : void
 	{
-		$exprType = $this->expression->resultType($env);
+		$exprType = $this->condition->resultType($env);
 
 		if ($exprType instanceof Type\Computable && $exprType->numericCompatible())
 		{
@@ -33,7 +34,7 @@ class DoWhileLoop implements Node\Structure
 			}
 			else
 			{
-				throw new CompileError('infinite loop detected', $this->expression->token());
+				throw new CompileError('infinite loop detected', $this->condition->token());
 			}
 		}
 		else if ($exprType instanceof Type\Scalar)
@@ -44,23 +45,23 @@ class DoWhileLoop implements Node\Structure
 			$env->processor()->addConstant($condition, 1);
 
 			$env->processor()->while($condition, function() use ($env, $condition) {
-				$this->scope->compile($env);
+				$this->body->compile($env);
 				$env->stream()->blockComment($this);
 				$env->processor()->unset($condition);
-				$this->expression->compileCalculation($env, $condition);
+				$this->condition->compileCalculation($env, $condition);
 			}, "while $condition");
 
 			$env->processor()->release($condition);
 		}
 		else
 		{
-			throw new CompileError('scalar condition expected', $this->expression->token());
+			throw new CompileError('scalar condition expected', $this->condition->token());
 		}
 	}
 
 	public function __toString() : string
 	{
-		$expr = $this->expression;
+		$expr = $this->condition;
 		return "while ($expr)";
 	}
 }

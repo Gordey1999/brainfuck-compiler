@@ -13,16 +13,17 @@ class IfCondition implements Node\Structure
 	use Node\HasToken;
 
 	protected Node\Expression $condition;
-	protected Node\Scope $thenScope;
-	protected Node\Scope $elseScope;
+	protected Node\Scope $thenBody;
+	protected Node\Scope $elseBody;
 
-	public function __construct(Node\Expression $condition, Node\Scope $thenScope, Node\Scope $elseScope, Token $token)
+	public function __construct(Node\Expression $condition, Node\Scope $thenBody, Node\Scope $elseBody, Token $token)
 	{
 		$this->condition = $condition;
-		$this->thenScope = $thenScope;
-		$this->elseScope = $elseScope;
+		$this->thenBody = $thenBody;
+		$this->elseBody = $elseBody;
 		$this->token = $token;
 	}
+
 	public function compile(Environment $env) : void
 	{
 		$exprType = $this->condition->resultType($env);
@@ -32,19 +33,19 @@ class IfCondition implements Node\Structure
 			if ($exprType->getNumeric() === 0)
 			{
 				$env->stream()->blockComment('else');
-				$this->elseScope->compile($env);
+				$this->elseBody->compile($env);
 			}
 			else
 			{
 				$env->stream()->blockComment($this);
-				$this->thenScope->compile($env);
+				$this->thenBody->compile($env);
 			}
 		}
 		else if ($exprType instanceof Type\Scalar)
 		{
 			$env->stream()->blockComment($this);
 
-			if ($this->elseScope->empty())
+			if ($this->elseBody->empty())
 			{
 				$then = $env->processor()->reserve();
 				$this->condition->compileCalculation($env, $then);
@@ -60,15 +61,15 @@ class IfCondition implements Node\Structure
 			}
 
 			$env->processor()->if($then, function() use ($env) {
-				$this->thenScope->compile($env);
+				$this->thenBody->compile($env);
 			}, "if $then");
 
-			if (!$this->elseScope->empty())
+			if (!$this->elseBody->empty())
 			{
 				$env->stream()->blockComment('else');
 
 				$env->processor()->if($else, function() use ($env) {
-					$this->elseScope->compile($env);
+					$this->elseBody->compile($env);
 				}, "if $then");
 
 				$env->processor()->release($else);
