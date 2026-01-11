@@ -60,7 +60,8 @@ class IfCondition implements Node\Structure
 				$env->processor()->release($temp);
 			}
 
-			$env->processor()->if($then, function() use ($env) {
+			$env->processor()->if($then, function() use ($env, $then) {
+				$env->processor()->release($then);
 				$this->thenBody->compile($env);
 			}, "if $then");
 
@@ -68,14 +69,11 @@ class IfCondition implements Node\Structure
 			{
 				$env->stream()->blockComment('else');
 
-				$env->processor()->if($else, function() use ($env) {
+				$env->processor()->if($else, function() use ($env, $else) {
+					$env->processor()->release($else);
 					$this->elseBody->compile($env);
 				}, "if $then");
-
-				$env->processor()->release($else);
 			}
-
-			$env->processor()->release($then);
 		}
 		else
 		{
