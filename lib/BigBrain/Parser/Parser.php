@@ -45,14 +45,14 @@ class Parser
 		{
 			return $this->parseWhile();
 		}
+		if ($this->stream->eat('do'))
+		{
+			return $this->parseDoWhile();
+		}
 		else
 		{
 			$result = $this->parseCommand();
-
-			if (!$this->stream->eat(';'))
-			{
-				throw new ParseError("';' expected", $this->stream->lastObj());
-			}
+			$this->parseSplitter();
 			return $result;
 		}
 	}
@@ -72,6 +72,14 @@ class Parser
 		}
 
 		return new Node\Scope($statements);
+	}
+
+	private function parseSplitter() : void
+	{
+		if (!$this->stream->eat(';'))
+		{
+			throw new ParseError("';' expected", $this->stream->lastObj());
+		}
 	}
 
 	protected function parseCommand() : Node\Node
@@ -147,6 +155,27 @@ class Parser
 		}
 
 		return new Node\Structure\WhileLoop($condition, $body, $token);
+	}
+
+	protected function parseDoWhile() : Node\Structure\DoWhileLoop
+	{
+		$token = $this->stream->lastObj();
+
+		$body = $this->parseStatement();
+
+		if (!$this->stream->eat('while'))
+		{
+			throw new ParseError("'while' expected", $this->stream->lastObj());
+		}
+		$condition = $this->parseCondition();
+		$this->parseSplitter();
+
+		if (!$body instanceof Node\Scope)
+		{
+			$body = new Node\Scope([$body]);
+		}
+
+		return new Node\Structure\DoWhileLoop($condition, $body, $token);
 	}
 
 	protected function parseCondition() : Node\Expression

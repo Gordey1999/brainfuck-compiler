@@ -35,7 +35,7 @@ class TokenStream
 		return $this->tokens[$this->pos - 1] ?? null;
 	}
 
-	public function next() : ?string // todo rename next
+	public function next() : ?string
 	{
 		return $this->tokens[$this->pos++]?->value() ?? null;
 	}

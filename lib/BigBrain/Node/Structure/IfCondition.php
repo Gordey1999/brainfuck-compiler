@@ -25,8 +25,6 @@ class IfCondition implements Node\Structure
 	}
 	public function compile(Environment $env) : void
 	{
-		$env->stack()->newScope();
-
 		$exprType = $this->condition->resultType($env);
 
 		if ($exprType instanceof Type\Computable && $exprType->numericCompatible())
@@ -82,7 +80,6 @@ class IfCondition implements Node\Structure
 		{
 			throw new CompileError('scalar condition expected', $this->condition->token());
 		}
-		$env->stack()->dropScope();
 	}
 
 	public function __toString() : string

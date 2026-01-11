@@ -8,7 +8,7 @@ use Gordy\Brainfuck\BigBrain\Parser\Token;
 use Gordy\Brainfuck\BigBrain\Node;
 use Gordy\Brainfuck\BigBrain\Type;
 
-class WhileLoop implements Node\Structure
+class DoWhileLoop implements Node\Structure
 {
 	use Node\HasToken;
 
@@ -25,17 +25,7 @@ class WhileLoop implements Node\Structure
 	{
 		$exprType = $this->expression->resultType($env);
 
-		if ($this->expression instanceof Node\Expression\ScalarVariable)
-		{
-			$env->stream()->blockComment($this);
-
-			$cell = $this->expression->memoryCell($env);
-
-			$env->processor()->while($cell, function() use ($env) {
-				$this->scope->compile($env);
-			}, "while $cell > 0");
-		}
-		else if ($exprType instanceof Type\Computable && $exprType->numericCompatible())
+		if ($exprType instanceof Type\Computable && $exprType->numericCompatible())
 		{
 			if ($exprType->getNumeric() === 0)
 			{
@@ -48,13 +38,14 @@ class WhileLoop implements Node\Structure
 		}
 		else if ($exprType instanceof Type\Scalar)
 		{
-			$env->stream()->blockComment($this);
+			$env->stream()->blockComment('do');
 
 			$condition = $env->processor()->reserve();
-			$this->expression->compileCalculation($env, $condition);
+			$env->processor()->addConstant($condition, 1);
+
 			$env->processor()->while($condition, function() use ($env, $condition) {
 				$this->scope->compile($env);
-				$env->stream()->blockComment('recalculate condition');
+				$env->stream()->blockComment($this);
 				$env->processor()->unset($condition);
 				$this->expression->compileCalculation($env, $condition);
 			}, "while $condition");
