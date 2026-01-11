@@ -1,0 +1,64 @@
+# title: Прощание
+
+# Совсем забыл про switch... Ну и ладно
+
+# Итак... Последняя программа...
+# Т Р А Н С Л Я Т О Р
+# интерпретатор brainfuck на brainfuck
+
+char code[236];
+char memory[20];
+byte pointer, level;
+
+in code;
+
+for (byte i = 0; i < sizeof code; i++)
+{
+    char command = code[i];
+
+    if (command == '>')
+    {
+        pointer++;
+    }
+    else if (command == '<')
+    {
+        pointer--;
+    }
+    else if (command == '+')
+    {
+        memory[pointer]++;
+    }
+    else if (command == '-')
+    {
+        memory[pointer]--;
+    }
+    else if (command == '.')
+    {
+        out memory[pointer];
+    }
+    else if (command == ',')
+    {
+        in memory[pointer];
+    }
+    else if (command == '[' && !memory[pointer])
+    {
+        level++;
+        while (level)
+        {
+            i++;
+            if      (code[i] == '[') level++;
+            else if (code[i] == ']') level--;
+        }
+    }
+    else if (command == ']' && memory[pointer])
+    {
+        level++;
+        while (level)
+        {
+            i--;
+            if      (code[i] == '[') level--;
+            else if (code[i] == ']') level++;
+        }
+        i--;
+    }
+}
