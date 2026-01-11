@@ -1,0 +1,39 @@
+# title: Множители
+
+# Если тебе интересно, как опция UGLY раскладывает число на множители так,
+# чтобы на запись уходило как можно меньше + и -,
+# то у меня это делается примерно так:
+
+for (byte search = 16; search <= 128; search++)
+{
+    byte minA, minB, minC;
+    byte minCount = 255;
+
+    for (byte i = 2; i <= 15; i++)
+    {
+        for (byte j = 2; j <= 16; j++)
+        {
+            byte m = i * j;
+
+            if (search >= m)
+            {
+                byte distance = search - m;
+                byte count = i + j + distance;
+
+                if (count < minCount)
+                {
+                    minA = i;
+                    minB = j;
+                    minC = distance;
+                    minCount = count;
+                }
+            }
+        }
+    }
+
+    out search, ' = ', minA, ' * ', minB, ' + ', minC, eol;
+}
+
+# Это немного упрощенная версия, так как в моем языке нельзя работать с отрицательными числами
+# Но она работает)))
+# Хоть и не очень быстро...

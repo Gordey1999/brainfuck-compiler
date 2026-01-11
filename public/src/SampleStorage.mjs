@@ -1,17 +1,47 @@
 
 const files = [
 	{
-		url: 'sample/ivan/greetings.txt',
+		url: 'sample/ivan/01_greetings.txt',
 		input: '',
 		lang: 'bb',
 	},
 	{
-		url: 'sample/ivan/types.txt',
+		url: 'sample/ivan/02_types.txt',
 		input: '',
 		lang: 'bb',
 	},
 	{
-		url: 'sample/ivan/operators.txt',
+		url: 'sample/ivan/03_operators.txt',
+		input: '',
+		lang: 'bb',
+	},
+	{
+		url: 'sample/ivan/04_arithmetics.txt',
+		input: '',
+		lang: 'bb',
+	},
+	{
+		url: 'sample/ivan/05_constructions.txt',
+		input: '',
+		lang: 'bb',
+	},
+	{
+		url: 'sample/ivan/06_arrays.txt',
+		input: 'ямап туртос ,тяничоп оге икинхет ,адеб ен — илибу атобор илсЕ .йивтсйед удобовс юунлоп и ьтсонназаканзеб илавовтсвуч ет ыботч ,йелетитесоп итохирп еыбюл тюянлопыв ыдиордна еыннавориуртснокс оньлаицепс »адапаЗ огокиД риМ« йинечелвзар екрап моксечитсирутуф В\n',
+		lang: 'bb',
+	},
+	{
+		url: 'sample/ivan/07_translit.txt',
+		input: '',
+		lang: 'bb',
+	},
+	{
+		url: 'sample/ivan/08_cursed.txt',
+		input: '',
+		lang: 'bb',
+	},
+	{
+		url: 'sample/ivan/09_mult.txt',
 		input: '',
 		lang: 'bb',
 	},
