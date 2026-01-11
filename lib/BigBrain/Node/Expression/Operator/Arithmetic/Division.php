@@ -11,6 +11,10 @@ class Division extends Binary
 {
 	protected function computeValue(int $left, int $right) : int
 	{
+		if ($right === 0)
+		{
+			throw new CompileError('division by zero', $this->right->token());
+		}
 		return $left / $right;
 	}
 

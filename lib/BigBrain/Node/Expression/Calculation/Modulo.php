@@ -51,6 +51,7 @@ class Modulo
 				$proc->unset($result);
 			}, "if result === divider, unset remainder");
 		}, "$result = $a % $b");
+		$proc->unset($b); // если $a ноль, то нужно обнулить $b
 
 		$proc->release($temp);
 	}

@@ -19,7 +19,7 @@ class Exception extends \Exception
 
 	public function getPositionString() : string
 	{
-		if (empty($this->token->value())) { return ''; }
+		if ($this->token->value() === '') { return ''; }
 
 		$position = $this->token->position();
 

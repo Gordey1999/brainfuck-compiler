@@ -49,6 +49,7 @@ class Division
 				$proc->decrement($result);
 			}, "if remainder > `0`, sub `1` from result");
 		}, "$result = $a / $b (remainder: $remainder)");
+		$proc->unset($b); // если $a ноль, то нужно обнулить $b
 
 		$proc->release($remainder);
 	}
