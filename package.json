@@ -12,7 +12,6 @@
         "rehype-stringify": "^10.0.1",
         "remark-parse": "^11.0.0",
         "remark-rehype": "^11.1.2",
-        "rollup": "^4.53.3",
         "unified": "^11.0.5",
         "unist-util-visit": "^5.1.0"
     },
@@ -20,9 +19,13 @@
         "@rollup/plugin-commonjs": "^29.0.3",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^1.0.0",
+        "esbuild": "^0.28.1",
+        "rollup": "^4.62.2",
+        "rollup-plugin-esbuild": "^6.2.1",
         "rollup-plugin-license": "^3.7.1"
     },
     "scripts": {
+        "build": "rollup -c",
         "build:docs": "node scripts/build-docs.js"
     }
 }

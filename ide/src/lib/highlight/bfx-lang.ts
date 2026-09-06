@@ -1,7 +1,13 @@
 import {StreamLanguage, HighlightStyle, syntaxHighlighting, indentUnit} from "@codemirror/language"
 import {tags} from "@lezer/highlight"
 
-const bfxLanguage = StreamLanguage.define({
+interface BfxState {
+    inString: string | false;
+    inComment: boolean;
+    headersArea: boolean;
+}
+
+const bfxLanguage = StreamLanguage.define<BfxState>({
 	name: "BrainFix",
 	startState() {
 		return { inString: false, inComment: false, headersArea: true };

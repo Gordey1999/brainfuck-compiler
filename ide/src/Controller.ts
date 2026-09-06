@@ -1,9 +1,22 @@
-import {Editor} from "./Editor.mjs";
-import {Translator} from "./lib/Translator.mjs";
-import {MetaParser} from "./lib/MetaParser.js";
+import {Editor} from "./Editor";
+import {DebugParams, Translator} from "./lib/Translator";
+import {MetaParser} from "./lib/MetaParser";
+import {Compiler} from './lib/fast/Compiler';
+import {Profiler} from "./Profiler";
+import {Console} from "./Console";
+import {FileInput} from "./FileInput";
 
 export class Controller {
-	constructor(editor, profiler, console, input) {
+    private _editor: Editor;
+    private _profiler: Profiler;
+    private _console: Console;
+    private _input: FileInput;
+    private _translator: Translator;
+
+    private _stopped: boolean = true;
+    private _running: boolean = false;
+
+	constructor(editor: Editor, profiler: Profiler, console: Console, input: FileInput) {
 		this._editor = editor;
 		this._profiler = profiler;
 		this._console = console;
@@ -11,15 +24,20 @@ export class Controller {
 		this._translator = new Translator(
 			(text) => this._console.echo(text)
 		);
-		this._stopped = true;
-		this._running = false;
 	}
 
-	onRun = () => {
+	public onRun = (): void => {
 		this._compile() && this._run();
 	}
 
-	onStop = () => {
+	public onFast = (): void => {
+		const compiler = new Compiler();
+		const text = this._editor.getCode();
+		console.log(compiler.compile(text));
+		// тут быстрая версия
+	}
+
+	public onStop = (): void => {
 		if (this._stopped) { return; }
 		this._dropHeaders();
 		this._stopped = true;
@@ -28,7 +46,7 @@ export class Controller {
 		this._editor.highlightPosition(null);
 	}
 
-	onStep = () => {
+	public onStep = (): void => {
 		if (this._running) { return; }
 		if (this._stopped) {
 			if (!this._compile()) { return; }
@@ -39,7 +57,7 @@ export class Controller {
 		this._run(true, { oneStep: true });
 	}
 
-	onStepLine = () => {
+	public onStepLine = (): void => {
 		if (this._running) { return; }
 		if (this._stopped) {
 			if (!this._compile()) { return; }
@@ -50,24 +68,28 @@ export class Controller {
 		this._run(true, { lineStep: true });
 	}
 
-	onStepOut = () => {
+	public onStepOut = (): void => {
 		if (this._running || this._stopped) { return; }
 
 		this._run(true, { stepOut: true });
 	}
 
-	_compile() {
+	private _compile(): boolean {
 		this._console.clear();
 		try {
 			const text = this._editor.getCode();
 			this._applyHeaders(text);
 
+			this._editor.highlightCustomRange();
 			this._translator.compile(text);
+			this._translator.renderCompile(this._editor);
 			this._translator.pushInput(this._input.get());
 			this._profiler.reset(text);
 		}
 		catch (e) {
-			this._console.showError(e.message);
+            const message = e instanceof Error ? e.message : 'unknown error';
+
+			this._console.showError(message);
 			this._editor.highlightPosition(null);
 			console.warn(e);
 			return false;
@@ -76,7 +98,7 @@ export class Controller {
 		return true;
 	}
 
-	_run = (debug = false, runParams = {}) => {
+	private _run = (debug: boolean = false, runParams: DebugParams = {}) => {
 		if (this._stopped) {
 			this._running = false;
 			return;
@@ -86,6 +108,7 @@ export class Controller {
 			this._translator.run(debug, runParams);
 
 			this._running = false;
+			this._translator.renderStep(this._editor);
 
 			if (this._translator.getCurrentPosition() === null) {
 				this._stopped = true;
@@ -95,17 +118,23 @@ export class Controller {
 			}
 		}
 		catch (e) {
-			if (e.message === 'timeout') {
+            const message = e instanceof Error ? e.message : e;
+
+			if (message === 'timeout') {
 				this._console.setStatus('running');
-				setTimeout(this._run, debug, runParams);
-			} else if (e.message === 'need input') {
+				setTimeout(this._run, 0, debug, runParams);
+				this._translator.renderStep(this._editor);
+			} else if (message === 'need input') {
 				this._console.readInput().then((input) => {
 					this._translator.pushInput(input);
+					this._translator.renderStep(this._editor);
 					this._run(debug, runParams);
 				})
 				this._console.captureFocus();
 			} else {
-				this._console.showError(e.message);
+                const message = e instanceof Error ? e.message : 'unknown error';
+				this._translator.renderStep(this._editor);
+				this._console.showError(message);
 				console.warn(e);
 				this._stopped = true;
 				this._running = false;
@@ -114,14 +143,14 @@ export class Controller {
 		this._renderState();
 	}
 
-	_renderState() {
+	private _renderState(): void {
 		const position = this._translator.getCurrentPosition();
 		this._editor.highlightPosition(position);
 		this._profiler.render(this._translator.getStorage(), this._translator.getPointer(), position);
 		this._console.setCommandsCount(this._translator.commandsCount());
 	}
 
-	_applyHeaders(code) {
+	private _applyHeaders(code: string): void {
 		const headers = MetaParser.parseHeaders(code);
 
 		const bufferedInput = headers['buffered_input'] ?? 'on';
@@ -130,7 +159,7 @@ export class Controller {
 
 		this._console.setColor(consoleColor);
 		this._console.setUseInputBuffer(MetaParser.parseBool(bufferedInput, true));
-		this._translator.setStepsPerFrame(MetaParser.parseInt(stepsPerFrame, null));
+		this._translator.setStepsPerFrame(MetaParser.parseInt(stepsPerFrame, 0));
 	}
 
 	_dropHeaders() {

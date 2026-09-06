@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        // 1. Указываем современную версию JS на выходе (например, ES2022)
+        "target": "ES2022",
+
+        // 2. Подключаем встроенные типы для Map, Set, Promise и методов браузера (DOM)
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+        "moduleResolution": "Bundler",
+        "module": "ESNext",
+        "strict": true,
+        "esModuleInterop": true
+    }
+}

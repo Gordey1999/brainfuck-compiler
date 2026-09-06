@@ -15,21 +15,18 @@ for (let i = 0; i < charMap.length; i++) {
 	byteMap.set(charMap[i], i);
 }
 
-export function charToNumber(char) {
+export function charToNumber(char: string) {
 	return byteMap.get(char);
 }
 
-export function numberToChar(number) {
+export function numberToChar(number: number) {
 	return charMap[number];
 }
 
-export function numberToCharPretty(number) {
+export function numberToCharPretty(number: number) {
 	if (number <= 31) { return ''; }
 	if (number === 32) { return '·'; }
 	if (number === 127) { return ''; }
 
 	return numberToChar(number);
 }
-
-window.numberToChar = numberToChar;
-window.charToNumber = charToNumber;

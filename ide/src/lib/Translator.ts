@@ -1,15 +1,41 @@
-export class Translator {
-	_commentSeparator = '#';
-	_storageSize = 30000;
-	_outputCallback = null;
-	_stepsPerFrame = 10 * 1000 * 1000;
+import {charToNumber, numberToChar} from './CharConverter.js';
 
-	constructor(outputCallback) {
-		this._storage = Array(this._storageSize).fill(0);
+export interface DebugParams {
+	stepOut?: boolean;
+	oneStep?: boolean;
+	lineStep?: boolean;
+}
+
+interface DebugData {
+	stopOn?: number;
+}
+
+export class Translator {
+	private _commentSeparator: string = '#';
+	private _storageSize: number = 1000000;
+	private _outputCallback: ((char: string) => void) | null = null;
+	private _stepsPerFrame: number = 10 * 1000 * 1000;
+
+	private _storage: Uint8Array;
+	private _pointer: number = 0;
+	private _current: number = 0;
+	private _last: number = 0;
+	private _inputBuffer: string[] = [];
+	private _counter: number = 0;
+	private _code: string = '';
+
+	private _linesMap: [number, number][] = [];
+	private _scopesStart: Map<number, number> = new Map();
+	private _scopesEnd: Map<number, number> = new Map();
+
+	private _debugData: DebugData | null = null;
+
+	constructor(outputCallback: (char: string) => void) {
+		this._storage = new Uint8Array(this._storageSize);
 		this._outputCallback = outputCallback;
 	}
 
-	compile(code) {
+	public compile(code: string): void {
 		this._storage.fill(0);
 		this._pointer = 0;
 		this._current = 0;
@@ -17,10 +43,10 @@ export class Translator {
 		this._inputBuffer = [];
 		this._counter = 0;
 		this._code = this._sanitize(code);
-		this._initScopes(code);
+		this._initScopes();
 	}
 
-	_sanitize(code) {
+	private _sanitize(code: string): string {
 		this._linesMap = [];
 
 		const lines = code.split("\n");
@@ -46,12 +72,11 @@ export class Translator {
 		return result.join('');
 	}
 
-	_sanitizeComment(line) {
+	private _sanitizeComment(line: string): string {
 		return line.split(this._commentSeparator)[0];
 	}
 
-	_initScopes() {
-
+	private _initScopes(): void {
 		this._scopesStart = new Map();
 		this._scopesEnd = new Map();
 
@@ -68,7 +93,7 @@ export class Translator {
 					{
 						throw new Error("compile error: no pair for ']'");
 					}
-					const last = stack.pop();
+					const last = stack.pop()!;
 					this._scopesStart.set(i, last);
 					this._scopesEnd.set(last, i);
 					break;
@@ -81,11 +106,11 @@ export class Translator {
 		}
 	}
 
-	run(debug = false, debugParams = {}) {
+	public run(debug: boolean = false, debugParams: DebugParams = {}): void {
 		this._run(debug, debugParams);
 	}
 
-	_run(debug = false, debugParams = {}) {
+	private _run(debug: boolean = false, debugParams: DebugParams = {}): void {
 		const length = this._code.length;
 
 		let i = 0;
@@ -107,7 +132,7 @@ export class Translator {
 		throw new Error('timeout');
 	}
 
-	_debugInit(params) {
+	private _debugInit(params: DebugParams): void {
 		this._debugData = {};
 
 		if (params['stepOut'] === true) {
@@ -124,7 +149,7 @@ export class Translator {
 		}
 	}
 
-	_debugCheck(params) {
+	private _debugCheck(params: DebugParams): boolean {
 		if (this._debugData?.stopOn === this._current) {
 			return true;
 		}
@@ -143,7 +168,7 @@ export class Translator {
 		return false;
 	}
 
-	_nextStep() {
+	private _nextStep(): void {
 		const last = this._current;
 
 		switch (this._code[this._current]) {
@@ -161,12 +186,12 @@ export class Translator {
 				break;
 			case '[':
 				if (this._value() === 0) {
-					this._current = this._scopesEnd.get(this._current);
+					this._current = this._scopesEnd.get(this._current)!;
 				}
 				break;
 			case ']':
 				if (this._value() > 0) {
-					this._current = this._scopesStart.get(this._current);
+					this._current = this._scopesStart.get(this._current)!;
 				}
 				break;
 			case '.':
@@ -181,50 +206,46 @@ export class Translator {
 		this._last = last;
 	}
 
-	_value() {
+	private _value(): number {
 		return this._storage[this._pointer];
 	}
 
-	_increment() {
+	private _increment(): void {
 		this._storage[this._pointer]++;
-		if (this._storage[this._pointer] === 256) {
-			this._storage[this._pointer] = 0;
-		}
 	}
 
-	_decrement() {
+	private _decrement(): void {
 		this._storage[this._pointer]--;
-		if (this._storage[this._pointer] === -1) {
-			this._storage[this._pointer] = 255;
-		}
 	}
 
-	_forward() {
+	private _forward(): void {
 		this._pointer++;
 		if (this._pointer >= this._storageSize) {
 			throw new Error("runtime error: memory pointer is out of range " + this._pointer);
 		}
 	}
 
-	_back() {
+	private _back(): void {
 		this._pointer--;
 		if (this._pointer < 0) {
 			throw new Error("runtime error: memory pointer is out of range " + this._pointer);
 		}
 	}
 
-	_output() {
-		this?._outputCallback(numberToChar(this._value()));
+	private _output(): void {
+		if (this._outputCallback) {
+			this._outputCallback(numberToChar(this._value()));
+		}
 	}
 
-	_input() {
+	private _input(): void {
 		if (this._inputBuffer.length === 0) {
 			throw new Error('need input');
 		}
-		this._storage[this._pointer] = charToNumber(this._inputBuffer.shift());
+		this._storage[this._pointer] = charToNumber(this._inputBuffer.shift()!);
 	}
 
-	_lineToCommand(line) {
+	public lineToCommand(line: number): number | null {
 		for (const i  in this._linesMap) {
 			if (this._linesMap[i][0] === line) {
 				return parseInt(i);
@@ -233,34 +254,37 @@ export class Translator {
 		return null;
 	}
 
-	pushInput(input) {
+	public pushInput(input: string[]): void {
 		this._inputBuffer.push(...input);
 	}
 
-	getCurrentPosition() {
+	public getCurrentPosition(): [number, number] | null {
 		if (!this._linesMap[this._current]) {
 			return null;
 		}
 		return this._linesMap[this._current];
 	}
 
-	getStorage() {
+	public getStorage(): Uint8Array {
 		return this._storage;
 	}
 
-	getPointer() {
+	public getPointer(): number {
 		return this._pointer;
 	}
 
-	commandsCount() {
+	public commandsCount(): number {
 		return this._counter;
 	}
 
-	setStepsPerFrame(value) {
+	public setStepsPerFrame(value: number = 0): void {
 		if (value > 0) {
 			this._stepsPerFrame = value;
 		} else {
 			this._stepsPerFrame = 10 * 1000 * 1000;
 		}
 	}
+
+	public renderCompile(editor: any): void {}
+	public renderStep(editor: any): void {}
 }

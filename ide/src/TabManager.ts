@@ -1,23 +1,37 @@
-import {MetaParser} from "./lib/MetaParser.js";
+import {MetaParser} from "./lib/MetaParser";
+import {SaveState} from './types';
+import type {Controller} from "./Controller";
+import type {Editor, SerializedStateData} from "./Editor";
+import type {FileInput} from "./FileInput";
+
+interface TabData {
+    el: HTMLElement,
+    tabId: number,
+    input: string,
+    inputActive: boolean,
+    language: 'bf' | 'bfx',
+    isSubtab: boolean,
+}
 
 export class TabManager {
+    private _tabIdCounter: number = 0;
+    private _fillTitleTimeout: number | null = null;
 
-	constructor(element, controller, builder, editor, input) {
-		this._el = element;
-		this._controller = controller;
-		this._builder = builder;
-		this._editor = editor;
-		this._input = input;
+    constructor(
+        private _el: HTMLElement,
+        private _controller: Controller,
+        private _editor: Editor,
+        private _input: FileInput,
+        private _tabData: TabData[] = [],
+    ) {
 		this._tabData = [];
-		this._tabIdCounter = 0;
-		this._fillTitleTimeout = null;
 
 		this._bind();
 		this._init();
 	}
 
-	showCompiled(code) {
-		const parent = this._getActiveTab();
+	public showCompiled(code: string): void {
+		const parent = this._getActiveTab()!;
 
 		this._updateActiveTabData();
 		const tabData = this._getTabData(parent);
@@ -31,14 +45,14 @@ export class TabManager {
 		this._addTab(true, parent, code, tabData.input);
 	}
 
-	async getStateForSave() {
+	public async getStateForSave(): Promise<SaveState> {
 		this._updateActiveTabData();
 
 		return this._tabData
 			.filter((tab) => !tab.isSubtab)
 			.map((tab) => {
 				return {
-					code: this._editor.getStateCode(tab.tabId),
+					code: this._editor.getStateCode(String(tab.tabId)),
 					input: tab.input,
 					language: tab.language,
 					isSubtab: tab.isSubtab,
@@ -46,7 +60,7 @@ export class TabManager {
 			});
 	}
 
-	async setStateFromSave(data) {
+	public async setStateFromSave(data: SaveState): Promise<void> {
 		this._closeAll();
 
 		let active = null;
@@ -73,32 +87,32 @@ export class TabManager {
 		this._setActiveTab(active ? active.el : this._tabData[0].el);
 	}
 
-	async getFullState() {
+	public async getFullState(): Promise<SaveState> {
 		this._updateActiveTabData();
 
 		return this._tabData.map((tab) => {
 			return {
-				code: this._editor.getStateCode(tab.tabId),
+				code: this._editor.getStateCode(String(tab.tabId)),
 				input: tab.input,
 				language: tab.language,
 				isSubtab: tab.isSubtab,
-				editor: this._editor.getSerializableState(tab.tabId),
+				editor: this._editor.getSerializableState(String(tab.tabId)),
 				active: tab.el === this._getActiveTab(),
 			};
 		});
 	}
 
-	async setFullState(state) {
+	public async setFullState(state: SaveState): Promise<void> {
 		await this.setStateFromSave(state);
 	}
 
-	onAddTab(language) {
+	private onAddTab(language: 'bf' | 'bfx'): void {
 		const title = this.getTitle('', language);
 		const code = `# @title: ${title}\n\n`;
 		this._addTab(language === 'bf', null, code, '');
 	}
 
-	onEditorChange = () => {
+	public onEditorChange = (): void => {
 		if (this._fillTitleTimeout) {
 			clearTimeout(this._fillTitleTimeout);
 		}
@@ -106,32 +120,40 @@ export class TabManager {
 		this._fillTitleTimeout = setTimeout(this._setTitle.bind(this), 1000);
 	}
 
-	async _init() {
+	private _init(): void {
 		const code = "# title: Hello\n\n out 'Hello, World!'";
 		this._addTab(false, null, code);
 	}
 
-	_bind() {
-		this._el.querySelector('.tab-plus')
-			.addEventListener('click', this.onAddTab.bind(this, 'bb'));
-		this._el.querySelector('.tab-plus-bf')
+	private _bind(): void {
+		this._el.querySelector('.tab-plus')!
+			.addEventListener('click', this.onAddTab.bind(this, 'bfx'));
+		this._el.querySelector('.tab-plus-bf')!
 			.addEventListener('click', this.onAddTab.bind(this, 'bf'));
 	}
 
-	_setTitle() {
+	private _setTitle(): void {
 		const activeTab = this._getActiveTab();
 		if (!activeTab) { return; }
 
+        const tabData = this._getTabData(activeTab);
+
 		const code = this._editor.getCode();
-		activeTab.querySelector('.tab-name').textContent = this.getTitle(code, activeTab.language);
+		activeTab.querySelector('.tab-name')!.textContent = this.getTitle(code, tabData.language);
 	}
 
-	getTitle(code, language) {
+	public getTitle(code: string, language: 'bf' | 'bfx') {
 		const defaultName = language === 'bf' ? 'untitled.bf' : 'untitled';
 		return MetaParser.getHeaderValue(code, 'title', defaultName);
 	}
 
-	_createTab(language, parent = null, code = '', input = '', editor = null) {
+	private _createTab(
+        language: 'bf' | 'bfx',
+        parent: HTMLElement | null = null,
+        code: string = '',
+        input: string = '',
+        editor: SerializedStateData | null = null
+    ): TabData {
 		const el = document.createElement('div');
 		const name = document.createElement('span');
 		const close = document.createElement('span');
@@ -140,7 +162,7 @@ export class TabManager {
 		name.classList.add('tab-name');
 		close.classList.add('tab-close');
 
-		name.textContent = this.getTitle(code);
+		name.textContent = this.getTitle(code, language);
 		close.textContent = 'x';
 
 		if (language === 'bf') {
@@ -156,14 +178,14 @@ export class TabManager {
 		if (parent) {
 			parent.after(el);
 		} else {
-			this._el.querySelector('.tab-plus').before(el);
+			this._el.querySelector('.tab-plus')!.before(el);
 		}
 
 		const tabId = this._tabIdCounter++;
 		if (editor) {
-			this._editor.setSerializableState(tabId, language, code, editor);
+			this._editor.setSerializableState(String(tabId), language, code, editor);
 		} else {
-			this._editor.addState(tabId, code, language);
+			this._editor.addState(String(tabId), code, language);
 		}
 
 		const tab = {
@@ -188,12 +210,12 @@ export class TabManager {
 		return tab;
 	}
 
-	_addTab(bf = false, parent = null, code = '', input = '') {
-		const tab = this._createTab(bf ? 'bf' : 'bb', parent, code, input);
+	private _addTab(bf: boolean = false, parent: HTMLElement | null = null, code = '', input = '') {
+		const tab = this._createTab(bf ? 'bf' : 'bfx', parent, code, input);
 		this._setActiveTab(tab.el);
 	}
 
-	_setActiveTab(el) {
+	private _setActiveTab(el: HTMLElement): void {
 		const activeTab = this._getActiveTab();
 		if (activeTab === el) { return; }
 
@@ -204,14 +226,14 @@ export class TabManager {
 
 		const tabData = this._getTabData(el);
 		this._setButtons(tabData.language);
-		this._editor.switchState(tabData.tabId);
+		this._editor.switchState(String(tabData.tabId));
 		this._input.set(tabData.input);
 		this._input.setActive(tabData.inputActive);
 
 		el.classList.add('--active');
 	}
 
-	_updateActiveTabData() {
+	private _updateActiveTabData(): void {
 		const activeTab = this._getActiveTab();
 
 		if (activeTab) {
@@ -221,11 +243,11 @@ export class TabManager {
 		}
 	}
 
-	_getChildTabs(el) {
+	private _getChildTabs(el: HTMLElement): HTMLElement[] {
 		const result = [];
 		let last = el;
 		while (true) {
-			const tab = last.nextElementSibling;
+			const tab = last.nextElementSibling as HTMLElement;
 			if (!tab.classList.contains('tab-subtab')) {
 				break;
 			}
@@ -236,21 +258,21 @@ export class TabManager {
 		return result;
 	}
 
-	_getActiveTab() {
+	private _getActiveTab(): HTMLElement | null {
 		return this._el.querySelector('.tab.--active');
 	}
 
-	_setButtons(language) {
+	private _setButtons(language: 'bf' | 'bfx'): void {
 		if (language === 'bf') {
-			document.querySelector('.buttons-bf').classList.add('--active');
-			document.querySelector('.buttons-bb').classList.remove('--active');
+			document.querySelector('.buttons-bf')!.classList.add('--active');
+			document.querySelector('.buttons-bb')!.classList.remove('--active');
 		} else {
-			document.querySelector('.buttons-bb').classList.add('--active');
-			document.querySelector('.buttons-bf').classList.remove('--active');
+			document.querySelector('.buttons-bb')!.classList.add('--active');
+			document.querySelector('.buttons-bf')!.classList.remove('--active');
 		}
 	}
 
-	_closeTab(el, e) {
+	private _closeTab(el: HTMLElement, e: MouseEvent | null = null): void {
 		e?.stopPropagation();
 
 		const children = this._getChildTabs(el);
@@ -265,9 +287,9 @@ export class TabManager {
 		const activeTab = this._getActiveTab();
 		if (activeTab === el) {
 			if (el.previousElementSibling) {
-				this._setActiveTab(el.previousElementSibling);
+				this._setActiveTab(el.previousElementSibling as HTMLElement);
 			} else if(el.nextElementSibling) {
-				this._setActiveTab(el.nextElementSibling);
+				this._setActiveTab(el.nextElementSibling as HTMLElement);
 			}
 		}
 
@@ -275,23 +297,23 @@ export class TabManager {
 		el.remove();
 	}
 
-	_getTabData(el) {
+	private _getTabData(el: HTMLElement): TabData {
 		for (const tab of this._tabData) {
 			if (tab.el === el) { return tab; }
 		}
-		return null;
+		throw new Error(`Tab ${el} not found`);
 	}
 
-	_removeTabData(el) {
-		for (const i in this._tabData) {
+	private _removeTabData(el: HTMLElement): void {
+        this._tabData.forEach((_: TabData, i: number) => {
 			if (this._tabData[i].el === el) {
 				this._editor.removeState(this._tabData[i].tabId);
 				this._tabData.splice(i, 1);
 			}
-		}
+		})
 	}
 
-	_closeAll() {
+	private _closeAll(): void {
 		for (const tab of this._tabData) {
 			tab.el.remove();
 		}

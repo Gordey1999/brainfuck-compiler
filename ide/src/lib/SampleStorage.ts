@@ -24,19 +24,19 @@ const files = [
 
 export class SampleStorage {
 
-	static list() {
+	static list(): string[] {
 		return files.map(file => file.name);
 	}
 
-	static async load(id) {
-		return await this._loadFile(files[id].url);
+	static async load(id: number) {
+		return await this.loadFile(files[id].url);
 	}
 
 	static async loadHomePage() {
 		return this.load(files.length - 1);
 	}
 
-	static async _loadFile(url) {
+	private static async loadFile(url: string) {
 		const response = await fetch(url);
 
 		if (!response.ok) {

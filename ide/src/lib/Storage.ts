@@ -1,4 +1,13 @@
 import localforage from "localforage"
+import {SaveState} from "../types";
+
+interface SaveSlot {
+    id: number;
+    name: string;
+    updatedAt: number;
+}
+
+type SlotsList = Record<number, SaveSlot>;
 
 export class Storage {
 	constructor() {
@@ -6,7 +15,7 @@ export class Storage {
 	}
 
 	async getSlots() {
-		let slots = await localforage.getItem('save_slots') || {};
+		let slots = await localforage.getItem<SlotsList>('save_slots') || {};
 
 		return Object.values(slots).map(slot => ({
 			id: slot.id,
@@ -16,10 +25,12 @@ export class Storage {
 		})).reverse();
 	}
 
-	async addSlot(slotName) {
+	async addSlot(slotName: string) {
 		try {
-			const slotsList = await localforage.getItem('save_slots') || {};
-			const newId = Math.max(0, ...Object.keys(slotsList)) + 1;
+			const slotsList = await localforage.getItem<SlotsList>('save_slots') || {};
+
+            const keysAsNumbers = Object.keys(slotsList).map(Number);
+            const newId = Math.max(0, ...keysAsNumbers) + 1;
 
 			slotsList[newId] = {
 				id: newId,
@@ -32,12 +43,13 @@ export class Storage {
 			return newId;
 		} catch (err) {
 			alert('Ошибка при сохранении:'+ err);
+            throw err;
 		}
 	}
 
-	async renameSlot(slotId, newName) {
+	async renameSlot(slotId: number, newName: string) {
 		try {
-			const slotsList = await localforage.getItem('save_slots') || {};
+			const slotsList = await localforage.getItem<SlotsList>('save_slots') || {};
 
 			slotsList[slotId].name = newName;
 			await localforage.setItem('save_slots', slotsList);
@@ -46,9 +58,9 @@ export class Storage {
 		}
 	}
 
-	async updateSlotTime(slotId, updatedAt) {
+	private async updateSlotTime(slotId: number, updatedAt: number) {
 		try {
-			const slotsList = await localforage.getItem('save_slots') || {};
+			const slotsList = await localforage.getItem<SlotsList>('save_slots') || {};
 
 			slotsList[slotId].updatedAt = updatedAt;
 			await localforage.setItem('save_slots', slotsList);
@@ -57,9 +69,9 @@ export class Storage {
 		}
 	}
 
-	async deleteSlot(slotId) {
+	async deleteSlot(slotId: number) {
 		try {
-			const slotsList = await localforage.getItem('save_slots') || {};
+			const slotsList = await localforage.getItem<SlotsList>('save_slots') || {};
 
 			delete slotsList[slotId];
 			await localforage.setItem('save_slots', slotsList);
@@ -70,9 +82,9 @@ export class Storage {
 		}
 	}
 
-	async save(slotId, data) {
+	async save(slotId: number, data: SaveState) {
 		try {
-			await localforage.setItem(`save_slot_${slotId}`, data);
+			await localforage.setItem<SaveState>(`save_slot_${slotId}`, data);
 
 			await this.updateSlotTime(slotId, Date.now());
 		} catch (err) {
@@ -80,15 +92,16 @@ export class Storage {
 		}
 	}
 
-	async load(slotId) {
+	async load(slotId: number): Promise<SaveState | null> {
 		try {
-			return await localforage.getItem(`save_slot_${slotId}`) || {};
+			return await localforage.getItem<SaveState>(`save_slot_${slotId}`);
 		} catch (err) {
 			alert('Ошибка при загрузке:'+ err);
+            throw err;
 		}
 	}
 
-	async saveCurrentSession(data) {
+	async saveCurrentSession(data: SaveState): Promise<void> {
 		try {
 			await localforage.setItem('last_session_state', data);
 		} catch (err) {
@@ -96,16 +109,16 @@ export class Storage {
 		}
 	}
 
-	async loadCurrentSession() {
+	async loadCurrentSession(): Promise<SaveState | null> {
 		try {
-			return await localforage.getItem('last_session_state') || null;
+			return await localforage.getItem<SaveState>('last_session_state') || null;
 		} catch (err) {
 			console.error('Ошибка загрузки сессии:', err);
 			return null;
 		}
 	}
 
-	_formatRelativeTime(timestamp) {
+	private _formatRelativeTime(timestamp: number) {
 		if (!timestamp) return 'never';
 
 		const msPerMinute = 60 * 1000;

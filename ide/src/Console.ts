@@ -1,27 +1,34 @@
 
+export type ConsoleStatus = 'running' | 'building' | 'stopped' | 'finished' | 'waiting' | 'need input' | 'error' | '';
 
 export class Console {
-	_buffer = [];
-	_streamIn = [];
+    private _buffer: string[] = [];
+    private _streamIn: string[] = [];
+    private _el: HTMLElement;
+    private _status: HTMLElement;
+    private _counter: HTMLElement;
 
-	constructor(el, status, counter) {
+    private _inputResolve: ((value: string[]) => void) | null = null;
+    private _useInputBuffer: boolean = true;
+    private _scrollPending: boolean = false;
+
+
+    constructor(el: HTMLElement, status: HTMLElement, counter: HTMLElement) {
 		this._el = el;
 		this._status = status;
 		this._counter = counter;
-		this._inputResolve = null;
-		this._useInputBuffer = true;
 
 		this.clear();
 		this.setStatus('TERMINAL');
 		this._bind();
 	}
 
-	_bind() {
+    private _bind(): void {
 		this._el.addEventListener('paste', this._onPaste);
 		this._el.addEventListener('keydown', this._onKey);
 	}
 
-	_onKey = (event) => {
+    private _onKey = (event: KeyboardEvent): void => {
 		if (event.ctrlKey || event.metaKey) { return; }
 		if (event.key === 'Enter') {
 			event.preventDefault();
@@ -35,8 +42,8 @@ export class Console {
 		}
 	}
 
-	_onPaste = (event) => {
-		const text = event.clipboardData.getData('text/plain');
+    private _onPaste = (event: ClipboardEvent): void => {
+		const text = event.clipboardData?.getData('text/plain') || '';
 		for (const i of text) {
 			if (i === '\n') {
 				this._enter();
@@ -46,13 +53,14 @@ export class Console {
 		}
 	}
 
-	_backspace() {
+    private _backspace(): void {
 		if (this._buffer.length === 0) { return; }
 		this._buffer.pop();
-		this._el.textContent = this._el.textContent.slice(0, -1);
+        const currentText = this._el.textContent || '';
+        this._el.textContent = currentText.slice(0, -1);
 	}
 
-	_input(char) {
+    private _input(char: string): void {
 		this._render(char);
 		this._buffer.push(char);
 
@@ -63,7 +71,7 @@ export class Console {
 		}
 	}
 
-	_enter() {
+    private _enter(): void {
 		this._buffer.push('\n');
 		this._streamIn.push(...this._buffer);
 		this._buffer = [];
@@ -72,8 +80,8 @@ export class Console {
 		this._scrollToEnd();
 	}
 
-	_render(text) {
-		let content = this._el.textContent;
+    private _render(text: string): void {
+		let content = this._el.textContent || '';
 
 		content += text;
 
@@ -84,7 +92,7 @@ export class Console {
 		this._el.textContent = content;
 	}
 
-	_resolveInput() {
+    private _resolveInput(): void {
 		if (this._inputResolve) {
 			this._inputResolve(this._streamIn);
 			this._streamIn = [];
@@ -92,7 +100,7 @@ export class Console {
 		this._inputResolve = null;
 	}
 
-	readInput() {
+    public readInput(): Promise<string[]> {
 		this.setStatus('need input');
 
 		if (this._streamIn.length > 0) {
@@ -106,7 +114,7 @@ export class Console {
 		});
 	}
 
-	setStatus(status = '') {
+    public setStatus(status: ConsoleStatus | string = ''): void {
 		this._status.classList.remove('--loading', '--warning', '--error');
 
 		switch (status) {
@@ -140,25 +148,26 @@ export class Console {
 		}
 	}
 
-	setCommandsCount(count) {
+    public setCommandsCount(count: number): void {
 		if (count === 0) {
 			this._counter.textContent = '';
+            return;
 		}
 
 		const number = Number(count).toLocaleString("en-US");
 		this._counter.textContent = number + ' cmds';
 	}
 
-	echo(text) {
+    public echo(text: string): void {
 		this._render(text);
 		this._scrollToEnd();
 	}
 
-	stop() {
+    public stop(): void {
 		this._resolveInput();
 	}
 
-	clear() {
+    public clear(): void {
 		this.stop();
 		this._streamIn = [];
 		this._el.textContent = '';
@@ -166,19 +175,20 @@ export class Console {
 		this.setStatus();
 	}
 
-	showError(message) {
+    public showError(message: string): void {
 		this.setStatus('error');
-		if (this._el.textContent.length > 0) {
+        const currentLength = this._el.textContent?.length || 0;
+		if (currentLength > 0) {
 			this.echo('\n');
 		}
 		this.echo(message + '\n');
 	}
 
-	setUseInputBuffer(value = true) {
+    public setUseInputBuffer(value: boolean = true): void {
 		this._useInputBuffer = value;
 	}
 
-	setColor(color = null) {
+    public setColor(color: string | null = null): void {
 		if (color) {
 			document.body.style.setProperty('--console-color', color);
 		}
@@ -187,11 +197,11 @@ export class Console {
 		}
 	}
 
-	captureFocus() {
+    public captureFocus(): void {
 		this._el.focus();
 	}
 
-	_scrollToEnd() {
+    private _scrollToEnd(): void {
 		if (!this._scrollPending) {
 			this._scrollPending = true;
 			requestAnimationFrame(() => {

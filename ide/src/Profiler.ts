@@ -1,22 +1,28 @@
-import {numberToCharPretty} from "./lib/CharConverter.mjs";
+import {numberToCharPretty} from "./lib/CharConverter";
+
+interface MemoryLabel {
+	line: number;
+	address: number;
+	label: string;
+}
 
 export class Profiler {
-	_pointer = 0;
-	_pointedCell = null;
-	_storage = null;
-	_labels = null;
-	_labelsMap = null;
-	_changed = [];
+	private _pointedCell: HTMLElement | null = null;
+	private _storage: Uint8Array;
+	private _labels: (string | null)[];
+	private _labelsMap: MemoryLabel[] = [];
+	private _changed: HTMLElement[] = [];
+	private _el: HTMLElement;
 
-	constructor(el, storageSize) {
+	constructor(el: HTMLElement, storageSize: number) {
 		this._el = el;
-		this._storage = Array(storageSize).fill(0);
+		this._storage = new Uint8Array(storageSize).fill(0);
 		this._labels = Array(storageSize).fill(null);
 		this._build();
 		this._movePointer(0);
 	}
 
-	_build() {
+	private _build(): void {
 		const size = this._storage.length;
 		for (let i = 0; i < size; i++) {
 			const cell = document.createElement("div");
@@ -40,17 +46,16 @@ export class Profiler {
 			cell.appendChild(char);
 			cell.appendChild(value);
 
-			addressValue.textContent = i;
+			addressValue.textContent = String(i);
 
 			this._el.appendChild(cell);
 			this._renderValue(i, 0);
 		}
 	}
 
-	_initLabels(code) {
+    private _initLabels(code: string): void {
 		const lines = code.split("\n");
-
-		const result = [];
+        const result: MemoryLabel[] = [];
 
 		for (let i = 0; i < lines.length; i++) {
 			const matches = lines[i].match(/^\s*#\s*@memory(.*)/);
@@ -71,7 +76,7 @@ export class Profiler {
 		this._labelsMap = result;
 	}
 
-	reset(code) {
+    public reset(code: string): void {
 		this._initLabels(code);
 		this._movePointer(0);
 		this._clearChanged();
@@ -79,7 +84,7 @@ export class Profiler {
 		this._renderLabels(this._labels.slice().fill(null));
 	}
 
-	render(storage, pointer, position) {
+    public render(storage: ArrayLike<number>, pointer: number, position: [number, number] | null): void {
 		const labels = this._calculateLabels(position)
 		this._renderLabels(labels);
 		this._clearChanged();
@@ -87,9 +92,9 @@ export class Profiler {
 		this._movePointer(pointer);
 	}
 
-	_calculateLabels(position) {
+    private _calculateLabels(position: [number, number] | null): (string | null)[] {
 		const currentLine = position !== null ? position[0] : Number.MAX_SAFE_INTEGER;
-		const labels = Array(this._labels.length).fill(null);
+        const labels = Array<string | null>(this._labels.length).fill(null);
 		for (const row of this._labelsMap) {
 			if (row.line > currentLine) { break; }
 
@@ -99,7 +104,7 @@ export class Profiler {
 		return labels;
 	}
 
-	_renderLabels(labels) {
+    private _renderLabels(labels: (string | null)[]): void {
 		const count = this._labels.length;
 		for (let i = 0; i < count; i++) {
 			if (this._labels[i] !== labels[i]) {
@@ -110,15 +115,15 @@ export class Profiler {
 		}
 	}
 
-	_renderLabel(i, value) {
-		const child = this._el.children[i];
+    private _renderLabel(i: number, value: string | null): void {
+        const child = this._el.children[i] as HTMLElement | undefined;
 		if (child) {
-			const valueEl = child.querySelector('.tracing-address-label');
+			const valueEl = child.querySelector('.tracing-address-label') as HTMLElement;
 			valueEl.textContent = value === null ? '' : value;
 		}
 	}
 
-	_renderValues(storage, markChanged = true) {
+    private _renderValues(storage: ArrayLike<number>, markChanged: boolean = true): void {
 		const count = this._storage.length;
 		for (let i = 0; i < count; i++) {
 			if (this._storage[i] !== storage[i]) {
@@ -132,43 +137,42 @@ export class Profiler {
 		}
 	}
 
-	_clearChanged() {
+    private _clearChanged(): void {
 		for (const el of this._changed) {
-			const valueEl = el.querySelector('.tracing-value');
+			const valueEl = el.querySelector('.tracing-value') as HTMLElement;
 			valueEl.classList.remove('--changed');
 		}
 		this._changed = [];
 	}
 
-	_setChanged(i) {
-		const child = this._el.children[i];
+    private _setChanged(i: number): void {
+		const child = this._el.children[i] as HTMLElement;
 		if (child) {
-			const valueEl = child.querySelector('.tracing-value');
+			const valueEl = child.querySelector('.tracing-value') as HTMLElement;
 			valueEl.classList.add('--changed');
 			this._changed.push(child);
 		}
 	}
 
-	_renderValue(i, value) {
-		const child = this._el.children[i];
+    private _renderValue(i: number, value: number): void {
+		const child = this._el.children[i] as HTMLElement | undefined;
 		if (child) {
-			const valueEl = child.querySelector('.tracing-value');
-			valueEl.textContent = value;
-			child.querySelector('.tracing-char').textContent = numberToCharPretty(value);
+			const valueEl = child.querySelector('.tracing-value') as HTMLElement;
+			valueEl.textContent = String(value);
+			child.querySelector('.tracing-char')!.textContent = numberToCharPretty(value);
 
 			valueEl.classList.toggle('--empty', value === 0);
 		}
 	}
 
-	_movePointer(address) {
+    private _movePointer(address: number): void {
 		if (this._pointedCell !== null) {
 			this._pointedCell.classList.remove('--active');
 			this._pointedCell = null;
 		}
 
-		this._pointer = address;
 		if (address >= 0 && address < this._storage.length) {
-			this._pointedCell = this._el.children[address];
+			this._pointedCell = this._el.children[address] as HTMLElement;
 			this._pointedCell.classList.add('--active');
 		}
 	}

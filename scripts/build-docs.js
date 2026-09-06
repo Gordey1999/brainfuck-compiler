@@ -3,8 +3,8 @@ import path from 'path';
 import MarkdownIt from 'markdown-it';
 import markdownItAnchor from 'markdown-it-anchor';
 import { DocHighlighter } from './DocHighlighter.js';
-import {bfLanguage, bfHighlight} from '../ide/src/lib/bf-lang.mjs';
-import {bfxLanguage, bfxHighlight} from '../ide/src/lib/bfx-lang.mjs';
+import {bfLanguage, bfHighlight} from '../ide/src/lib/highlight/bf-lang.ts';
+import {bfxLanguage, bfxHighlight} from '../ide/src/lib/highlight/bfx-lang.ts';
 
 // npm run build:docs
 
